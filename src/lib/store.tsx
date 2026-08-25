@@ -106,7 +106,7 @@ export function parseYouTubeId(url: string): string | null {
   const match = url.match(
     /(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([A-Za-z0-9_-]{6,})/,
   );
-  return match ? match[1] : null;
+  return match?.[1] ?? null;
 }
 
 /**
@@ -116,7 +116,7 @@ export function parseYouTubeId(url: string): string | null {
  */
 export function parseYouTubeChannel(url: string): string | null {
   const handle = url.match(/@([A-Za-z0-9_.-]+)/);
-  return handle ? `@${handle[1]}` : null;
+  return handle?.[1] ? `@${handle[1]}` : null;
 }
 
 export function StoreProvider({ children }: { children: ReactNode }) {
@@ -346,7 +346,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       const next = idx + dir;
       if (idx < 0 || next < 0 || next >= prev.length) return prev;
       const copy = [...prev];
-      [copy[idx], copy[next]] = [copy[next], copy[idx]];
+      const a = copy[idx]!;
+      const b = copy[next]!;
+      copy[idx] = b;
+      copy[next] = a;
       return copy;
     });
   }, []);
@@ -373,7 +376,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       const next = idx + dir;
       if (idx < 0 || next < 0 || next >= prev.length) return prev;
       const copy = [...prev];
-      [copy[idx], copy[next]] = [copy[next], copy[idx]];
+      const a = copy[idx]!;
+      const b = copy[next]!;
+      copy[idx] = b;
+      copy[next] = a;
       return copy;
     });
   }, []);
