@@ -1,24 +1,60 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-// No head() here: the home route inherits title/description/og/twitter from
-// __root.tsx, and ships no og:image so serve-time hosting can inject the
-// project's social preview (explicit og:image or latest screenshot).
+import { Hero } from "@/components/site/Hero";
+import { ProductCard } from "@/components/site/ProductCard";
+import { Reveal } from "@/components/site/Reveal";
+import { SiteLayout } from "@/components/site/SiteLayout";
+import { Testimonials } from "@/components/site/Testimonials";
+import { VideoSection } from "@/components/site/VideoSection";
+import { useStore } from "@/lib/store";
+
 export const Route = createFileRoute("/")({
-  component: Index,
+  head: () => ({
+    meta: [
+      { title: "OPTIQUE — Premium Eyeglasses & Contact Lenses" },
+      {
+        name: "description",
+        content:
+          "Hand-finished acetate and titanium frames plus optician-approved contact lenses, fitted in store and delivered nationwide.",
+      },
+      { property: "og:title", content: "OPTIQUE — Premium Eyeglasses & Contact Lenses" },
+      {
+        property: "og:description",
+        content: "A short, considered range of frames and lenses, fitted by opticians.",
+      },
+    ],
+  }),
+  component: HomePage,
 });
 
-// IMPORTANT: Replace this placeholder. See ./README.md for routing conventions.
-function Index() {
+function HomePage() {
+  const { products } = useStore();
+  const featured = products.filter((p) => p.featured).slice(0, 4);
+
   return (
-    <div
-      className="flex min-h-screen items-center justify-center"
-      style={{ backgroundColor: "#fcfbf8" }}
-    >
-      <img
-        data-lovable-blank-page-placeholder="REMOVE_THIS"
-        src="https://cdn.gpteng.co/blank-app-v1.svg"
-        alt="Your app will live here!"
-      />
-    </div>
+    <SiteLayout>
+      <Hero />
+
+      <section className="lens-halo bg-background py-20">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6">
+          <Reveal>
+            <p className="eyebrow text-gold">Bestsellers</p>
+            <h2 className="mt-3 max-w-lg font-display text-3xl sm:text-4xl">
+              The frames and lenses our opticians reach for first
+            </h2>
+          </Reveal>
+          <div className="mt-10 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            {featured.map((p, i) => (
+              <Reveal key={p.id} delay={i * 70}>
+                <ProductCard product={p} />
+              </Reveal>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <Testimonials />
+      <VideoSection />
+    </SiteLayout>
   );
 }
