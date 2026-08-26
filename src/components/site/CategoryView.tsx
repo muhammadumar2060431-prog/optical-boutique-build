@@ -1,6 +1,4 @@
 import { useMemo, useState } from "react";
-import { Link } from "@tanstack/react-router";
-
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useStore } from "@/lib/store";
 import type { Category } from "@/lib/types";
@@ -48,12 +46,12 @@ export function CategoryView({ category }: { category: Category }) {
                 {category.banner.heading}
               </h1>
               <p className="text-sm text-cream/75 sm:text-base">{category.banner.subtext}</p>
-              <Link
-                to={category.banner.ctaLink}
+              <a
+                href={category.banner.ctaLink}
                 className="inline-flex min-h-11 items-center rounded-full bg-gold px-6 text-xs tracking-[0.18em] uppercase text-primary-foreground transition-opacity hover:opacity-90"
               >
                 {category.banner.ctaText}
-              </Link>
+              </a>
             </div>
           </div>
         </section>
