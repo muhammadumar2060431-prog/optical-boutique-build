@@ -17,7 +17,7 @@ import { useStore } from "@/lib/store";
 import type { Order, OrderStatus } from "@/lib/types";
 
 export const Route = createFileRoute("/admin/orders")({
-  component: AdminOrders;
+  component: AdminOrders,
 });
 
 const statuses: OrderStatus[] = ["New", "Contacted", "Completed", "Cancelled"];
