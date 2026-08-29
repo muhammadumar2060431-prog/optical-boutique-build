@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { Menu, MessageCircle, ShoppingBag, X } from "lucide-react";
 
+import { useCart } from "@/lib/cart";
 import { useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { whatsappLink } from "@/lib/whatsapp";
