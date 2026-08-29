@@ -6,7 +6,7 @@ export function whatsappLink(number: string, message: string) {
 export function productEnquiryMessage(opts: {
   storeName: string;
   productName: string;
-  variantLabel?: string | null;
+  variantLabel?: string | null | undefined;
   url: string;
 }) {
   const variant = opts.variantLabel ? ` (${opts.variantLabel})` : "";
