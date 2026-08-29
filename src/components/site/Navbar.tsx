@@ -18,6 +18,7 @@ const links = [
 
 export function Navbar() {
   const { settings } = useStore();
+  const { count } = useCart();
   const [scrolled, setScrolled] = useState(false);
   const [openMenu, setOpenMenu] = useState(false);
 
