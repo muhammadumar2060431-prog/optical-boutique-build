@@ -91,6 +91,7 @@ function AdminOrders() {
             <SelectItem value="all">All sources</SelectItem>
             <SelectItem value="whatsapp">WhatsApp</SelectItem>
             <SelectItem value="form">Contact form</SelectItem>
+            <SelectItem value="cart">Checkout</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -131,7 +132,11 @@ function AdminOrders() {
                   </td>
                   <td className="px-4 py-3">
                     <Badge variant={o.source === "whatsapp" ? "default" : "secondary"}>
-                      {o.source === "whatsapp" ? "WhatsApp" : "Form"}
+                      {o.source === "whatsapp"
+                        ? "WhatsApp"
+                        : o.source === "cart"
+                          ? "Checkout"
+                          : "Form"}
                     </Badge>
                   </td>
                   <td className="px-4 py-3">
