@@ -42,7 +42,7 @@ export interface Category {
   banner: CategoryBanner | null;
 }
 
-export type OrderSource = "whatsapp" | "form";
+export type OrderSource = "whatsapp" | "form" | "cart";
 export type OrderStatus = "New" | "Contacted" | "Completed" | "Cancelled";
 
 export interface Order {

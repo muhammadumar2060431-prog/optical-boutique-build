@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { Menu, MessageCircle, ShoppingBag, X } from "lucide-react";
 
+import { useCart } from "@/lib/cart";
 import { useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { whatsappLink } from "@/lib/whatsapp";
@@ -18,6 +19,7 @@ const links = [
 
 export function Navbar() {
   const { settings } = useStore();
+  const { count } = useCart();
   const [scrolled, setScrolled] = useState(false);
   const [openMenu, setOpenMenu] = useState(false);
 
@@ -76,11 +78,16 @@ export function Navbar() {
             <MessageCircle className="h-4 w-4" />
           </a>
           <Link
-            to="/contact" search={{ product: undefined }}
-            aria-label="Enquiry list"
-            className="grid h-11 w-11 place-items-center rounded-full border border-white/15 text-cream transition-colors hover:border-gold hover:text-gold"
+            to="/cart"
+            aria-label={`Shopping bag, ${count} item${count === 1 ? "" : "s"}`}
+            className="relative grid h-11 w-11 place-items-center rounded-full border border-white/15 text-cream transition-colors hover:border-gold hover:text-gold"
           >
             <ShoppingBag className="h-4 w-4" />
+            {count > 0 && (
+              <span className="absolute -top-1 -right-1 grid h-5 min-w-5 place-items-center rounded-full bg-gold px-1 text-[10px] font-semibold text-primary-foreground">
+                {count}
+              </span>
+            )}
           </Link>
           <button
             type="button"

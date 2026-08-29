@@ -1,12 +1,15 @@
 import { useMemo, useState } from "react";
-import { Link, createFileRoute, useParams } from "@tanstack/react-router";
-import { MessageCircle } from "lucide-react";
+import { Link, createFileRoute, useNavigate, useParams } from "@tanstack/react-router";
+import { MessageCircle, ShoppingBag } from "lucide-react";
+
+import { toast } from "sonner";
 
 import { ProductCard } from "@/components/site/ProductCard";
 import { Reveal } from "@/components/site/Reveal";
 import { SiteLayout } from "@/components/site/SiteLayout";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useCart } from "@/lib/cart";
 import { formatPrice, useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { productEnquiryMessage, whatsappLink } from "@/lib/whatsapp";
@@ -41,6 +44,8 @@ function ProductPage() {
     settings,
   } = useStore();
 
+  const { addItem } = useCart();
+  const navigate = useNavigate();
   const product = getProductBySlug(slug);
   const [variantId, setVariantId] = useState<string | null>(product?.variants[0]?.id ?? null);
   const [activeImage, setActiveImage] = useState<string | null>(null);
@@ -199,11 +204,28 @@ function ProductPage() {
                   Currently unavailable
                 </Button>
               ) : (
-                <Button asChild size="lg" className="min-h-12 rounded-full px-8">
-                  <a href={waHref} target="_blank" rel="noreferrer" onClick={recordIntent}>
-                    <MessageCircle className="mr-2 h-4 w-4" /> Order on WhatsApp
-                  </a>
-                </Button>
+                <>
+                  <Button
+                    size="lg"
+                    className="min-h-12 rounded-full px-8"
+                    onClick={() => {
+                      addItem(product, variant);
+                      toast.success(`${product.name} added to your bag`, {
+                        action: {
+                          label: "View bag",
+                          onClick: () => void navigate({ to: "/cart" }),
+                        },
+                      });
+                    }}
+                  >
+                    <ShoppingBag className="mr-2 h-4 w-4" /> Add to bag
+                  </Button>
+                  <Button asChild size="lg" variant="outline" className="min-h-12 rounded-full px-8">
+                    <a href={waHref} target="_blank" rel="noreferrer" onClick={recordIntent}>
+                      <MessageCircle className="mr-2 h-4 w-4" /> Order on WhatsApp
+                    </a>
+                  </Button>
+                </>
               )}
               <Link
                 to="/contact"
