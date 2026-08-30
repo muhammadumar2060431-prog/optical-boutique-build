@@ -23,9 +23,9 @@ export const Route = createFileRoute("/")({
         content: "A short, considered range of frames and lenses, fitted by opticians.",
       },
       { property: "og:type", content: "website" },
-      { property: "og:url", content: "https://optical-boutique-build.lovable.app" },
+      { property: "og:url", content: "https://optical-boutique-build.lovable.app/" },
     ],
-    links: [{ rel: "canonical", href: "https://optical-boutique-build.lovable.app" }],
+    links: [{ rel: "canonical", href: "https://optical-boutique-build.lovable.app/" }],
   }),
   component: HomePage,
 });
