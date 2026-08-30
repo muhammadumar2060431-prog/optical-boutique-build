@@ -107,6 +107,11 @@ const StoreContext = createContext<StoreApi | null>(null);
 const uid = (prefix: string) => `${prefix}-${Math.random().toString(36).slice(2, 9)}`;
 const nowIso = () => new Date().toISOString();
 
+/** Customer-facing order reference, e.g. "OPT-482915". */
+export function newOrderReference() {
+  return `OPT-${Math.floor(100000 + Math.random() * 900000)}`;
+}
+
 /** Extracts a YouTube video id from most common URL shapes. */
 export function parseYouTubeId(url: string): string | null {
   const match = url.match(
@@ -467,6 +472,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       productStock,
       stockStatus,
       addOrder,
+      getOrdersByReference,
       setOrderStatus,
       saveProduct,
       deleteProduct,
@@ -509,6 +515,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       productStock,
       stockStatus,
       addOrder,
+      getOrdersByReference,
       setOrderStatus,
       saveProduct,
       deleteProduct,
