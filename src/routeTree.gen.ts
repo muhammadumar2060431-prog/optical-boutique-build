@@ -18,6 +18,7 @@ import { Route as ContactRouteImport } from './routes/contact'
 import { Route as GlassesRouteImport } from './routes/glasses'
 import { Route as LensesRouteImport } from './routes/lenses'
 import { Route as OrderStatusRouteImport } from './routes/order-status'
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as AdminContentRouteImport } from './routes/admin.content'
 import { Route as AdminInventoryRouteImport } from './routes/admin.inventory'
@@ -71,6 +72,11 @@ const LensesRoute = LensesRouteImport.update({
 const OrderStatusRoute = OrderStatusRouteImport.update({
   id: '/order-status',
   path: '/order-status',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminIndexRoute = AdminIndexRouteImport.update({
@@ -129,6 +135,7 @@ export interface FileRoutesByFullPath {
   '/glasses': typeof GlassesRoute
   '/lenses': typeof LensesRoute
   '/order-status': typeof OrderStatusRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/admin/content': typeof AdminContentRoute
   '/admin/inventory': typeof AdminInventoryRoute
   '/admin/orders': typeof AdminOrdersRoute
@@ -148,6 +155,7 @@ export interface FileRoutesByTo {
   '/glasses': typeof GlassesRoute
   '/lenses': typeof LensesRoute
   '/order-status': typeof OrderStatusRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/admin/content': typeof AdminContentRoute
   '/admin/inventory': typeof AdminInventoryRoute
   '/admin/orders': typeof AdminOrdersRoute
@@ -169,6 +177,7 @@ export interface FileRoutesById {
   '/glasses': typeof GlassesRoute
   '/lenses': typeof LensesRoute
   '/order-status': typeof OrderStatusRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/admin/content': typeof AdminContentRoute
   '/admin/inventory': typeof AdminInventoryRoute
   '/admin/orders': typeof AdminOrdersRoute
@@ -191,6 +200,7 @@ export interface FileRouteTypes {
     | '/glasses'
     | '/lenses'
     | '/order-status'
+    | '/sitemap.xml'
     | '/admin/content'
     | '/admin/inventory'
     | '/admin/orders'
@@ -210,6 +220,7 @@ export interface FileRouteTypes {
     | '/glasses'
     | '/lenses'
     | '/order-status'
+    | '/sitemap.xml'
     | '/admin/content'
     | '/admin/inventory'
     | '/admin/orders'
@@ -230,6 +241,7 @@ export interface FileRouteTypes {
     | '/glasses'
     | '/lenses'
     | '/order-status'
+    | '/sitemap.xml'
     | '/admin/content'
     | '/admin/inventory'
     | '/admin/orders'
@@ -251,6 +263,7 @@ export interface RootRouteChildren {
   GlassesRoute: typeof GlassesRoute
   LensesRoute: typeof LensesRoute
   OrderStatusRoute: typeof OrderStatusRoute
+  SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   CategorySlugRoute: typeof CategorySlugRoute
   ProductSlugRoute: typeof ProductSlugRoute
 }
@@ -318,6 +331,13 @@ declare module '@tanstack/react-router' {
       path: '/order-status'
       fullPath: '/order-status'
       preLoaderRoute: typeof OrderStatusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/': {
@@ -418,6 +438,7 @@ const rootRouteChildren: RootRouteChildren = {
   GlassesRoute: GlassesRoute,
   LensesRoute: LensesRoute,
   OrderStatusRoute: OrderStatusRoute,
+  SitemapDotxmlRoute: SitemapDotxmlRoute,
   CategorySlugRoute: CategorySlugRoute,
   ProductSlugRoute: ProductSlugRoute,
 }
