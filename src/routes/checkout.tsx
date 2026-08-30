@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useCart } from "@/lib/cart";
-import { formatPrice, useStore } from "@/lib/store";
+import { formatPrice, newOrderReference, useStore } from "@/lib/store";
 
 export const Route = createFileRoute("/checkout")({
   head: () => ({
@@ -60,7 +60,7 @@ function CheckoutPage() {
     event.preventDefault();
     if (!validate() || items.length === 0) return;
 
-    const reference = `OPT-${Date.now().toString().slice(-6)}`;
+    const reference = newOrderReference();
     for (const item of items) {
       addOrder({
         customerName: name.trim(),
@@ -75,6 +75,7 @@ function CheckoutPage() {
         ]
           .filter(Boolean)
           .join(" "),
+        reference,
         source: "cart",
       });
     }
@@ -91,7 +92,15 @@ function CheckoutPage() {
           <p className="mt-3 text-sm text-ink-muted">
             Reference <span className="font-semibold text-ink">{placed}</span>. Thanks — an
             optician will confirm availability and delivery with you shortly on WhatsApp or email.
+            Keep this reference — you can check progress any time on the order status page.
           </p>
+          <Link
+            to="/order-status"
+            search={{ ref: placed }}
+            className="mt-6 inline-flex min-h-11 items-center rounded-full border border-stone px-6 text-xs tracking-[0.18em] uppercase transition-colors hover:border-gold hover:text-gold"
+          >
+            Track this order
+          </Link>
           <Link
             to="/"
             className="mt-8 inline-flex min-h-11 items-center rounded-full bg-gold px-6 text-xs tracking-[0.18em] uppercase text-primary-foreground"
