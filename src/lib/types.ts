@@ -47,6 +47,8 @@ export type OrderStatus = "New" | "Contacted" | "Completed" | "Cancelled";
 
 export interface Order {
   id: ID;
+  /** Customer-facing lookup code, e.g. "OPT-204118". */
+  reference: string;
   createdAt: string;
   customerName: string;
   contact: string;

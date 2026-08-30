@@ -72,7 +72,13 @@ interface StoreApi extends StoreState {
   productStock: (product: Product) => number;
   stockStatus: (qty: number) => StockStatus;
   /* writes */
-  addOrder: (order: Omit<Order, "id" | "createdAt" | "status" | "stockDeducted">) => Order;
+  addOrder: (
+    order: Omit<Order, "id" | "createdAt" | "status" | "stockDeducted" | "reference"> & {
+      reference?: string;
+    },
+  ) => Order;
+  /** Customer-facing lookup: every order sharing one reference code. */
+  getOrdersByReference: (reference: string) => Order[];
   setOrderStatus: (orderId: string, status: OrderStatus) => void;
   saveProduct: (product: Product) => void;
   deleteProduct: (id: string) => void;
@@ -100,6 +106,11 @@ const StoreContext = createContext<StoreApi | null>(null);
 
 const uid = (prefix: string) => `${prefix}-${Math.random().toString(36).slice(2, 9)}`;
 const nowIso = () => new Date().toISOString();
+
+/** Customer-facing order reference, e.g. "OPT-482915". */
+export function newOrderReference() {
+  return `OPT-${Math.floor(100000 + Math.random() * 900000)}`;
+}
 
 /** Extracts a YouTube video id from most common URL shapes. */
 export function parseYouTubeId(url: string): string | null {
@@ -258,6 +269,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const addOrder = useCallback<StoreApi["addOrder"]>((data) => {
     const order: Order = {
       ...data,
+      reference: data.reference?.trim() || newOrderReference(),
       id: uid("ord"),
       createdAt: nowIso(),
       status: "New",
@@ -266,6 +278,15 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setOrders((prev) => [order, ...prev]);
     return order;
   }, []);
+
+  const getOrdersByReference = useCallback<StoreApi["getOrdersByReference"]>(
+    (reference) => {
+      const needle = reference.trim().toLowerCase();
+      if (!needle) return [];
+      return orders.filter((o) => o.reference.toLowerCase() === needle);
+    },
+    [orders],
+  );
 
   const setOrderStatus = useCallback<StoreApi["setOrderStatus"]>(
     (orderId, status) => {
@@ -451,6 +472,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       productStock,
       stockStatus,
       addOrder,
+      getOrdersByReference,
       setOrderStatus,
       saveProduct,
       deleteProduct,
@@ -493,6 +515,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       productStock,
       stockStatus,
       addOrder,
+      getOrdersByReference,
       setOrderStatus,
       saveProduct,
       deleteProduct,

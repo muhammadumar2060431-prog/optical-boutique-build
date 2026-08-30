@@ -27,7 +27,10 @@ export const Route = createFileRoute("/contact")({
         property: "og:description",
         content: "Reach our opticians on WhatsApp, by phone or through the enquiry form.",
       },
+      { property: "og:type", content: "website" },
+      { property: "og:url", content: "https://optical-boutique-build.lovable.app/contact" },
     ],
+    links: [{ rel: "canonical", href: "https://optical-boutique-build.lovable.app/contact" }],
   }),
   component: ContactPage,
 });

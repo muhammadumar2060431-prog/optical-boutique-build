@@ -178,6 +178,7 @@ export const seedProducts: Product[] = [
 export const seedOrders: Order[] = [
   {
     id: "ord-1001",
+    reference: "OPT-204118",
     createdAt: "2026-08-22T09:12:00.000Z",
     customerName: "Ayesha Khan",
     contact: "+92 300 1234567",
@@ -192,6 +193,7 @@ export const seedOrders: Order[] = [
   },
   {
     id: "ord-1002",
+    reference: "OPT-198744",
     createdAt: "2026-08-20T15:40:00.000Z",
     customerName: "Bilal Ahmed",
     contact: "bilal.ahmed@example.com",
@@ -206,6 +208,7 @@ export const seedOrders: Order[] = [
   },
   {
     id: "ord-1003",
+    reference: "OPT-186320",
     createdAt: "2026-08-17T11:05:00.000Z",
     customerName: "Sana Yousuf",
     contact: "+92 321 9876543",
@@ -220,6 +223,7 @@ export const seedOrders: Order[] = [
   },
   {
     id: "ord-1004",
+    reference: "OPT-175509",
     createdAt: "2026-08-12T18:22:00.000Z",
     customerName: "Hamza Iqbal",
     contact: "hamza@example.com",

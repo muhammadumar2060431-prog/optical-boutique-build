@@ -20,7 +20,10 @@ export const Route = createFileRoute("/about")({
         property: "og:description",
         content: "A small optical house with a workshop, not a warehouse.",
       },
+      { property: "og:type", content: "website" },
+      { property: "og:url", content: "https://optical-boutique-build.lovable.app/about" },
     ],
+    links: [{ rel: "canonical", href: "https://optical-boutique-build.lovable.app/about" }],
   }),
   component: AboutPage,
 });
