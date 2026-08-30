@@ -18,7 +18,10 @@ export const Route = createFileRoute("/lenses")({
         property: "og:description",
         content: "Optician-approved contact lenses with honest fitting advice.",
       },
+      { property: "og:type", content: "website" },
+      { property: "og:url", content: "https://optical-boutique-build.lovable.app/lenses" },
     ],
+    links: [{ rel: "canonical", href: "https://optical-boutique-build.lovable.app/lenses" }],
   }),
   component: LensesPage,
 });

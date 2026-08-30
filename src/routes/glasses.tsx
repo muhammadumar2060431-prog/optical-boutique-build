@@ -18,7 +18,10 @@ export const Route = createFileRoute("/glasses")({
         property: "og:description",
         content: "Browse the OPTIQUE frame collection: acetate, titanium and rimless.",
       },
+      { property: "og:type", content: "website" },
+      { property: "og:url", content: "https://optical-boutique-build.lovable.app/glasses" },
     ],
+    links: [{ rel: "canonical", href: "https://optical-boutique-build.lovable.app/glasses" }],
   }),
   component: GlassesPage,
 });
