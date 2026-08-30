@@ -72,7 +72,13 @@ interface StoreApi extends StoreState {
   productStock: (product: Product) => number;
   stockStatus: (qty: number) => StockStatus;
   /* writes */
-  addOrder: (order: Omit<Order, "id" | "createdAt" | "status" | "stockDeducted">) => Order;
+  addOrder: (
+    order: Omit<Order, "id" | "createdAt" | "status" | "stockDeducted" | "reference"> & {
+      reference?: string;
+    },
+  ) => Order;
+  /** Customer-facing lookup: every order sharing one reference code. */
+  getOrdersByReference: (reference: string) => Order[];
   setOrderStatus: (orderId: string, status: OrderStatus) => void;
   saveProduct: (product: Product) => void;
   deleteProduct: (id: string) => void;
