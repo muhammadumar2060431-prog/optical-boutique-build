@@ -264,6 +264,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const addOrder = useCallback<StoreApi["addOrder"]>((data) => {
     const order: Order = {
       ...data,
+      reference: data.reference?.trim() || newOrderReference(),
       id: uid("ord"),
       createdAt: nowIso(),
       status: "New",
@@ -272,6 +273,15 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setOrders((prev) => [order, ...prev]);
     return order;
   }, []);
+
+  const getOrdersByReference = useCallback<StoreApi["getOrdersByReference"]>(
+    (reference) => {
+      const needle = reference.trim().toLowerCase();
+      if (!needle) return [];
+      return orders.filter((o) => o.reference.toLowerCase() === needle);
+    },
+    [orders],
+  );
 
   const setOrderStatus = useCallback<StoreApi["setOrderStatus"]>(
     (orderId, status) => {
