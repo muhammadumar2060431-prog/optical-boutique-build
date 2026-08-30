@@ -41,12 +41,12 @@ const statusCopy: Record<OrderStatus, { label: string; note: string; tone: strin
   New: {
     label: "Received",
     note: "We have your order and an optician will confirm availability shortly.",
-    tone: "bg-gold/15 text-gold-ink",
+    tone: "bg-gold/15 text-gold",
   },
   Contacted: {
     label: "In progress",
     note: "Our team has reached out to confirm details, fitting or delivery.",
-    tone: "bg-gold/15 text-gold-ink",
+    tone: "bg-gold/15 text-gold",
   },
   Completed: {
     label: "Completed",
