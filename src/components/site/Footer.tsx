@@ -30,7 +30,7 @@ export function Footer() {
             rel="noreferrer"
             className="inline-flex min-h-11 items-center gap-2 rounded-full bg-gold px-5 text-xs tracking-[0.18em] uppercase text-primary-foreground transition-opacity hover:opacity-90"
           >
-            <MessageCircle className="h-4 w-4" /> Order on WhatsApp
+            <MessageCircle className="h-4 w-4" aria-hidden="true" /> Order on WhatsApp
           </a>
         </div>
 
@@ -43,6 +43,7 @@ export function Footer() {
               { to: "/lenses", label: "Lenses" },
               { to: "/about", label: "About" },
               { to: "/contact", label: "Contact" },
+              { to: "/order-status", label: "Track order" },
             ].map((l) => (
               <li key={l.to}>
                 <Link to={l.to} className="transition-colors hover:text-gold">
