@@ -10,25 +10,50 @@ import { SiteLayout } from "@/components/site/SiteLayout";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useCart } from "@/lib/cart";
+import { seedProducts } from "@/lib/seed";
 import { formatPrice, useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { productEnquiryMessage, whatsappLink } from "@/lib/whatsapp";
 
 export const Route = createFileRoute("/product/$slug")({
-  head: () => ({
-    meta: [
-      { title: "Product — OPTIQUE Eyewear" },
-      {
-        name: "description",
-        content: "Frame and lens details, colour options, stock and fitting information.",
-      },
-      { property: "og:title", content: "Product — OPTIQUE Eyewear" },
-      {
-        property: "og:description",
-        content: "Frame and lens details, colour options and fitting information.",
-      },
-    ],
-  }),
+  head: ({ params }) => {
+    const product = seedProducts.find((p) => p.slug === params.slug);
+    const url = `https://optical-boutique-build.lovable.app/product/${params.slug}`;
+    const title = product ? `${product.name} — OPTIQUE Eyewear` : "Product — OPTIQUE Eyewear";
+    const description = product
+      ? product.description.slice(0, 155)
+      : "Frame and lens details, colour options, stock and fitting information.";
+    return {
+      meta: [
+        { title },
+        { name: "description", content: description },
+        { property: "og:title", content: title },
+        { property: "og:description", content: description },
+        { property: "og:type", content: "product" },
+        { property: "og:url", content: url },
+      ],
+      links: [{ rel: "canonical", href: url }],
+      scripts: product
+        ? [
+            {
+              type: "application/ld+json",
+              children: JSON.stringify({
+                "@context": "https://schema.org",
+                "@type": "Product",
+                name: product.name,
+                description: product.description,
+                offers: {
+                  "@type": "Offer",
+                  price: product.price,
+                  priceCurrency: "PKR",
+                  url,
+                },
+              }),
+            },
+          ]
+        : [],
+    };
+  },
   component: ProductPage,
 });
 
