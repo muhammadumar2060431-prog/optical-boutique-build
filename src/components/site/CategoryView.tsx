@@ -69,7 +69,7 @@ export function CategoryView({ category }: { category: Category }) {
           <div className="flex shrink-0 items-center gap-3">
             <FilterSheet />
             <Select value={sort} onValueChange={(v) => setSort(v as Sort)}>
-              <SelectTrigger className="min-h-11 w-[170px] rounded-full">
+              <SelectTrigger aria-label="Sort products" className="min-h-11 w-[170px] rounded-full">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>

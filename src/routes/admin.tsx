@@ -79,8 +79,8 @@ function AdminLayout() {
                   to={item.to}
                   onClick={() => setOpen(false)}
                   activeOptions={{ exact: item.exact }}
-                  activeProps={{ className: "bg-sidebar-accent text-gold", "aria-current": "page" }}
-                  className="flex min-h-11 items-center gap-3 rounded-md px-3 text-sm text-sidebar-foreground/80 transition-colors hover:bg-sidebar-accent hover:text-gold"
+                  activeProps={{ className: "bg-sidebar-accent text-gold-soft", "aria-current": "page" }}
+                  className="flex min-h-11 items-center gap-3 rounded-md px-3 text-sm text-sidebar-foreground/80 transition-colors hover:bg-sidebar-accent hover:text-gold-soft"
                 >
                   <item.icon className="h-4 w-4 shrink-0" />
                   {item.label}
@@ -91,7 +91,7 @@ function AdminLayout() {
           <button
             type="button"
             onClick={logout}
-            className="mt-4 flex min-h-11 w-full items-center gap-3 rounded-md px-3 text-sm text-sidebar-foreground/60 transition-colors hover:text-gold"
+            className="mt-4 flex min-h-11 w-full items-center gap-3 rounded-md px-3 text-sm text-sidebar-foreground/60 transition-colors hover:text-gold-soft"
           >
             <LogOut className="h-4 w-4" aria-hidden="true" /> Sign out
           </button>
@@ -124,7 +124,7 @@ function AdminLogin() {
         className="w-full max-w-sm space-y-5 rounded-xl border border-white/10 bg-card p-8"
       >
         <div className="space-y-1">
-          <p className="eyebrow text-gold">Control panel</p>
+          <p className="eyebrow text-gold-soft">Control panel</p>
           <h1 className="font-display text-3xl">Sign in</h1>
         </div>
         <div className="space-y-2">

@@ -56,8 +56,8 @@ export function Navbar() {
               <Link
                 to={l.to}
                 activeOptions={{ exact: l.to === "/" }}
-                activeProps={{ className: "text-gold border-gold", "aria-current": "page" }}
-                className="border-b border-transparent pb-1 text-xs tracking-[0.18em] uppercase text-cream/80 transition-colors hover:text-gold"
+                activeProps={{ className: "text-gold-soft border-gold", "aria-current": "page" }}
+                className="border-b border-transparent pb-1 text-xs tracking-[0.18em] uppercase text-cream/80 transition-colors hover:text-gold-soft"
               >
                 {l.label}
               </Link>
@@ -74,14 +74,14 @@ export function Navbar() {
             target="_blank"
             rel="noreferrer"
             aria-label="Chat on WhatsApp"
-            className="grid h-11 w-11 place-items-center rounded-full border border-white/15 text-cream transition-colors hover:border-gold hover:text-gold"
+            className="grid h-11 w-11 place-items-center rounded-full border border-white/15 text-cream transition-colors hover:border-gold hover:text-gold-soft"
           >
             <MessageCircle className="h-4 w-4" aria-hidden="true" />
           </a>
           <Link
             to="/cart"
             aria-label={`Shopping bag, ${count} item${count === 1 ? "" : "s"}`}
-            className="relative grid h-11 w-11 place-items-center rounded-full border border-white/15 text-cream transition-colors hover:border-gold hover:text-gold"
+            className="relative grid h-11 w-11 place-items-center rounded-full border border-white/15 text-cream transition-colors hover:border-gold hover:text-gold-soft"
           >
             <ShoppingBag className="h-4 w-4" aria-hidden="true" />
             {count > 0 && (
@@ -112,7 +112,7 @@ export function Navbar() {
                   to={l.to}
                   onClick={() => setOpenMenu(false)}
                   activeOptions={{ exact: l.to === "/" }}
-                  activeProps={{ className: "text-gold", "aria-current": "page" }}
+                  activeProps={{ className: "text-gold-soft", "aria-current": "page" }}
                   className="flex min-h-12 items-center border-b border-white/5 text-sm tracking-[0.16em] uppercase text-cream/85"
                 >
                   {l.label}
