@@ -43,6 +43,7 @@ export function Hero() {
             i === index ? "opacity-100" : "pointer-events-none opacity-0",
           )}
           aria-hidden={i !== index}
+          inert={i !== index}
         >
           <img
             src={slide.image}
