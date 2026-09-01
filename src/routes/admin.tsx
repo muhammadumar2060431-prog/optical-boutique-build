@@ -63,6 +63,7 @@ function AdminLayout() {
           <button
             type="button"
             aria-label="Toggle admin menu"
+            aria-expanded={open}
             onClick={() => setOpen((v) => !v)}
             className="grid h-11 w-11 place-items-center rounded-full border border-white/15 lg:hidden"
           >
@@ -70,7 +71,7 @@ function AdminLayout() {
           </button>
         </div>
 
-        <nav className={cn("px-3 pb-4 lg:block", open ? "block" : "hidden")}>
+        <nav aria-label="Admin sections" className={cn("px-3 pb-4 lg:block", open ? "block" : "hidden")}>
           <ul className="space-y-1">
             {nav.map((item) => (
               <li key={item.to}>
@@ -78,7 +79,7 @@ function AdminLayout() {
                   to={item.to}
                   onClick={() => setOpen(false)}
                   activeOptions={{ exact: item.exact }}
-                  activeProps={{ className: "bg-sidebar-accent text-gold" }}
+                  activeProps={{ className: "bg-sidebar-accent text-gold", "aria-current": "page" }}
                   className="flex min-h-11 items-center gap-3 rounded-md px-3 text-sm text-sidebar-foreground/80 transition-colors hover:bg-sidebar-accent hover:text-gold"
                 >
                   <item.icon className="h-4 w-4 shrink-0" />
