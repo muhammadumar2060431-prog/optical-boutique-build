@@ -16,8 +16,8 @@
   --color-off-white: #f6f4ef;
   --color-light-gray: #edece7;
   --color-light-gray-deep: #e4e2db;
-  --color-accent-gold: #b8873a;
-  --color-accent-gold-soft: #d3a960;
+  --color-accent-gold: #8a6224; /* AA-contrast gold for text/buttons on light surfaces */
+  --color-accent-gold-soft: #d3a960; /* lighter gold for text on jet/dark surfaces */
   --color-text-primary: #1b1b1d;
   --color-text-secondary: #6b6a65;
 
@@ -50,12 +50,12 @@
   --chart-5: #e4e2db;
   --sidebar: var(--color-jet-black);
   --sidebar-foreground: var(--color-off-white);
-  --sidebar-primary: var(--color-accent-gold);
+  --sidebar-primary: var(--color-accent-gold-soft);
   --sidebar-primary-foreground: #fffdf9;
   --sidebar-accent: #1a1a1e;
   --sidebar-accent-foreground: var(--color-off-white);
   --sidebar-border: #26262b;
-  --sidebar-ring: var(--color-accent-gold);
+  --sidebar-ring: var(--color-accent-gold-soft);
 
   --shadow-lens: 0 18px 40px -24px rgb(14 14 16 / 0.45);
 }
@@ -131,6 +131,13 @@
     font-size: 16px;
     line-height: 1.6;
     overflow-x: hidden;
+  }
+
+  /* Accessibility: a clearly visible keyboard focus ring everywhere */
+  :focus-visible {
+    outline: 2px solid var(--color-accent-gold);
+    outline-offset: 2px;
+    border-radius: 4px;
   }
 
   h1,

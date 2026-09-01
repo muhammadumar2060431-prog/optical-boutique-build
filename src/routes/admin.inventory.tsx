@@ -53,7 +53,7 @@ function AdminInventory() {
           className="min-h-11"
         />
         <Select value={category} onValueChange={setCategory}>
-          <SelectTrigger className="min-h-11">
+          <SelectTrigger aria-label="Filter by category" className="min-h-11">
             <SelectValue placeholder="Category" />
           </SelectTrigger>
           <SelectContent>
@@ -66,7 +66,7 @@ function AdminInventory() {
           </SelectContent>
         </Select>
         <Select value={status} onValueChange={setStatus}>
-          <SelectTrigger className="min-h-11">
+          <SelectTrigger aria-label="Filter by stock status" className="min-h-11">
             <SelectValue placeholder="Status" />
           </SelectTrigger>
           <SelectContent>
@@ -107,7 +107,7 @@ function AdminInventory() {
                         onClick={() => updateStock(r.productId, r.variantId, r.stock - 1)}
                         className="grid h-9 w-9 place-items-center rounded-full border border-stone hover:border-gold"
                       >
-                        <Minus className="h-3.5 w-3.5" />
+                        <Minus className="h-3.5 w-3.5" aria-hidden="true" />
                       </button>
                       <Input
                         aria-label={`Stock for ${r.name}`}
@@ -124,7 +124,7 @@ function AdminInventory() {
                         onClick={() => updateStock(r.productId, r.variantId, r.stock + 1)}
                         className="grid h-9 w-9 place-items-center rounded-full border border-stone hover:border-gold"
                       >
-                        <Plus className="h-3.5 w-3.5" />
+                        <Plus className="h-3.5 w-3.5" aria-hidden="true" />
                       </button>
                     </div>
                   </td>

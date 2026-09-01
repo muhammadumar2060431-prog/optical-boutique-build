@@ -30,12 +30,12 @@ export function Footer() {
             rel="noreferrer"
             className="inline-flex min-h-11 items-center gap-2 rounded-full bg-gold px-5 text-xs tracking-[0.18em] uppercase text-primary-foreground transition-opacity hover:opacity-90"
           >
-            <MessageCircle className="h-4 w-4" /> Order on WhatsApp
+            <MessageCircle className="h-4 w-4" aria-hidden="true" /> Order on WhatsApp
           </a>
         </div>
 
         <div className="space-y-3">
-          <p className="eyebrow text-gold">Explore</p>
+          <p className="eyebrow text-gold-soft">Explore</p>
           <ul className="space-y-2 text-sm">
             {[
               { to: "/", label: "Home" },
@@ -43,9 +43,10 @@ export function Footer() {
               { to: "/lenses", label: "Lenses" },
               { to: "/about", label: "About" },
               { to: "/contact", label: "Contact" },
+              { to: "/order-status", label: "Track order" },
             ].map((l) => (
               <li key={l.to}>
-                <Link to={l.to} className="transition-colors hover:text-gold">
+                <Link to={l.to} className="transition-colors hover:text-gold-soft">
                   {l.label}
                 </Link>
               </li>
@@ -54,18 +55,18 @@ export function Footer() {
         </div>
 
         <div className="space-y-3">
-          <p className="eyebrow text-gold">Visit</p>
+          <p className="eyebrow text-gold-soft">Visit</p>
           <ul className="space-y-3 text-sm">
             <li className="flex gap-3">
-              <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-gold" />
+              <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-gold-soft" />
               <span>{settings.address}</span>
             </li>
             <li className="flex gap-3">
-              <Phone className="mt-0.5 h-4 w-4 shrink-0 text-gold" />
+              <Phone className="mt-0.5 h-4 w-4 shrink-0 text-gold-soft" />
               <a href={`tel:${settings.phone}`}>{settings.phone}</a>
             </li>
             <li className="flex gap-3">
-              <Mail className="mt-0.5 h-4 w-4 shrink-0 text-gold" />
+              <Mail className="mt-0.5 h-4 w-4 shrink-0 text-gold-soft" />
               <a href={`mailto:${settings.email}`} className="break-all">
                 {settings.email}
               </a>

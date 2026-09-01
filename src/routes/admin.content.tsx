@@ -136,7 +136,7 @@ function HeroPanel() {
                 disabled={i === 0}
                 onClick={() => moveHeroSlide(slide.id, -1)}
               >
-                <ArrowUp className="h-4 w-4" />
+                <ArrowUp className="h-4 w-4" aria-hidden="true" />
               </Button>
               <Button
                 size="icon"
@@ -145,7 +145,7 @@ function HeroPanel() {
                 disabled={i === heroSlides.length - 1}
                 onClick={() => moveHeroSlide(slide.id, 1)}
               >
-                <ArrowDown className="h-4 w-4" />
+                <ArrowDown className="h-4 w-4" aria-hidden="true" />
               </Button>
               <Switch
                 checked={slide.enabled}

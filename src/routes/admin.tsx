@@ -63,14 +63,15 @@ function AdminLayout() {
           <button
             type="button"
             aria-label="Toggle admin menu"
+            aria-expanded={open}
             onClick={() => setOpen((v) => !v)}
             className="grid h-11 w-11 place-items-center rounded-full border border-white/15 lg:hidden"
           >
-            {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            {open ? <X className="h-5 w-5" aria-hidden="true" /> : <Menu className="h-5 w-5" aria-hidden="true" />}
           </button>
         </div>
 
-        <nav className={cn("px-3 pb-4 lg:block", open ? "block" : "hidden")}>
+        <nav aria-label="Admin sections" className={cn("px-3 pb-4 lg:block", open ? "block" : "hidden")}>
           <ul className="space-y-1">
             {nav.map((item) => (
               <li key={item.to}>
@@ -78,8 +79,8 @@ function AdminLayout() {
                   to={item.to}
                   onClick={() => setOpen(false)}
                   activeOptions={{ exact: item.exact }}
-                  activeProps={{ className: "bg-sidebar-accent text-gold" }}
-                  className="flex min-h-11 items-center gap-3 rounded-md px-3 text-sm text-sidebar-foreground/80 transition-colors hover:bg-sidebar-accent hover:text-gold"
+                  activeProps={{ className: "bg-sidebar-accent text-gold-soft", "aria-current": "page" }}
+                  className="flex min-h-11 items-center gap-3 rounded-md px-3 text-sm text-sidebar-foreground/80 transition-colors hover:bg-sidebar-accent hover:text-gold-soft"
                 >
                   <item.icon className="h-4 w-4 shrink-0" />
                   {item.label}
@@ -90,9 +91,9 @@ function AdminLayout() {
           <button
             type="button"
             onClick={logout}
-            className="mt-4 flex min-h-11 w-full items-center gap-3 rounded-md px-3 text-sm text-sidebar-foreground/60 transition-colors hover:text-gold"
+            className="mt-4 flex min-h-11 w-full items-center gap-3 rounded-md px-3 text-sm text-sidebar-foreground/60 transition-colors hover:text-gold-soft"
           >
-            <LogOut className="h-4 w-4" /> Sign out
+            <LogOut className="h-4 w-4" aria-hidden="true" /> Sign out
           </button>
         </nav>
       </aside>
@@ -123,7 +124,7 @@ function AdminLogin() {
         className="w-full max-w-sm space-y-5 rounded-xl border border-white/10 bg-card p-8"
       >
         <div className="space-y-1">
-          <p className="eyebrow text-gold">Control panel</p>
+          <p className="eyebrow text-gold-soft">Control panel</p>
           <h1 className="font-display text-3xl">Sign in</h1>
         </div>
         <div className="space-y-2">

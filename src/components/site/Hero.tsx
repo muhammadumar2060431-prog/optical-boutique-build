@@ -43,6 +43,7 @@ export function Hero() {
             i === index ? "opacity-100" : "pointer-events-none opacity-0",
           )}
           aria-hidden={i !== index}
+          inert={i !== index}
         >
           <img
             src={slide.image}
@@ -55,7 +56,7 @@ export function Hero() {
           <div className="absolute inset-0 flex items-center">
             <div className="mx-auto w-full max-w-7xl px-4 sm:px-6">
               <div className="max-w-xl space-y-4 sm:space-y-6">
-                <p className="eyebrow text-gold">{slide.eyebrow}</p>
+                <p className="eyebrow text-gold-soft">{slide.eyebrow}</p>
                 <h1 className="font-display text-[2.1rem] leading-[1.1] text-cream sm:text-5xl lg:text-6xl">
                   {slide.headline}
                 </h1>
@@ -69,7 +70,7 @@ export function Hero() {
                   </a>
                   <a
                     href="/about"
-                    className="min-h-11 border-b border-cream/40 pb-1 text-xs tracking-[0.18em] uppercase text-cream/80 transition-colors hover:border-gold hover:text-gold"
+                    className="min-h-11 border-b border-cream/40 pb-1 text-xs tracking-[0.18em] uppercase text-cream/80 transition-colors hover:border-gold hover:text-gold-soft"
                   >
                     Our story
                   </a>
@@ -84,7 +85,7 @@ export function Hero() {
         type="button"
         aria-label="Previous slide"
         onClick={() => go(-1)}
-        className="absolute top-1/2 left-3 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full border border-cream/25 text-cream transition-colors hover:border-gold hover:text-gold sm:left-6"
+        className="absolute top-1/2 left-3 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full border border-cream/25 text-cream transition-colors hover:border-gold hover:text-gold-soft sm:left-6"
       >
         <ChevronLeft className="h-5 w-5" />
       </button>
@@ -92,7 +93,7 @@ export function Hero() {
         type="button"
         aria-label="Next slide"
         onClick={() => go(1)}
-        className="absolute top-1/2 right-3 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full border border-cream/25 text-cream transition-colors hover:border-gold hover:text-gold sm:right-6"
+        className="absolute top-1/2 right-3 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full border border-cream/25 text-cream transition-colors hover:border-gold hover:text-gold-soft sm:right-6"
       >
         <ChevronRight className="h-5 w-5" />
       </button>

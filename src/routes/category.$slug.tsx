@@ -2,17 +2,29 @@ import { createFileRoute, useParams } from "@tanstack/react-router";
 
 import { CategoryView } from "@/components/site/CategoryView";
 import { SiteLayout } from "@/components/site/SiteLayout";
+import { seedCategories } from "@/lib/seed";
 import { useStore } from "@/lib/store";
 
 export const Route = createFileRoute("/category/$slug")({
-  head: () => ({
-    meta: [
-      { title: "Collection | OPTIQUE" },
-      { name: "description", content: "Browse an OPTIQUE eyewear collection." },
-      { property: "og:title", content: "Collection | OPTIQUE" },
-      { property: "og:description", content: "Browse an OPTIQUE eyewear collection." },
-    ],
-  }),
+  head: ({ params }) => {
+    const category = seedCategories.find((c) => c.slug === params.slug);
+    const url = `https://optical-boutique-build.lovable.app/category/${params.slug}`;
+    const title = category ? `${category.name} | OPTIQUE` : "Collection | OPTIQUE";
+    const description = category
+      ? `Browse the OPTIQUE ${category.name.toLowerCase()} collection — optician-selected, hand-finished and fitted in store.`
+      : "Browse an OPTIQUE eyewear collection.";
+    return {
+      meta: [
+        { title },
+        { name: "description", content: description },
+        { property: "og:title", content: title },
+        { property: "og:description", content: description },
+        { property: "og:type", content: "website" },
+        { property: "og:url", content: url },
+      ],
+      links: [{ rel: "canonical", href: url }],
+    };
+  },
   component: CategoryPage,
 });
 
