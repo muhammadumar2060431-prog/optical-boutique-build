@@ -98,7 +98,7 @@ function ProductsTab() {
           className="min-h-11"
         />
         <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-          <SelectTrigger className="min-h-11">
+          <SelectTrigger aria-label="Filter by category" className="min-h-11">
             <SelectValue placeholder="Category" />
           </SelectTrigger>
           <SelectContent>

@@ -53,7 +53,7 @@ function AdminInventory() {
           className="min-h-11"
         />
         <Select value={category} onValueChange={setCategory}>
-          <SelectTrigger className="min-h-11">
+          <SelectTrigger aria-label="Filter by category" className="min-h-11">
             <SelectValue placeholder="Category" />
           </SelectTrigger>
           <SelectContent>
@@ -66,7 +66,7 @@ function AdminInventory() {
           </SelectContent>
         </Select>
         <Select value={status} onValueChange={setStatus}>
-          <SelectTrigger className="min-h-11">
+          <SelectTrigger aria-label="Filter by stock status" className="min-h-11">
             <SelectValue placeholder="Status" />
           </SelectTrigger>
           <SelectContent>

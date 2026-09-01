@@ -71,7 +71,7 @@ function AdminOrders() {
           className="min-h-11"
         />
         <Select value={status} onValueChange={setStatus}>
-          <SelectTrigger className="min-h-11">
+          <SelectTrigger aria-label="Filter by status" className="min-h-11">
             <SelectValue placeholder="Status" />
           </SelectTrigger>
           <SelectContent>
@@ -84,7 +84,7 @@ function AdminOrders() {
           </SelectContent>
         </Select>
         <Select value={source} onValueChange={setSource}>
-          <SelectTrigger className="min-h-11">
+          <SelectTrigger aria-label="Filter by source" className="min-h-11">
             <SelectValue placeholder="Source" />
           </SelectTrigger>
           <SelectContent>
