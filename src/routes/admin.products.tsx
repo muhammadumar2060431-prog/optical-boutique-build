@@ -115,7 +115,7 @@ function ProductsTab() {
           disabled={categories.length === 0}
           onClick={() => setDraft(blankProduct(categories[0]?.id ?? ""))}
         >
-          <Plus className="mr-2 h-4 w-4" /> Add product
+          <Plus className="mr-2 h-4 w-4" aria-hidden="true" /> Add product
         </Button>
       </div>
 
@@ -164,7 +164,7 @@ function ProductsTab() {
                         aria-label="Edit product"
                         onClick={() => setDraft(p)}
                       >
-                        <Pencil className="h-4 w-4" />
+                        <Pencil className="h-4 w-4" aria-hidden="true" />
                       </Button>
                       <Button
                         size="icon"
@@ -177,7 +177,7 @@ function ProductsTab() {
                           }
                         }}
                       >
-                        <Trash2 className="h-4 w-4" />
+                        <Trash2 className="h-4 w-4" aria-hidden="true" />
                       </Button>
                     </div>
                   </td>
@@ -372,7 +372,7 @@ function ProductDialog({
                       setVariant({ id: newId("var"), label: "New colour", image: "", stock: 0 })
                     }
                   >
-                    <Plus className="mr-2 h-4 w-4" /> Add variant
+                    <Plus className="mr-2 h-4 w-4" aria-hidden="true" /> Add variant
                   </Button>
                 </div>
 
@@ -410,7 +410,7 @@ function ProductDialog({
                               })
                             }
                           >
-                            <Trash2 className="h-4 w-4" />
+                            <Trash2 className="h-4 w-4" aria-hidden="true" />
                           </Button>
                         </div>
                         <ImageUpload
@@ -473,7 +473,7 @@ function CategoriesTab() {
           className="min-h-11 rounded-full"
           onClick={() => setDraft({ id: "", slug: "", name: "", banner: null })}
         >
-          <Plus className="mr-2 h-4 w-4" /> Add category
+          <Plus className="mr-2 h-4 w-4" aria-hidden="true" /> Add category
         </Button>
       </div>
 
@@ -513,7 +513,7 @@ function CategoriesTab() {
                         aria-label="Edit category"
                         onClick={() => setDraft(c)}
                       >
-                        <Pencil className="h-4 w-4" />
+                        <Pencil className="h-4 w-4" aria-hidden="true" />
                       </Button>
                       <Button
                         size="icon"
@@ -529,7 +529,7 @@ function CategoriesTab() {
                           }
                         }}
                       >
-                        <Trash2 className="h-4 w-4" />
+                        <Trash2 className="h-4 w-4" aria-hidden="true" />
                       </Button>
                     </div>
                   </td>

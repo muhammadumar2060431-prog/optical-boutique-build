@@ -66,7 +66,7 @@ function AdminLayout() {
             onClick={() => setOpen((v) => !v)}
             className="grid h-11 w-11 place-items-center rounded-full border border-white/15 lg:hidden"
           >
-            {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            {open ? <X className="h-5 w-5" aria-hidden="true" /> : <Menu className="h-5 w-5" aria-hidden="true" />}
           </button>
         </div>
 
@@ -92,7 +92,7 @@ function AdminLayout() {
             onClick={logout}
             className="mt-4 flex min-h-11 w-full items-center gap-3 rounded-md px-3 text-sm text-sidebar-foreground/60 transition-colors hover:text-gold"
           >
-            <LogOut className="h-4 w-4" /> Sign out
+            <LogOut className="h-4 w-4" aria-hidden="true" /> Sign out
           </button>
         </nav>
       </aside>

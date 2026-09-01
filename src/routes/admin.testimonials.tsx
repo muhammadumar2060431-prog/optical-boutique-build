@@ -31,7 +31,7 @@ function AdminTestimonials() {
           <h1 className="mt-2 font-display text-3xl">Testimonials</h1>
         </div>
         <Button className="min-h-11 shrink-0 rounded-full" onClick={() => setDraft(blank())}>
-          <Plus className="mr-2 h-4 w-4" /> Add
+          <Plus className="mr-2 h-4 w-4" aria-hidden="true" /> Add
         </Button>
       </header>
 
@@ -68,7 +68,7 @@ function AdminTestimonials() {
                   disabled={i === 0}
                   onClick={() => moveTestimonial(t.id, -1)}
                 >
-                  <ArrowUp className="h-4 w-4" />
+                  <ArrowUp className="h-4 w-4" aria-hidden="true" />
                 </Button>
                 <Button
                   size="icon"
@@ -77,10 +77,10 @@ function AdminTestimonials() {
                   disabled={i === testimonials.length - 1}
                   onClick={() => moveTestimonial(t.id, 1)}
                 >
-                  <ArrowDown className="h-4 w-4" />
+                  <ArrowDown className="h-4 w-4" aria-hidden="true" />
                 </Button>
                 <Button size="icon" variant="ghost" aria-label="Edit" onClick={() => setDraft(t)}>
-                  <Pencil className="h-4 w-4" />
+                  <Pencil className="h-4 w-4" aria-hidden="true" />
                 </Button>
                 <Button
                   size="icon"
@@ -93,7 +93,7 @@ function AdminTestimonials() {
                     }
                   }}
                 >
-                  <Trash2 className="h-4 w-4" />
+                  <Trash2 className="h-4 w-4" aria-hidden="true" />
                 </Button>
               </div>
             </li>
