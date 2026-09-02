@@ -64,7 +64,7 @@ function CartPage() {
         ) : (
           <div className="mt-10 grid gap-10 lg:grid-cols-[1fr_320px]">
             <ul className="divide-y divide-stone rounded-xl border border-stone bg-card">
-              {items.map((item) => (
+              {lines.map(({ item, stock, outOfStock, exceeds }) => (
                 <li key={item.key} className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center">
                   <img
                     src={item.image}
