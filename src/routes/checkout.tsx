@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { Link, createFileRoute } from "@tanstack/react-router";
-import { CheckCircle2 } from "lucide-react";
+import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
+import { z } from "zod";
 
 import { SiteLayout } from "@/components/site/SiteLayout";
 import { Button } from "@/components/ui/button";
@@ -32,88 +32,109 @@ export const Route = createFileRoute("/checkout")({
   component: CheckoutPage,
 });
 
-interface Errors {
-  name?: string;
-  contact?: string;
-}
+const phonePattern = /^[+]?[0-9][0-9\s-]{7,19}$/;
+
+const checkoutSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(2, { message: "Please enter your full name (at least 2 characters)." })
+    .max(80, { message: "Name must be under 80 characters." })
+    .regex(/^[\p{L}\p{M}'\-.\s]+$/u, { message: "Name can only contain letters, spaces and - ' ." }),
+  email: z
+    .string()
+    .trim()
+    .max(255, { message: "Email must be under 255 characters." })
+    .email({ message: "Enter a valid email address, e.g. name@example.com." })
+    .or(z.literal("")),
+  phone: z
+    .string()
+    .trim()
+    .max(24, { message: "Phone number is too long." })
+    .regex(phonePattern, { message: "Enter a valid phone number, e.g. +92 300 1234567." })
+    .or(z.literal("")),
+  notes: z.string().trim().max(500, { message: "Notes must be under 500 characters." }),
+});
+
+type FieldName = "name" | "email" | "phone" | "notes";
+type Errors = Partial<Record<FieldName, string>>;
 
 function CheckoutPage() {
   const { items, subtotal, clearCart } = useCart();
-  const { addOrder } = useStore();
+  const { addOrder, getStockFor, adjustStock } = useStore();
+  const navigate = useNavigate();
 
-  const [name, setName] = useState("");
-  const [contact, setContact] = useState("");
-  const [notes, setNotes] = useState("");
+  const [values, setValues] = useState({ name: "", email: "", phone: "", notes: "" });
   const [errors, setErrors] = useState<Errors>({});
-  const [placed, setPlaced] = useState<string | null>(null);
+  const [touched, setTouched] = useState<Partial<Record<FieldName, boolean>>>({});
 
-  const validate = () => {
-    const next: Errors = {};
-    if (!name.trim()) next.name = "Please tell us your name.";
-    const value = contact.trim();
-    const validEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
-    const validPhone = /^[+0-9][0-9\s-]{7,}$/.test(value);
-    if (!value) next.contact = "A phone number or email is required.";
-    else if (!validEmail && !validPhone) next.contact = "Enter a valid phone number or email.";
-    setErrors(next);
-    return Object.keys(next).length === 0;
+  const stockLines = items.map((item) => ({
+    item,
+    stock: getStockFor(item.productId, item.variantId),
+  }));
+  const stockBlocked = stockLines.some(({ item, stock }) => stock <= 0 || item.qty > stock);
+
+  const validate = (next = values): Errors => {
+    const result = checkoutSchema.safeParse(next);
+    const found: Errors = {};
+    if (!result.success) {
+      for (const issue of result.error.issues) {
+        const key = issue.path[0] as FieldName;
+        if (!found[key]) found[key] = issue.message;
+      }
+    }
+    if (!next.email.trim() && !next.phone.trim()) {
+      found.phone = found.phone ?? "Give us at least one way to reach you — phone or email.";
+      found.email = found.email ?? "Give us at least one way to reach you — phone or email.";
+    }
+    return found;
+  };
+
+  const setField = (field: FieldName, value: string) => {
+    const next = { ...values, [field]: value };
+    setValues(next);
+    if (touched[field]) setErrors(validate(next));
+  };
+
+  const blurField = (field: FieldName) => {
+    setTouched((prev) => ({ ...prev, [field]: true }));
+    setErrors(validate());
   };
 
   const placeOrder = (event: React.FormEvent) => {
     event.preventDefault();
-    if (!validate() || items.length === 0) return;
+    const found = validate();
+    setErrors(found);
+    setTouched({ name: true, email: true, phone: true, notes: true });
+    if (Object.keys(found).length > 0 || items.length === 0 || stockBlocked) return;
 
     const reference = newOrderReference();
+    const contact = [values.phone.trim(), values.email.trim()].filter(Boolean).join(" · ");
+
     for (const item of items) {
+      // Inventory comes down immediately so the item shows as unavailable right away.
+      adjustStock(item.productId, item.variantId, -item.qty);
       addOrder({
-        customerName: name.trim(),
-        contact: contact.trim(),
+        customerName: values.name.trim(),
+        contact,
         productId: item.productId,
         productName: item.name,
         variantId: item.variantId,
         variantLabel: item.variantLabel,
         message: [
           `Checkout order ${reference} — quantity ${item.qty} (${formatPrice(item.price * item.qty)}).`,
-          notes.trim() ? `Customer notes: ${notes.trim()}` : "",
+          values.notes.trim() ? `Customer notes: ${values.notes.trim()}` : "",
         ]
           .filter(Boolean)
           .join(" "),
         reference,
         source: "cart",
+        stockDeducted: true,
       });
     }
     clearCart();
-    setPlaced(reference);
+    void navigate({ to: "/order-confirmation", search: { ref: reference } });
   };
-
-  if (placed) {
-    return (
-      <SiteLayout>
-        <div className="mx-auto max-w-2xl px-4 py-24 text-center sm:px-6">
-          <CheckCircle2 className="mx-auto h-10 w-10 text-gold" />
-          <h1 className="mt-6 font-display text-4xl">Order placed</h1>
-          <p className="mt-3 text-sm text-ink-muted">
-            Reference <span className="font-semibold text-ink">{placed}</span>. Thanks — an
-            optician will confirm availability and delivery with you shortly on WhatsApp or email.
-            Keep this reference — you can check progress any time on the order status page.
-          </p>
-          <Link
-            to="/order-status"
-            search={{ ref: placed }}
-            className="mt-6 inline-flex min-h-11 items-center rounded-full border border-stone px-6 text-xs tracking-[0.18em] uppercase transition-colors hover:border-gold hover:text-gold"
-          >
-            Track this order
-          </Link>
-          <Link
-            to="/"
-            className="mt-8 inline-flex min-h-11 items-center rounded-full bg-gold px-6 text-xs tracking-[0.18em] uppercase text-primary-foreground"
-          >
-            Back to home
-          </Link>
-        </div>
-      </SiteLayout>
-    );
-  }
 
   if (items.length === 0) {
     return (
@@ -134,6 +155,16 @@ function CheckoutPage() {
     );
   }
 
+  const fieldError = (field: FieldName) =>
+    touched[field] && errors[field] ? (
+      <p id={`co-${field}-error`} role="alert" className="text-xs text-destructive">
+        {errors[field]}
+      </p>
+    ) : null;
+
+  const describedBy = (field: FieldName) =>
+    touched[field] && errors[field] ? `co-${field}-error` : undefined;
+
   return (
     <SiteLayout>
       <div className="mx-auto max-w-5xl px-4 py-12 sm:px-6 sm:py-16">
@@ -146,35 +177,84 @@ function CheckoutPage() {
               <Label htmlFor="co-name">Full name</Label>
               <Input
                 id="co-name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
+                value={values.name}
+                onChange={(e) => setField("name", e.target.value)}
+                onBlur={() => blurField("name")}
+                aria-invalid={Boolean(touched.name && errors.name)}
+                aria-describedby={describedBy("name")}
                 className="min-h-11"
                 placeholder="Ayesha Khan"
               />
-              {errors.name && <p className="text-xs text-destructive">{errors.name}</p>}
+              {fieldError("name")}
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="co-contact">Phone or email</Label>
-              <Input
-                id="co-contact"
-                value={contact}
-                onChange={(e) => setContact(e.target.value)}
-                className="min-h-11"
-                placeholder="+92 300 1234567"
-              />
-              {errors.contact && <p className="text-xs text-destructive">{errors.contact}</p>}
+            <div className="grid gap-5 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="co-phone">Phone number</Label>
+                <Input
+                  id="co-phone"
+                  type="tel"
+                  inputMode="tel"
+                  value={values.phone}
+                  onChange={(e) => setField("phone", e.target.value)}
+                  onBlur={() => blurField("phone")}
+                  aria-invalid={Boolean(touched.phone && errors.phone)}
+                  aria-describedby={describedBy("phone")}
+                  className="min-h-11"
+                  placeholder="+92 300 1234567"
+                />
+                {fieldError("phone")}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="co-email">Email address</Label>
+                <Input
+                  id="co-email"
+                  type="email"
+                  inputMode="email"
+                  value={values.email}
+                  onChange={(e) => setField("email", e.target.value)}
+                  onBlur={() => blurField("email")}
+                  aria-invalid={Boolean(touched.email && errors.email)}
+                  aria-describedby={describedBy("email")}
+                  className="min-h-11"
+                  placeholder="ayesha@example.com"
+                />
+                {fieldError("email")}
+              </div>
             </div>
+            <p className="text-xs text-ink-muted">
+              At least one contact method is required — we confirm every order personally.
+            </p>
             <div className="space-y-2">
               <Label htmlFor="co-notes">Delivery address or notes (optional)</Label>
               <Textarea
                 id="co-notes"
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
+                value={values.notes}
+                onChange={(e) => setField("notes", e.target.value)}
+                onBlur={() => blurField("notes")}
+                aria-invalid={Boolean(touched.notes && errors.notes)}
+                aria-describedby={describedBy("notes")}
                 rows={4}
+                maxLength={500}
                 placeholder="Prescription details, delivery address, preferred contact time…"
               />
+              {fieldError("notes")}
+              <p className="text-xs text-ink-muted">{values.notes.length}/500 characters</p>
             </div>
-            <Button type="submit" size="lg" className="min-h-12 w-full rounded-full sm:w-auto sm:px-10">
+            {stockBlocked && (
+              <p role="alert" className="text-xs font-semibold text-destructive">
+                One or more items in your bag are no longer available in the requested quantity.{" "}
+                <Link to="/cart" className="underline">
+                  Review your bag
+                </Link>
+                .
+              </p>
+            )}
+            <Button
+              type="submit"
+              size="lg"
+              disabled={stockBlocked}
+              className="min-h-12 w-full rounded-full sm:w-auto sm:px-10"
+            >
               Place order
             </Button>
             <p className="text-xs text-ink-muted">
@@ -186,13 +266,18 @@ function CheckoutPage() {
           <aside className="h-fit rounded-xl border border-stone bg-mist p-6">
             <h2 className="font-display text-2xl">Order summary</h2>
             <ul className="mt-4 space-y-3 text-sm">
-              {items.map((item) => (
+              {stockLines.map(({ item, stock }) => (
                 <li key={item.key} className="flex justify-between gap-4">
                   <span className="min-w-0">
                     <span className="block truncate">{item.name}</span>
                     <span className="text-xs text-ink-muted">
                       {item.variantLabel ? `${item.variantLabel} · ` : ""}Qty {item.qty}
                     </span>
+                    {(stock <= 0 || item.qty > stock) && (
+                      <span className="block text-xs font-semibold text-destructive">
+                        {stock <= 0 ? "Out of stock" : `Only ${stock} left`}
+                      </span>
+                    )}
                   </span>
                   <span className="font-semibold whitespace-nowrap">
                     {formatPrice(item.price * item.qty)}
