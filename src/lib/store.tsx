@@ -271,14 +271,27 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setStockTouched((prev) => ({ ...prev, [`${productId}:${variantId ?? "base"}`]: nowIso() }));
   }, []);
 
+  const getStockFor = useCallback<StoreApi["getStockFor"]>(
+    (productId, variantId) => {
+      const product = products.find((p) => p.id === productId);
+      if (!product) return 0;
+      if (variantId) return product.variants.find((v) => v.id === variantId)?.stock ?? 0;
+      return product.variants.length
+        ? product.variants.reduce((n, v) => n + v.stock, 0)
+        : product.stock;
+    },
+    [products],
+  );
+
   const addOrder = useCallback<StoreApi["addOrder"]>((data) => {
+    const { stockDeducted = false, ...rest } = data;
     const order: Order = {
-      ...data,
-      reference: data.reference?.trim() || newOrderReference(),
+      ...rest,
+      reference: rest.reference?.trim() || newOrderReference(),
       id: uid("ord"),
       createdAt: nowIso(),
       status: "New",
-      stockDeducted: false,
+      stockDeducted,
     };
     setOrders((prev) => [order, ...prev]);
     return order;
