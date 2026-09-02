@@ -29,6 +29,18 @@ export const Route = createFileRoute("/cart")({
 
 function CartPage() {
   const { items, subtotal, setQty, removeItem, clearCart } = useCart();
+  const { getStockFor } = useStore();
+
+  const lines = items.map((item) => {
+    const stock = getStockFor(item.productId, item.variantId);
+    return {
+      item,
+      stock,
+      outOfStock: stock <= 0,
+      exceeds: item.qty > stock,
+    };
+  });
+  const blocked = lines.some((l) => l.outOfStock || l.exceeds);
 
   return (
     <SiteLayout>
