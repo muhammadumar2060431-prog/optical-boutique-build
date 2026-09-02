@@ -108,8 +108,9 @@ function CartPage() {
                       <button
                         type="button"
                         aria-label={`Increase quantity of ${item.name}`}
+                        disabled={item.qty >= stock}
                         onClick={() => setQty(item.key, item.qty + 1)}
-                        className="grid h-11 w-11 place-items-center rounded-full text-ink-muted transition-colors hover:text-gold"
+                        className="grid h-11 w-11 place-items-center rounded-full text-ink-muted transition-colors hover:text-gold disabled:cursor-not-allowed disabled:opacity-40"
                       >
                         <Plus className="h-4 w-4" />
                       </button>
