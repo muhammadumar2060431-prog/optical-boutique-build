@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useCart } from "@/lib/cart";
 import { formatPrice, newOrderReference, useStore } from "@/lib/store";
+import { saveOrderReceipt } from "@/lib/last-order";
 
 export const Route = createFileRoute("/checkout")({
   head: () => ({
@@ -132,6 +133,21 @@ function CheckoutPage() {
         stockDeducted: true,
       });
     }
+    saveOrderReceipt({
+      reference,
+      placedAt: new Date().toISOString(),
+      customerName: values.name.trim(),
+      phone: values.phone.trim(),
+      email: values.email.trim(),
+      notes: values.notes.trim(),
+      lines: items.map((i) => ({
+        name: i.name,
+        variantLabel: i.variantLabel,
+        qty: i.qty,
+        price: i.price,
+      })),
+      subtotal,
+    });
     clearCart();
     void navigate({ to: "/order-confirmation", search: { ref: reference } });
   };
