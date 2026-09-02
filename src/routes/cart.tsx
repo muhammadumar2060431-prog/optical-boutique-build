@@ -82,6 +82,17 @@ function CartPage() {
                     <p className="mt-1 text-sm font-semibold text-gold">
                       {formatPrice(item.price)}
                     </p>
+                    {outOfStock ? (
+                      <p className="mt-1 text-xs font-semibold text-destructive">
+                        Out of stock — remove this item to continue
+                      </p>
+                    ) : exceeds ? (
+                      <p className="mt-1 text-xs font-semibold text-destructive">
+                        Only {stock} left — reduce the quantity to continue
+                      </p>
+                    ) : stock <= 3 ? (
+                      <p className="mt-1 text-xs text-ink-muted">Only {stock} left in stock</p>
+                    ) : null}
                   </div>
                   <div className="flex items-center gap-3">
                     <div className="flex items-center rounded-full border border-stone">
