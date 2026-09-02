@@ -75,6 +75,7 @@ interface StoreApi extends StoreState {
   addOrder: (
     order: Omit<Order, "id" | "createdAt" | "status" | "stockDeducted" | "reference"> & {
       reference?: string;
+      stockDeducted?: boolean;
     },
   ) => Order;
   /** Customer-facing lookup: every order sharing one reference code. */
