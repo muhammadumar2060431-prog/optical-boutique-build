@@ -75,6 +75,7 @@ interface StoreApi extends StoreState {
   addOrder: (
     order: Omit<Order, "id" | "createdAt" | "status" | "stockDeducted" | "reference"> & {
       reference?: string;
+      stockDeducted?: boolean;
     },
   ) => Order;
   /** Customer-facing lookup: every order sharing one reference code. */
@@ -87,6 +88,10 @@ interface StoreApi extends StoreState {
   saveVariant: (productId: string, variant: Variant) => void;
   deleteVariant: (productId: string, variantId: string) => void;
   updateStock: (productId: string, variantId: string | null, qty: number) => void;
+  /** Current stock for a product or one of its variants. */
+  getStockFor: (productId: string, variantId: string | null) => number;
+  /** Relative stock change (negative to deduct). */
+  adjustStock: (productId: string, variantId: string | null, delta: number) => void;
   setHeroSlides: (slides: HeroSlide[]) => void;
   updateHeroSlide: (id: string, patch: Partial<HeroSlide>) => void;
   moveHeroSlide: (id: string, dir: -1 | 1) => void;
@@ -266,14 +271,27 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setStockTouched((prev) => ({ ...prev, [`${productId}:${variantId ?? "base"}`]: nowIso() }));
   }, []);
 
+  const getStockFor = useCallback<StoreApi["getStockFor"]>(
+    (productId, variantId) => {
+      const product = products.find((p) => p.id === productId);
+      if (!product) return 0;
+      if (variantId) return product.variants.find((v) => v.id === variantId)?.stock ?? 0;
+      return product.variants.length
+        ? product.variants.reduce((n, v) => n + v.stock, 0)
+        : product.stock;
+    },
+    [products],
+  );
+
   const addOrder = useCallback<StoreApi["addOrder"]>((data) => {
+    const { stockDeducted = false, ...rest } = data;
     const order: Order = {
-      ...data,
-      reference: data.reference?.trim() || newOrderReference(),
+      ...rest,
+      reference: rest.reference?.trim() || newOrderReference(),
       id: uid("ord"),
       createdAt: nowIso(),
       status: "New",
-      stockDeducted: false,
+      stockDeducted,
     };
     setOrders((prev) => [order, ...prev]);
     return order;
@@ -481,6 +499,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       saveVariant,
       deleteVariant,
       updateStock,
+      getStockFor,
+      adjustStock: applyStockDelta,
       setHeroSlides: setHeroSlidesState,
       updateHeroSlide,
       moveHeroSlide,
@@ -524,6 +544,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       saveVariant,
       deleteVariant,
       updateStock,
+      getStockFor,
+      applyStockDelta,
       updateHeroSlide,
       moveHeroSlide,
       updateAnnouncement,

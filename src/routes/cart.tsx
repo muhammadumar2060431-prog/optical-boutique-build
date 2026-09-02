@@ -4,7 +4,7 @@ import { Minus, Plus, ShoppingBag, Trash2 } from "lucide-react";
 import { SiteLayout } from "@/components/site/SiteLayout";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/lib/cart";
-import { formatPrice } from "@/lib/store";
+import { formatPrice, useStore } from "@/lib/store";
 
 export const Route = createFileRoute("/cart")({
   head: () => ({
@@ -29,6 +29,18 @@ export const Route = createFileRoute("/cart")({
 
 function CartPage() {
   const { items, subtotal, setQty, removeItem, clearCart } = useCart();
+  const { getStockFor } = useStore();
+
+  const lines = items.map((item) => {
+    const stock = getStockFor(item.productId, item.variantId);
+    return {
+      item,
+      stock,
+      outOfStock: stock <= 0,
+      exceeds: item.qty > stock,
+    };
+  });
+  const blocked = lines.some((l) => l.outOfStock || l.exceeds);
 
   return (
     <SiteLayout>
@@ -52,7 +64,7 @@ function CartPage() {
         ) : (
           <div className="mt-10 grid gap-10 lg:grid-cols-[1fr_320px]">
             <ul className="divide-y divide-stone rounded-xl border border-stone bg-card">
-              {items.map((item) => (
+              {lines.map(({ item, stock, outOfStock, exceeds }) => (
                 <li key={item.key} className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center">
                   <img
                     src={item.image}
@@ -70,6 +82,17 @@ function CartPage() {
                     <p className="mt-1 text-sm font-semibold text-gold">
                       {formatPrice(item.price)}
                     </p>
+                    {outOfStock ? (
+                      <p className="mt-1 text-xs font-semibold text-destructive">
+                        Out of stock — remove this item to continue
+                      </p>
+                    ) : exceeds ? (
+                      <p className="mt-1 text-xs font-semibold text-destructive">
+                        Only {stock} left — reduce the quantity to continue
+                      </p>
+                    ) : stock <= 3 ? (
+                      <p className="mt-1 text-xs text-ink-muted">Only {stock} left in stock</p>
+                    ) : null}
                   </div>
                   <div className="flex items-center gap-3">
                     <div className="flex items-center rounded-full border border-stone">
@@ -85,8 +108,9 @@ function CartPage() {
                       <button
                         type="button"
                         aria-label={`Increase quantity of ${item.name}`}
+                        disabled={item.qty >= stock}
                         onClick={() => setQty(item.key, item.qty + 1)}
-                        className="grid h-11 w-11 place-items-center rounded-full text-ink-muted transition-colors hover:text-gold"
+                        className="grid h-11 w-11 place-items-center rounded-full text-ink-muted transition-colors hover:text-gold disabled:cursor-not-allowed disabled:opacity-40"
                       >
                         <Plus className="h-4 w-4" />
                       </button>
@@ -116,9 +140,21 @@ function CartPage() {
                   <dd className="text-ink-muted">Confirmed at checkout</dd>
                 </div>
               </dl>
-              <Button asChild size="lg" className="mt-6 min-h-12 w-full rounded-full">
-                <Link to="/checkout">Proceed to checkout</Link>
-              </Button>
+              {blocked ? (
+                <>
+                  <Button size="lg" disabled className="mt-6 min-h-12 w-full rounded-full">
+                    Checkout unavailable
+                  </Button>
+                  <p className="mt-2 text-xs text-destructive" role="alert">
+                    Some items are out of stock or exceed available quantity. Adjust your bag to
+                    continue.
+                  </p>
+                </>
+              ) : (
+                <Button asChild size="lg" className="mt-6 min-h-12 w-full rounded-full">
+                  <Link to="/checkout">Proceed to checkout</Link>
+                </Button>
+              )}
               <button
                 type="button"
                 onClick={clearCart}
