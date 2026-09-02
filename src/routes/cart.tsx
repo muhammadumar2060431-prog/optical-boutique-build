@@ -140,9 +140,21 @@ function CartPage() {
                   <dd className="text-ink-muted">Confirmed at checkout</dd>
                 </div>
               </dl>
-              <Button asChild size="lg" className="mt-6 min-h-12 w-full rounded-full">
-                <Link to="/checkout">Proceed to checkout</Link>
-              </Button>
+              {blocked ? (
+                <>
+                  <Button size="lg" disabled className="mt-6 min-h-12 w-full rounded-full">
+                    Checkout unavailable
+                  </Button>
+                  <p className="mt-2 text-xs text-destructive" role="alert">
+                    Some items are out of stock or exceed available quantity. Adjust your bag to
+                    continue.
+                  </p>
+                </>
+              ) : (
+                <Button asChild size="lg" className="mt-6 min-h-12 w-full rounded-full">
+                  <Link to="/checkout">Proceed to checkout</Link>
+                </Button>
+              )}
               <button
                 type="button"
                 onClick={clearCart}
