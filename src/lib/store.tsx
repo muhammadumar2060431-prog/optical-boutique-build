@@ -88,6 +88,10 @@ interface StoreApi extends StoreState {
   saveVariant: (productId: string, variant: Variant) => void;
   deleteVariant: (productId: string, variantId: string) => void;
   updateStock: (productId: string, variantId: string | null, qty: number) => void;
+  /** Current stock for a product or one of its variants. */
+  getStockFor: (productId: string, variantId: string | null) => number;
+  /** Relative stock change (negative to deduct). */
+  adjustStock: (productId: string, variantId: string | null, delta: number) => void;
   setHeroSlides: (slides: HeroSlide[]) => void;
   updateHeroSlide: (id: string, patch: Partial<HeroSlide>) => void;
   moveHeroSlide: (id: string, dir: -1 | 1) => void;
