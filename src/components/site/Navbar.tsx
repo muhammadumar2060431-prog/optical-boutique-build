@@ -36,8 +36,8 @@ export function Navbar() {
   return (
     <header
       className={cn(
-        "sticky top-0 z-50 bg-jet text-cream transition-shadow duration-300",
-        scrolled && "shadow-[0_10px_30px_-20px_rgba(0,0,0,0.9)]",
+        "sticky top-0 z-50 bg-cream text-ink transition-shadow duration-300",
+        scrolled && "shadow-[0_10px_30px_-20px_rgba(0,0,0,0.15)]",
       )}
     >
       <nav aria-label="Primary" className="mx-auto grid max-w-7xl grid-cols-[minmax(0,1fr)_auto] items-center gap-4 px-4 py-4 sm:px-6 lg:grid-cols-[auto_1fr_auto]">
@@ -45,7 +45,7 @@ export function Navbar() {
           <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-gold/70">
             <span className="h-3 w-3 rounded-full bg-gold" />
           </span>
-          <span className="truncate font-display text-2xl tracking-[0.22em] text-cream">
+          <span className="truncate font-display text-2xl tracking-[0.22em] text-ink">
             {settings.storeName}
           </span>
         </Link>
@@ -56,8 +56,8 @@ export function Navbar() {
               <Link
                 to={l.to}
                 activeOptions={{ exact: l.to === "/" }}
-                activeProps={{ className: "text-gold-soft border-gold", "aria-current": "page" }}
-                className="border-b border-transparent pb-1 text-xs tracking-[0.18em] uppercase text-cream/80 transition-colors hover:text-gold-soft"
+                activeProps={{ className: "text-gold border-gold", "aria-current": "page" }}
+                className="border-b border-transparent pb-1 text-xs tracking-[0.18em] uppercase text-ink-muted transition-colors hover:text-gold"
               >
                 {l.label}
               </Link>
@@ -67,21 +67,21 @@ export function Navbar() {
 
         <div className="flex items-center justify-end gap-2 sm:gap-3">
           <div className="hidden sm:block">
-            <FilterSheet dark />
+            <FilterSheet />
           </div>
           <a
             href={wa}
             target="_blank"
             rel="noreferrer"
             aria-label="Chat on WhatsApp"
-            className="grid h-11 w-11 place-items-center rounded-full border border-white/15 text-cream transition-colors hover:border-gold hover:text-gold-soft"
+            className="grid h-11 w-11 place-items-center rounded-full border border-ink/15 text-ink transition-colors hover:border-gold hover:text-gold"
           >
             <MessageCircle className="h-4 w-4" aria-hidden="true" />
           </a>
           <Link
             to="/cart"
             aria-label={`Shopping bag, ${count} item${count === 1 ? "" : "s"}`}
-            className="relative grid h-11 w-11 place-items-center rounded-full border border-white/15 text-cream transition-colors hover:border-gold hover:text-gold-soft"
+            className="relative grid h-11 w-11 place-items-center rounded-full border border-ink/15 text-ink transition-colors hover:border-gold hover:text-gold"
           >
             <ShoppingBag className="h-4 w-4" aria-hidden="true" />
             {count > 0 && (
@@ -96,7 +96,7 @@ export function Navbar() {
             aria-expanded={openMenu}
             aria-controls="mobile-nav"
             onClick={() => setOpenMenu((v) => !v)}
-            className="grid h-11 w-11 place-items-center rounded-full border border-white/15 text-cream lg:hidden"
+            className="grid h-11 w-11 place-items-center rounded-full border border-ink/15 text-ink transition-colors hover:border-gold hover:text-gold lg:hidden"
           >
             {openMenu ? <X className="h-5 w-5" aria-hidden="true" /> : <Menu className="h-5 w-5" aria-hidden="true" />}
           </button>
@@ -104,7 +104,7 @@ export function Navbar() {
       </nav>
 
       {openMenu && (
-        <div id="mobile-nav" className="border-t border-white/10 lg:hidden">
+        <div id="mobile-nav" className="border-t border-ink/10 lg:hidden">
           <ul className="mx-auto max-w-7xl px-4 py-2 sm:px-6">
             {links.map((l) => (
               <li key={l.to}>
@@ -112,20 +112,20 @@ export function Navbar() {
                   to={l.to}
                   onClick={() => setOpenMenu(false)}
                   activeOptions={{ exact: l.to === "/" }}
-                  activeProps={{ className: "text-gold-soft", "aria-current": "page" }}
-                  className="flex min-h-12 items-center border-b border-white/5 text-sm tracking-[0.16em] uppercase text-cream/85"
+                  activeProps={{ className: "text-gold", "aria-current": "page" }}
+                  className="flex min-h-12 items-center border-b border-ink/5 text-sm tracking-[0.16em] uppercase text-ink-muted"
                 >
                   {l.label}
                 </Link>
               </li>
             ))}
             <li className="flex items-center gap-3 py-4 sm:hidden">
-              <FilterSheet dark />
+              <FilterSheet />
               <a
                 href={wa}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex min-h-11 items-center gap-2 rounded-full border border-white/20 px-4 text-xs tracking-[0.16em] uppercase"
+                className="inline-flex min-h-11 items-center gap-2 rounded-full border border-ink/20 px-4 text-xs tracking-[0.16em] uppercase text-ink"
               >
                 <MessageCircle className="h-4 w-4" /> WhatsApp
               </a>
