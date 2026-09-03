@@ -36,8 +36,8 @@ export function Navbar() {
   return (
     <header
       className={cn(
-        "sticky top-0 z-50 bg-jet text-cream transition-shadow duration-300",
-        scrolled && "shadow-[0_10px_30px_-20px_rgba(0,0,0,0.9)]",
+        "sticky top-0 z-50 bg-cream text-ink transition-shadow duration-300",
+        scrolled && "shadow-[0_10px_30px_-20px_rgba(0,0,0,0.15)]",
       )}
     >
       <nav aria-label="Primary" className="mx-auto grid max-w-7xl grid-cols-[minmax(0,1fr)_auto] items-center gap-4 px-4 py-4 sm:px-6 lg:grid-cols-[auto_1fr_auto]">
@@ -45,7 +45,7 @@ export function Navbar() {
           <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-gold/70">
             <span className="h-3 w-3 rounded-full bg-gold" />
           </span>
-          <span className="truncate font-display text-2xl tracking-[0.22em] text-cream">
+          <span className="truncate font-display text-2xl tracking-[0.22em] text-ink">
             {settings.storeName}
           </span>
         </Link>
