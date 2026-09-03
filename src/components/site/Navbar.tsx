@@ -104,7 +104,7 @@ export function Navbar() {
       </nav>
 
       {openMenu && (
-        <div id="mobile-nav" className="border-t border-white/10 lg:hidden">
+        <div id="mobile-nav" className="border-t border-ink/10 lg:hidden">
           <ul className="mx-auto max-w-7xl px-4 py-2 sm:px-6">
             {links.map((l) => (
               <li key={l.to}>
@@ -112,20 +112,20 @@ export function Navbar() {
                   to={l.to}
                   onClick={() => setOpenMenu(false)}
                   activeOptions={{ exact: l.to === "/" }}
-                  activeProps={{ className: "text-gold-soft", "aria-current": "page" }}
-                  className="flex min-h-12 items-center border-b border-white/5 text-sm tracking-[0.16em] uppercase text-cream/85"
+                  activeProps={{ className: "text-gold", "aria-current": "page" }}
+                  className="flex min-h-12 items-center border-b border-ink/5 text-sm tracking-[0.16em] uppercase text-ink-muted"
                 >
                   {l.label}
                 </Link>
               </li>
             ))}
             <li className="flex items-center gap-3 py-4 sm:hidden">
-              <FilterSheet dark />
+              <FilterSheet />
               <a
                 href={wa}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex min-h-11 items-center gap-2 rounded-full border border-white/20 px-4 text-xs tracking-[0.16em] uppercase"
+                className="inline-flex min-h-11 items-center gap-2 rounded-full border border-ink/20 px-4 text-xs tracking-[0.16em] uppercase text-ink"
               >
                 <MessageCircle className="h-4 w-4" /> WhatsApp
               </a>
