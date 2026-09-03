@@ -67,21 +67,21 @@ export function Navbar() {
 
         <div className="flex items-center justify-end gap-2 sm:gap-3">
           <div className="hidden sm:block">
-            <FilterSheet dark />
+            <FilterSheet />
           </div>
           <a
             href={wa}
             target="_blank"
             rel="noreferrer"
             aria-label="Chat on WhatsApp"
-            className="grid h-11 w-11 place-items-center rounded-full border border-white/15 text-cream transition-colors hover:border-gold hover:text-gold-soft"
+            className="grid h-11 w-11 place-items-center rounded-full border border-ink/15 text-ink transition-colors hover:border-gold hover:text-gold"
           >
             <MessageCircle className="h-4 w-4" aria-hidden="true" />
           </a>
           <Link
             to="/cart"
             aria-label={`Shopping bag, ${count} item${count === 1 ? "" : "s"}`}
-            className="relative grid h-11 w-11 place-items-center rounded-full border border-white/15 text-cream transition-colors hover:border-gold hover:text-gold-soft"
+            className="relative grid h-11 w-11 place-items-center rounded-full border border-ink/15 text-ink transition-colors hover:border-gold hover:text-gold"
           >
             <ShoppingBag className="h-4 w-4" aria-hidden="true" />
             {count > 0 && (
@@ -96,7 +96,7 @@ export function Navbar() {
             aria-expanded={openMenu}
             aria-controls="mobile-nav"
             onClick={() => setOpenMenu((v) => !v)}
-            className="grid h-11 w-11 place-items-center rounded-full border border-white/15 text-cream lg:hidden"
+            className="grid h-11 w-11 place-items-center rounded-full border border-ink/15 text-ink transition-colors hover:border-gold hover:text-gold lg:hidden"
           >
             {openMenu ? <X className="h-5 w-5" aria-hidden="true" /> : <Menu className="h-5 w-5" aria-hidden="true" />}
           </button>
