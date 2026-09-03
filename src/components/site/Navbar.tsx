@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { Menu, MessageCircle, ShoppingBag, X } from "lucide-react";
+import { Menu, ShoppingBag, X } from "lucide-react";
 
 import { useCart } from "@/lib/cart";
 import { useStore } from "@/lib/store";
@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { whatsappLink } from "@/lib/whatsapp";
 
 import { FilterSheet } from "./FilterSheet";
+import { WhatsAppIcon } from "./WhatsAppIcon";
 
 const links = [
   { to: "/", label: "Home" },
@@ -25,7 +26,7 @@ export function Navbar() {
   const [openMenu, setOpenMenu] = useState(false);
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 24);
+    const onScroll = () => setScrolled(window.scrollY > 8);
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
@@ -36,98 +37,119 @@ export function Navbar() {
   return (
     <header
       className={cn(
-        "sticky top-0 z-50 bg-cream text-ink transition-shadow duration-300",
-        scrolled && "shadow-[0_10px_30px_-20px_rgba(0,0,0,0.15)]",
+        "sticky top-0 z-50 bg-cream/95 backdrop-blur-sm text-ink transition-all duration-300 border-b border-ink/8",
+        scrolled && "shadow-[0_4px_24px_-8px_rgba(0,0,0,0.12)] border-ink/12",
       )}
     >
-      <nav aria-label="Primary" className="mx-auto grid max-w-7xl grid-cols-[minmax(0,1fr)_auto] items-center gap-4 px-4 py-4 sm:px-6 lg:grid-cols-[auto_1fr_auto]">
-        <Link to="/" className="flex min-w-0 items-center gap-3">
-          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-gold/70">
-            <span className="h-3 w-3 rounded-full bg-gold" />
-          </span>
-          <span className="truncate font-display text-2xl tracking-[0.22em] text-ink">
-            {settings.storeName}
-          </span>
+      {/* Main nav row */}
+      <nav
+        aria-label="Primary"
+        className="mx-auto flex max-w-7xl items-center gap-4 px-4 sm:px-6 lg:px-8"
+        style={{ minHeight: "64px" }}
+      >
+        {/* Logo */}
+        <Link to="/" className="flex shrink-0 items-center mr-6" aria-label={settings.storeName}>
+          <img
+            src="/brand-logo.png"
+            alt={settings.storeName}
+            className="h-9 w-auto object-contain"
+          />
         </Link>
 
-        <ul className="hidden items-center justify-center gap-8 lg:flex">
+        {/* Desktop nav links — centred */}
+        <ul className="hidden flex-1 items-center justify-center gap-7 lg:flex">
           {links.map((l) => (
             <li key={l.to}>
               <Link
                 to={l.to}
                 activeOptions={{ exact: l.to === "/" }}
-                activeProps={{ className: "text-gold border-gold", "aria-current": "page" }}
-                className="border-b border-transparent pb-1 text-xs tracking-[0.18em] uppercase text-ink-muted transition-colors hover:text-gold"
+                activeProps={{ className: "text-[#666666] border-b border-[#666666]", "aria-current": "page" }}
+                className="group relative pb-0.5 text-[11px] font-medium tracking-[0.2em] uppercase text-ink/70 transition-colors duration-200 hover:text-ink"
               >
-                {l.label}
+                <span className="block">
+                  {l.label}
+                </span>
+                <span className="absolute bottom-0 left-0 h-[1.5px] w-0 bg-[#666666] transition-all duration-300 group-hover:w-full" />
               </Link>
             </li>
           ))}
         </ul>
 
-        <div className="flex items-center justify-end gap-2 sm:gap-3">
+        {/* Right-side actions */}
+        <div className="flex items-center gap-2 ml-auto lg:ml-0">
+          {/* Filter — hidden on mobile */}
           <div className="hidden sm:block">
             <FilterSheet />
           </div>
+
+          {/* WhatsApp */}
           <a
             href={wa}
             target="_blank"
             rel="noreferrer"
             aria-label="Chat on WhatsApp"
-            className="grid h-11 w-11 place-items-center rounded-full border border-ink/15 text-ink transition-colors hover:border-gold hover:text-gold"
+            className="grid h-9 w-9 place-items-center rounded-full bg-[#25D366] text-white shadow-sm transition-all duration-200 hover:bg-[#20BA5A] hover:scale-105 hover:shadow-md"
           >
-            <MessageCircle className="h-4 w-4" aria-hidden="true" />
+            <WhatsAppIcon className="h-4 w-4 text-white" />
           </a>
+
+          {/* Cart */}
           <Link
             to="/cart"
             aria-label={`Shopping bag, ${count} item${count === 1 ? "" : "s"}`}
-            className="relative grid h-11 w-11 place-items-center rounded-full border border-ink/15 text-ink transition-colors hover:border-gold hover:text-gold"
+            className="relative grid h-9 w-9 place-items-center rounded-full border border-ink/15 text-ink/70 transition-all duration-200 hover:border-ink/40 hover:text-ink hover:bg-ink/5"
           >
             <ShoppingBag className="h-4 w-4" aria-hidden="true" />
             {count > 0 && (
-              <span className="absolute -top-1 -right-1 grid h-5 min-w-5 place-items-center rounded-full bg-gold px-1 text-[10px] font-semibold text-primary-foreground">
+              <span className="absolute -top-1 -right-1 grid h-4 min-w-4 place-items-center rounded-full bg-[#666666] px-1 text-[9px] font-bold text-white">
                 {count}
               </span>
             )}
           </Link>
+
+          {/* Hamburger — mobile only */}
           <button
             type="button"
             aria-label={openMenu ? "Close menu" : "Open menu"}
             aria-expanded={openMenu}
             aria-controls="mobile-nav"
             onClick={() => setOpenMenu((v) => !v)}
-            className="grid h-11 w-11 place-items-center rounded-full border border-ink/15 text-ink transition-colors hover:border-gold hover:text-gold lg:hidden"
+            className="grid h-9 w-9 place-items-center rounded-full border border-ink/15 text-ink/70 transition-all duration-200 hover:border-ink/40 hover:text-ink hover:bg-ink/5 lg:hidden"
           >
-            {openMenu ? <X className="h-5 w-5" aria-hidden="true" /> : <Menu className="h-5 w-5" aria-hidden="true" />}
+            {openMenu ? <X className="h-4 w-4" aria-hidden="true" /> : <Menu className="h-4 w-4" aria-hidden="true" />}
           </button>
         </div>
       </nav>
 
+      {/* Mobile drawer */}
       {openMenu && (
-        <div id="mobile-nav" className="border-t border-ink/10 lg:hidden">
-          <ul className="mx-auto max-w-7xl px-4 py-2 sm:px-6">
+        <div
+          id="mobile-nav"
+          className="border-t border-ink/8 bg-cream/98 lg:hidden"
+        >
+          <ul className="mx-auto max-w-7xl divide-y divide-ink/5 px-4 sm:px-6">
             {links.map((l) => (
               <li key={l.to}>
                 <Link
                   to={l.to}
                   onClick={() => setOpenMenu(false)}
                   activeOptions={{ exact: l.to === "/" }}
-                  activeProps={{ className: "text-gold", "aria-current": "page" }}
-                  className="flex min-h-12 items-center border-b border-ink/5 text-sm tracking-[0.16em] uppercase text-ink-muted"
+                  activeProps={{ className: "text-[#666666]", "aria-current": "page" }}
+                  className="flex min-h-[48px] items-center text-[11px] font-medium tracking-[0.2em] uppercase text-ink/60 transition-colors hover:text-ink"
                 >
                   {l.label}
                 </Link>
               </li>
             ))}
-            <li className="flex items-center gap-3 py-4 sm:hidden">
+            <li className="flex items-center gap-3 py-3 sm:hidden">
               <FilterSheet />
               <a
                 href={wa}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex min-h-11 items-center gap-2 rounded-full border border-ink/20 px-4 text-xs tracking-[0.16em] uppercase text-ink"
+                className="inline-flex items-center gap-2 rounded-full bg-[#25D366] hover:bg-[#20BA5A] px-5 py-2.5 text-[11px] font-bold tracking-[0.16em] uppercase text-white shadow-sm"
               >
-                <MessageCircle className="h-4 w-4" /> WhatsApp
+                <WhatsAppIcon className="h-4 w-4 text-white" /> WhatsApp
               </a>
             </li>
           </ul>

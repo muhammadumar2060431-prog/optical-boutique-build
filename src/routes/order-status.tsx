@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { createFileRoute, useSearch } from "@tanstack/react-router";
-import { Mail, MessageCircle, PackageSearch, Phone } from "lucide-react";
+import { Mail, PackageSearch, Phone } from "lucide-react";
 
 import { SiteLayout } from "@/components/site/SiteLayout";
+import { WhatsAppIcon } from "@/components/site/WhatsAppIcon";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -189,19 +190,19 @@ function OrderStatusPage() {
               href={wa}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex min-h-11 items-center gap-2 rounded-full bg-gold px-6 text-xs tracking-[0.16em] uppercase text-primary-foreground transition-transform hover:scale-[1.02]"
+              className="inline-flex min-h-11 items-center gap-2 rounded-full bg-[#25D366] hover:bg-[#20BA5A] px-6 text-xs font-bold tracking-[0.16em] uppercase text-white transition-transform hover:scale-[1.02] shadow-md"
             >
-              <MessageCircle className="h-4 w-4" aria-hidden="true" /> WhatsApp us
+              <WhatsAppIcon className="h-4 w-4 text-white" /> WhatsApp us
             </a>
             <a
               href={`tel:${settings.phone.replace(/[^0-9+]/g, "")}`}
-              className="inline-flex min-h-11 items-center gap-2 rounded-full border border-stone px-6 text-xs tracking-[0.16em] uppercase transition-colors hover:border-gold hover:text-gold"
+              className="inline-flex min-h-11 items-center gap-2 rounded-full border border-stone px-6 text-xs font-semibold tracking-[0.16em] uppercase text-ink transition-all duration-200 hover:bg-[#444444] hover:border-[#444444] hover:text-white"
             >
               <Phone className="h-4 w-4" aria-hidden="true" /> {settings.phone}
             </a>
             <a
               href={`mailto:${settings.email}`}
-              className="inline-flex min-h-11 items-center gap-2 rounded-full border border-stone px-6 text-xs tracking-[0.16em] uppercase transition-colors hover:border-gold hover:text-gold"
+              className="inline-flex min-h-11 items-center gap-2 rounded-full border border-stone px-6 text-xs font-semibold tracking-[0.16em] uppercase text-ink transition-all duration-200 hover:bg-[#444444] hover:border-[#444444] hover:text-white"
             >
               <Mail className="h-4 w-4" aria-hidden="true" /> Email
             </a>

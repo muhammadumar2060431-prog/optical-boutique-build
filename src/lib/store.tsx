@@ -9,26 +9,38 @@ import {
 
 import {
   seedAnnouncement,
+  seedBrands,
   seedCategories,
+  seedCollections,
   seedHeroSlides,
   seedOrders,
   seedProducts,
   seedSettings,
+  seedSocialReels,
   seedTestimonials,
   seedVideo,
+  seedFaqs,
+  seedSubscribers,
+  seedCampaigns,
 } from "./seed";
 import type {
   AnnouncementSettings,
+  Brand,
   Category,
+  Collection,
   HeroSlide,
   Order,
   OrderStatus,
   Product,
+  SocialReel,
   StockStatus,
   StoreSettings,
   Testimonial,
   Variant,
   VideoSettings,
+  FAQItem,
+  Subscriber,
+  EmailCampaign,
 } from "./types";
 
 /**
@@ -37,8 +49,9 @@ import type {
  * re-implementing this file only.
  */
 
-interface StoreState {
+export interface StoreState {
   categories: Category[];
+  collections: Collection[];
   products: Product[];
   orders: Order[];
   heroSlides: HeroSlide[];
@@ -46,6 +59,11 @@ interface StoreState {
   testimonials: Testimonial[];
   video: VideoSettings;
   settings: StoreSettings;
+  brands: Brand[];
+  socialReels: SocialReel[];
+  faqs: FAQItem[];
+  subscribers: Subscriber[];
+  campaigns: EmailCampaign[];
   isAdmin: boolean;
 }
 
@@ -62,11 +80,14 @@ export interface InventoryRow {
 
 interface StoreApi extends StoreState {
   /* reads */
-  getProducts: (opts?: { categoryId?: string; search?: string }) => Product[];
+  getProducts: (opts?: { categoryId?: string; collectionId?: string; search?: string }) => Product[];
   getProductBySlug: (slug: string) => Product | undefined;
   getProductById: (id: string) => Product | undefined;
   getCategoryBySlug: (slug: string) => Category | undefined;
   getCategoryById: (id: string) => Category | undefined;
+  getCollections: (categoryId?: string) => Collection[];
+  getCollectionBySlug: (slug: string) => Collection | undefined;
+  getCollectionById: (id: string) => Collection | undefined;
   getRelatedProducts: (product: Product, limit?: number) => Product[];
   getInventoryRows: () => InventoryRow[];
   productStock: (product: Product) => number;
@@ -85,6 +106,8 @@ interface StoreApi extends StoreState {
   deleteProduct: (id: string) => void;
   saveCategory: (category: Category) => void;
   deleteCategory: (id: string) => void;
+  saveCollection: (collection: Collection) => void;
+  deleteCollection: (id: string) => void;
   saveVariant: (productId: string, variant: Variant) => void;
   deleteVariant: (productId: string, variantId: string) => void;
   updateStock: (productId: string, variantId: string | null, qty: number) => void;
@@ -103,6 +126,20 @@ interface StoreApi extends StoreState {
   submitVideoUrl: (url: string) => { ok: boolean; error?: string };
   updateVideoCaption: (caption: string) => void;
   updateSettings: (patch: Partial<StoreSettings>) => void;
+  saveBrand: (brand: Brand) => void;
+  deleteBrand: (id: string) => void;
+  moveBrand: (id: string, dir: -1 | 1) => void;
+  saveSocialReel: (reel: SocialReel) => void;
+  deleteSocialReel: (id: string) => void;
+  moveSocialReel: (id: string, dir: -1 | 1) => void;
+  setSocialReels: (reels: SocialReel[]) => void;
+  saveFaq: (faq: FAQItem) => void;
+  deleteFaq: (id: string) => void;
+  moveFaq: (id: string, dir: -1 | 1) => void;
+  setFaqs: (faqs: FAQItem[]) => void;
+  addSubscriber: (email: string) => { ok: boolean; message: string };
+  deleteSubscriber: (id: string) => void;
+  sendCampaign: (campaign: Omit<EmailCampaign, "id" | "sentAt">) => void;
   login: (email: string, password: string) => boolean;
   logout: () => void;
 }
@@ -137,6 +174,7 @@ export function parseYouTubeChannel(url: string): string | null {
 
 export function StoreProvider({ children }: { children: ReactNode }) {
   const [categories, setCategories] = useState<Category[]>(seedCategories);
+  const [collections, setCollections] = useState<Collection[]>(seedCollections);
   const [products, setProducts] = useState<Product[]>(seedProducts);
   const [orders, setOrders] = useState<Order[]>(seedOrders);
   const [heroSlides, setHeroSlidesState] = useState<HeroSlide[]>(seedHeroSlides);
@@ -144,6 +182,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [testimonials, setTestimonials] = useState<Testimonial[]>(seedTestimonials);
   const [video, setVideo] = useState<VideoSettings>(seedVideo);
   const [settings, setSettings] = useState<StoreSettings>(seedSettings);
+  const [brands, setBrands] = useState<Brand[]>(seedBrands);
+  const [socialReels, setSocialReelsState] = useState<SocialReel[]>(seedSocialReels);
+  const [faqs, setFaqsState] = useState<FAQItem[]>(seedFaqs);
+  const [subscribers, setSubscribersState] = useState<Subscriber[]>(seedSubscribers);
+  const [campaigns, setCampaignsState] = useState<EmailCampaign[]>(seedCampaigns);
   const [isAdmin, setIsAdmin] = useState(false);
   const [stockTouched, setStockTouched] = useState<Record<string, string>>({});
 
@@ -168,6 +211,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     (opts) =>
       products.filter((p) => {
         if (opts?.categoryId && p.categoryId !== opts.categoryId) return false;
+        if (opts?.collectionId && p.collectionId !== opts.collectionId) return false;
         if (opts?.search && !p.name.toLowerCase().includes(opts.search.toLowerCase()))
           return false;
         return true;
@@ -190,6 +234,21 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const getCategoryById = useCallback(
     (id: string) => categories.find((c) => c.id === id),
     [categories],
+  );
+  const getCollections = useCallback<StoreApi["getCollections"]>(
+    (categoryId) =>
+      categoryId
+        ? collections.filter((col) => col.categoryId === categoryId)
+        : collections,
+    [collections],
+  );
+  const getCollectionBySlug = useCallback(
+    (slug: string) => collections.find((c) => c.slug === slug),
+    [collections],
+  );
+  const getCollectionById = useCallback(
+    (id: string) => collections.find((c) => c.id === id),
+    [collections],
   );
 
   const getRelatedProducts = useCallback(
@@ -349,7 +408,23 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const deleteCategory = useCallback<StoreApi["deleteCategory"]>((id) => {
     setCategories((prev) => prev.filter((c) => c.id !== id));
+    setCollections((prev) => prev.filter((col) => col.categoryId !== id));
     setProducts((prev) => prev.filter((p) => p.categoryId !== id));
+  }, []);
+
+  const saveCollection = useCallback<StoreApi["saveCollection"]>((collection) => {
+    setCollections((prev) =>
+      prev.some((c) => c.id === collection.id)
+        ? prev.map((c) => (c.id === collection.id ? collection : c))
+        : [...prev, { ...collection, id: collection.id || uid("col") }],
+    );
+  }, []);
+
+  const deleteCollection = useCallback<StoreApi["deleteCollection"]>((id) => {
+    setCollections((prev) => prev.filter((c) => c.id !== id));
+    setProducts((prev) =>
+      prev.map((p) => (p.collectionId === id ? { ...p, collectionId: null } : p)),
+    );
   }, []);
 
   const saveVariant = useCallback<StoreApi["saveVariant"]>((productId, variant) => {
@@ -456,6 +531,132 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setSettings((prev) => ({ ...prev, ...patch }));
   }, []);
 
+  const saveBrand = useCallback<StoreApi["saveBrand"]>((brand) => {
+    setBrands((prev) =>
+      prev.some((b) => b.id === brand.id)
+        ? prev.map((b) => (b.id === brand.id ? brand : b))
+        : [...prev, { ...brand, id: brand.id || uid("brd") }],
+    );
+  }, []);
+
+  const deleteBrand = useCallback<StoreApi["deleteBrand"]>((id) => {
+    setBrands((prev) => prev.filter((b) => b.id !== id));
+  }, []);
+
+  const moveBrand = useCallback<StoreApi["moveBrand"]>((id, dir) => {
+    setBrands((prev) => {
+      const idx = prev.findIndex((b) => b.id === id);
+      const next = idx + dir;
+      if (idx < 0 || next < 0 || next >= prev.length) return prev;
+      const copy = [...prev];
+      const a = copy[idx]!;
+      const b = copy[next]!;
+      copy[idx] = b;
+      copy[next] = a;
+      return copy;
+    });
+  }, []);
+
+  const saveSocialReel = useCallback<StoreApi["saveSocialReel"]>((reel) => {
+    setSocialReelsState((prev) =>
+      prev.some((r) => r.id === reel.id)
+        ? prev.map((r) => (r.id === reel.id ? reel : r))
+        : [...prev, { ...reel, id: reel.id || uid("reel") }],
+    );
+  }, []);
+
+  const deleteSocialReel = useCallback<StoreApi["deleteSocialReel"]>((id) => {
+    setSocialReelsState((prev) => prev.filter((r) => r.id !== id));
+  }, []);
+
+  const moveSocialReel = useCallback<StoreApi["moveSocialReel"]>((id, dir) => {
+    setSocialReelsState((prev) => {
+      const idx = prev.findIndex((r) => r.id === id);
+      const next = idx + dir;
+      if (idx < 0 || next < 0 || next >= prev.length) return prev;
+      const copy = [...prev];
+      const a = copy[idx]!;
+      const b = copy[next]!;
+      copy[idx] = b;
+      copy[next] = a;
+      return copy;
+    });
+  }, []);
+
+  const saveFaq = useCallback<StoreApi["saveFaq"]>((faq) => {
+    setFaqsState((prev) => {
+      const idx = prev.findIndex((f) => f.id === faq.id);
+      if (idx >= 0) {
+        const copy = [...prev];
+        copy[idx] = faq;
+        return copy;
+      }
+      return [...prev, faq];
+    });
+  }, []);
+
+  const deleteFaq = useCallback<StoreApi["deleteFaq"]>((id) => {
+    setFaqsState((prev) => prev.filter((f) => f.id !== id));
+  }, []);
+
+  const moveFaq = useCallback<StoreApi["moveFaq"]>((id, dir) => {
+    setFaqsState((prev) => {
+      const idx = prev.findIndex((f) => f.id === id);
+      const next = idx + dir;
+      if (idx < 0 || next < 0 || next >= prev.length) return prev;
+      const copy = [...prev];
+      const a = copy[idx]!;
+      const b = copy[next]!;
+      copy[idx] = b;
+      copy[next] = a;
+      return copy;
+    });
+  }, []);
+
+  const addSubscriber = useCallback<StoreApi["addSubscriber"]>((email) => {
+    const clean = email.trim().toLowerCase();
+    if (!clean || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clean)) {
+      return { ok: false, message: "Please enter a valid email address." };
+    }
+    let alreadyExists = false;
+    setSubscribersState((cur) => {
+      if (cur.some((s) => s.email.toLowerCase() === clean)) {
+        alreadyExists = true;
+        return cur;
+      }
+      return [
+        {
+          id: newId("sub"),
+          email: clean,
+          createdAt: new Date().toISOString(),
+          status: "active",
+        },
+        ...cur,
+      ];
+    });
+    if (alreadyExists) {
+      return { ok: true, message: "You are already subscribed to our exclusive offers!" };
+    }
+    return { ok: true, message: "Thank you for subscribing! You'll receive our exclusive drops & offers." };
+  }, []);
+
+  const deleteSubscriber = useCallback<StoreApi["deleteSubscriber"]>((id) => {
+    setSubscribersState((cur) => cur.filter((s) => s.id !== id));
+  }, []);
+
+  const sendCampaign = useCallback<StoreApi["sendCampaign"]>(
+    (campaign) => {
+      const newCamp: EmailCampaign = {
+        ...campaign,
+        id: newId("cmp"),
+        sentAt: new Date().toISOString(),
+        recipientCount: subscribers.length,
+      };
+      setCampaignsState((cur) => [newCamp, ...cur]);
+    },
+    [subscribers.length],
+  );
+
   const login = useCallback<StoreApi["login"]>(
     (email, password) => {
       const ok =
@@ -472,6 +673,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const value = useMemo<StoreApi>(
     () => ({
       categories,
+      collections,
       products,
       orders,
       heroSlides,
@@ -479,12 +681,20 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       testimonials,
       video,
       settings,
+      brands,
+      socialReels,
+      faqs,
+      subscribers,
+      campaigns,
       isAdmin,
       getProducts,
       getProductBySlug,
       getProductById,
       getCategoryBySlug,
       getCategoryById,
+      getCollections,
+      getCollectionBySlug,
+      getCollectionById,
       getRelatedProducts,
       getInventoryRows,
       productStock,
@@ -496,6 +706,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       deleteProduct,
       saveCategory,
       deleteCategory,
+      saveCollection,
+      deleteCollection,
       saveVariant,
       deleteVariant,
       updateStock,
@@ -512,11 +724,26 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       submitVideoUrl,
       updateVideoCaption,
       updateSettings,
+      saveBrand,
+      deleteBrand,
+      moveBrand,
+      saveSocialReel,
+      deleteSocialReel,
+      moveSocialReel,
+      setSocialReels: setSocialReelsState,
+      saveFaq,
+      deleteFaq,
+      moveFaq,
+      setFaqs: setFaqsState,
+      addSubscriber,
+      deleteSubscriber,
+      sendCampaign,
       login,
       logout,
     }),
     [
       categories,
+      collections,
       products,
       orders,
       heroSlides,
@@ -524,12 +751,17 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       testimonials,
       video,
       settings,
+      brands,
+      socialReels,
       isAdmin,
       getProducts,
       getProductBySlug,
       getProductById,
       getCategoryBySlug,
       getCategoryById,
+      getCollections,
+      getCollectionBySlug,
+      getCollectionById,
       getRelatedProducts,
       getInventoryRows,
       productStock,
@@ -541,6 +773,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       deleteProduct,
       saveCategory,
       deleteCategory,
+      saveCollection,
+      deleteCollection,
       saveVariant,
       deleteVariant,
       updateStock,
@@ -556,6 +790,21 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       submitVideoUrl,
       updateVideoCaption,
       updateSettings,
+      saveBrand,
+      deleteBrand,
+      moveBrand,
+      saveSocialReel,
+      deleteSocialReel,
+      moveSocialReel,
+      faqs,
+      saveFaq,
+      deleteFaq,
+      moveFaq,
+      subscribers,
+      campaigns,
+      addSubscriber,
+      deleteSubscriber,
+      sendCampaign,
       login,
       logout,
     ],

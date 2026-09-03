@@ -1,12 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
 
+import { BrandsScrollBar } from "@/components/site/BrandsScrollBar";
+import { CategoryBestsellersShowcase } from "@/components/site/CategoryBestsellersShowcase";
+import { FaqSection } from "@/components/site/FaqSection";
 import { Hero } from "@/components/site/Hero";
-import { ProductCard } from "@/components/site/ProductCard";
-import { Reveal } from "@/components/site/Reveal";
+import { NewArrivalsShowcase } from "@/components/site/NewArrivalsShowcase";
 import { SiteLayout } from "@/components/site/SiteLayout";
+import { SocialProofReels } from "@/components/site/SocialProofReels";
 import { Testimonials } from "@/components/site/Testimonials";
 import { VideoSection } from "@/components/site/VideoSection";
-import { useStore } from "@/lib/store";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -31,32 +33,26 @@ export const Route = createFileRoute("/")({
 });
 
 function HomePage() {
-  const { products } = useStore();
-  const featured = products.filter((p) => p.featured).slice(0, 4);
-
   return (
     <SiteLayout>
       <Hero />
+      <BrandsScrollBar />
 
-      <section className="lens-halo bg-background py-20">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6">
-          <Reveal>
-            <p className="eyebrow text-gold">Bestsellers</p>
-            <h2 className="mt-3 max-w-lg font-display text-3xl sm:text-4xl">
-              The frames and lenses our opticians reach for first
-            </h2>
-          </Reveal>
-          <div className="mt-10 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            {featured.map((p, i) => (
-              <Reveal key={p.id} delay={i * 70}>
-                <ProductCard product={p} />
-              </Reveal>
-            ))}
-          </div>
-        </div>
-      </section>
+      {/* ── 3D Floating & Bouncing New Arrivals Showcase ── */}
+      <NewArrivalsShowcase />
 
+      {/* ── Shop by Category with Dynamic Best Sellers ── */}
+      <CategoryBestsellersShowcase />
+
+      {/* ── Social Proof & Collaboration Reels (Matching Images 1, 2, 3) ── */}
+      <SocialProofReels />
+
+      {/* ── Customer Reviews & Proofs (Infinite Scrollable Marquee) ── */}
       <Testimonials />
+
+      {/* ── Frequently Asked Questions (Interactive Aesthetic Accordion) ── */}
+      <FaqSection />
+
       <VideoSection />
     </SiteLayout>
   );

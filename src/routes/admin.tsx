@@ -2,9 +2,11 @@ import { useState } from "react";
 import { Link, Outlet, createFileRoute } from "@tanstack/react-router";
 import {
   Boxes,
+  HelpCircle,
   Image as ImageIcon,
   LayoutDashboard,
   LogOut,
+  Mail,
   Menu,
   Package,
   Quote,
@@ -24,7 +26,7 @@ export const Route = createFileRoute("/admin")({
     meta: [
       { title: "Admin — OPTIQUE Control Panel" },
       { name: "description", content: "Manage OPTIQUE products, orders, inventory and content." },
-      { name: "robots", content: "noindex" },
+      { name: "robots", content: "noindex, nofollow" },
       { property: "og:title", content: "Admin — OPTIQUE Control Panel" },
       { property: "og:description", content: "Internal control panel for the OPTIQUE store." },
     ],
@@ -39,6 +41,8 @@ const nav = [
   { to: "/admin/inventory", label: "Inventory", icon: Boxes, exact: false },
   { to: "/admin/content", label: "Content", icon: ImageIcon, exact: false },
   { to: "/admin/testimonials", label: "Testimonials", icon: Quote, exact: false },
+  { to: "/admin/faqs", label: "FAQs", icon: HelpCircle, exact: false },
+  { to: "/admin/subscribers", label: "Email Offers", icon: Mail, exact: false },
   { to: "/admin/settings", label: "Settings", icon: SettingsIcon, exact: false },
 ] as const;
 
@@ -52,13 +56,8 @@ function AdminLayout() {
     <div className="flex min-h-screen flex-col bg-mist lg:flex-row">
       <aside className="flex flex-col bg-sidebar text-sidebar-foreground lg:w-64">
         <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-5 py-5">
-          <Link to="/" className="flex min-w-0 items-center gap-3">
-            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full border border-gold/70">
-              <span className="h-2.5 w-2.5 rounded-full bg-gold" />
-            </span>
-            <span className="truncate font-display text-xl tracking-[0.2em]">
-              {settings.storeName}
-            </span>
+          <Link to="/" className="flex items-center" aria-label={settings.storeName}>
+            <img src="/brand-logo.png" alt={settings.storeName} className="h-12 w-auto object-contain shrink-0 invert" />
           </Link>
           <button
             type="button"

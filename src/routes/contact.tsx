@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { createFileRoute, useSearch } from "@tanstack/react-router";
-import { CheckCircle2, Clock, Mail, MapPin, MessageCircle, Phone } from "lucide-react";
+import { CheckCircle2, Clock, Mail, MapPin, Phone } from "lucide-react";
 
 import { SiteLayout } from "@/components/site/SiteLayout";
+import { WhatsAppIcon } from "@/components/site/WhatsAppIcon";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -172,8 +173,8 @@ function ContactPage() {
               rel="noreferrer"
               className="flex items-center gap-4 rounded-xl bg-jet p-6 text-cream transition-transform duration-200 hover:scale-[1.01]"
             >
-              <span className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-gold text-primary-foreground">
-                <MessageCircle className="h-5 w-5" />
+              <span className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-[#25D366] text-white shadow-md">
+                <WhatsAppIcon className="h-6 w-6 text-white" />
               </span>
               <span className="min-w-0">
                 <span className="block font-display text-xl">Chat on WhatsApp</span>

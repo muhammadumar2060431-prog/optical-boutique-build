@@ -16,15 +16,15 @@
   --color-off-white: #f6f4ef;
   --color-light-gray: #edece7;
   --color-light-gray-deep: #e4e2db;
-  --color-accent-gold: #8a6224; /* AA-contrast gold for text/buttons on light surfaces */
-  --color-accent-gold-soft: #d3a960; /* lighter gold for text on jet/dark surfaces */
+  --color-accent-gold: #666666; /* AA-contrast gray for text/buttons on light surfaces */
+  --color-accent-gold-soft: #666666; /* gray for text on jet/dark surfaces */
   --color-text-primary: #1b1b1d;
   --color-text-secondary: #6b6a65;
 
   --radius: 0.25rem;
 
   /* Semantic (shadcn) mapping */
-  --background: var(--color-off-white);
+  --background: #ffffff;
   --foreground: var(--color-text-primary);
   --card: #fffdf9;
   --card-foreground: var(--color-text-primary);
@@ -43,10 +43,10 @@
   --border: var(--color-light-gray-deep);
   --input: var(--color-light-gray-deep);
   --ring: var(--color-accent-gold);
-  --chart-1: #b8873a;
+  --chart-1: #666666;
   --chart-2: #0e0e10;
   --chart-3: #6b6a65;
-  --chart-4: #d3a960;
+  --chart-4: #666666;
   --chart-5: #e4e2db;
   --sidebar: var(--color-jet-black);
   --sidebar-foreground: var(--color-off-white);
@@ -193,6 +193,173 @@
   min-width: 200%;
   animation: optique-marquee 32s linear infinite;
 }
+
+/* ── Brands Infinity Scroll Bar ─────────────────────────────────── */
+@keyframes brands-scroll {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+
+.brands-scroll-outer {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  background: transparent;
+  padding: 48px 0;
+  /* Fade edges left & right */
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent 0%,
+    black 6%,
+    black 94%,
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to right,
+    transparent 0%,
+    black 6%,
+    black 94%,
+    transparent 100%
+  );
+}
+
+.brands-track {
+  display: inline-flex;
+  align-items: center;
+  gap: 80px;
+  /* 4 copies — so -50% = 2 full sets, seamless loop */
+  animation: brands-scroll 28s linear infinite;
+  white-space: nowrap;
+}
+
+.brands-scroll-outer:hover .brands-track {
+  animation-play-state: paused;
+}
+
+.brand-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  opacity: 0.75;
+  transition: opacity 0.3s ease;
+  cursor: default;
+}
+
+.brand-item:hover {
+  opacity: 1;
+}
+
+.brand-logo-img {
+  height: 36px;
+  width: auto;
+  max-width: 120px;
+  object-fit: contain;
+  /* Make coloured logos appear monochrome / neutral */
+  filter: grayscale(1) contrast(0.9);
+  transition: filter 0.3s ease;
+}
+
+.brand-item:hover .brand-logo-img {
+  filter: grayscale(0) contrast(1);
+}
+
+.brand-logo-text {
+  font-family: var(--font-sans);
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  color: var(--color-text-primary);
+  text-transform: uppercase;
+  user-select: none;
+}
+
+/* ── Testimonials Infinite Scroll ─────────────────────────────── */
+@keyframes testimonials-scroll {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.testimonials-scroll-outer {
+  overflow: hidden;
+  position: relative;
+  width: 100%;
+  padding: 12px 0 24px 0;
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent 0%,
+    black 5%,
+    black 95%,
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to right,
+    transparent 0%,
+    black 5%,
+    black 95%,
+    transparent 100%
+  );
+}
+
+.testimonials-track {
+  display: flex;
+  gap: 1.5rem;
+  width: max-content;
+  animation: testimonials-scroll 38s linear infinite;
+  will-change: transform;
+}
+
+.testimonials-scroll-outer:hover .testimonials-track {
+  animation-play-state: paused;
+}
+
+
+/* ── 3D Floating & Bouncing Showcase with Floor Shadow ─────────── */
+@keyframes float-bounce {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-16px) rotate(-1deg);
+  }
+}
+
+@keyframes floor-shadow-pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.45;
+  }
+  50% {
+    transform: scale(0.82);
+    opacity: 0.22;
+  }
+}
+
+.float-bounce-active {
+  animation: float-bounce 3.4s ease-in-out infinite;
+}
+
+.floor-shadow-active {
+  animation: floor-shadow-pulse 3.4s ease-in-out infinite;
+}
+
+.showcase-floor-shadow {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 65%;
+  height: 22px;
+  background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.45) 0%, rgba(0, 0, 0, 0.15) 45%, transparent 75%);
+  border-radius: 50%;
+  pointer-events: none;
+  filter: blur(4px);
+}
+
 
 @keyframes optique-rise {
   from {

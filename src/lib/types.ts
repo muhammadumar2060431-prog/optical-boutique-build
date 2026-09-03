@@ -5,6 +5,21 @@ export interface Variant {
   label: string;
   image: string;
   stock: number;
+  swatchColourHex?: string;
+  price?: number;
+}
+
+export type ProductStatus = "Draft" | "Published" | "Archived";
+
+export interface ProductSpecs {
+  frameMaterial?: string;
+  lensMaterial?: string;
+  lensType?: string[];
+  uvProtection?: string;
+  warranty?: string;
+  material: string;
+  lensInfo: string;
+  care: string;
 }
 
 export interface Product {
@@ -12,18 +27,24 @@ export interface Product {
   slug: string;
   name: string;
   categoryId: ID;
+  collectionId?: ID | null;
   price: number;
+  salePrice?: number | null;
+  sku?: string;
   description: string;
   image: string;
+  hoverImage?: string | null;
   subImages: string[];
   stock: number;
   variants: Variant[];
-  details: {
-    material: string;
-    lensInfo: string;
-    care: string;
-  };
+  details: ProductSpecs;
   featured: boolean;
+  isNewArrival?: boolean;
+  newArrivalImage?: string | null;
+  isBestseller?: boolean;
+  scheduleLaunchDate?: string | null;
+  status?: ProductStatus;
+  taxInclusive?: boolean;
   createdAt: string;
 }
 
@@ -35,10 +56,22 @@ export interface CategoryBanner {
   ctaLink: string;
 }
 
+export interface Collection {
+  id: ID;
+  categoryId: ID;
+  slug: string;
+  name: string;
+  banner?: CategoryBanner | null;
+  description?: string;
+  showInNav?: boolean;
+  sortOrder?: number;
+}
+
 export interface Category {
   id: ID;
   slug: string;
   name: string;
+  image?: string | null;
   banner: CategoryBanner | null;
 }
 
@@ -83,9 +116,16 @@ export interface AnnouncementSettings {
 export interface Testimonial {
   id: ID;
   name: string;
+  email?: string | null;
+  productId?: ID | null;
+  productName?: string | null;
+  title?: string | null;
   quote: string;
   rating: number;
-  photo: string | null;
+  photo?: string | null;
+  reviewImage?: string | null;
+  createdAt?: string;
+  verified?: boolean;
 }
 
 export interface VideoSettings {
@@ -111,3 +151,53 @@ export interface StoreSettings {
 }
 
 export type StockStatus = "In stock" | "Low stock" | "Out of stock";
+
+export interface Brand {
+  id: ID;
+  name: string;
+  logo: string | null;
+  enabled: boolean;
+}
+
+export type SocialPlatform = "instagram" | "tiktok" | "youtube" | "facebook" | "custom";
+
+export interface SocialReel {
+  id: ID;
+  title: string;
+  creatorName?: string;
+  creatorHandle?: string;
+  platform: SocialPlatform;
+  videoUrl: string;
+  thumbnail: string;
+  duration?: string;
+  productId?: ID | null;
+  enabled: boolean;
+}
+
+export interface FAQItem {
+  id: ID;
+  question: string;
+  answer: string;
+  category?: string;
+  enabled: boolean;
+}
+
+export interface Subscriber {
+  id: ID;
+  email: string;
+  createdAt: string;
+  status: "active" | "unsubscribed";
+}
+
+export interface EmailCampaign {
+  id: ID;
+  subject: string;
+  headline: string;
+  bodyText: string;
+  bannerImage: string | null;
+  promoCode?: string;
+  ctaText?: string;
+  ctaLink?: string;
+  sentAt: string;
+  recipientCount: number;
+}

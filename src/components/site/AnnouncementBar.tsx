@@ -2,11 +2,11 @@ import { useStore } from "@/lib/store";
 
 export function AnnouncementBar() {
   const { announcement } = useStore();
-  if (!announcement.enabled || announcement.messages.length === 0) return null;
+  if (!announcement?.enabled || !Array.isArray(announcement?.messages)) return null;
 
-  const items = announcement.messages.filter((m) => m.trim().length > 0);
+  const items = announcement.messages.filter((m) => typeof m === "string" && m.trim().length > 0);
   if (!items.length) return null;
-  const sequence = [...items, ...items];
+  const sequence = [...items, ...items, ...items, ...items];
 
   return (
     <div

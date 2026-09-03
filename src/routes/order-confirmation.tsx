@@ -3,6 +3,7 @@ import { Link, createFileRoute, useSearch } from "@tanstack/react-router";
 import { CheckCircle2, MessageCircle, PackageSearch } from "lucide-react";
 
 import { SiteLayout } from "@/components/site/SiteLayout";
+import { WhatsAppIcon } from "@/components/site/WhatsAppIcon";
 import { Button } from "@/components/ui/button";
 import { formatPrice, useStore } from "@/lib/store";
 import { loadOrderReceipt, type OrderReceipt } from "@/lib/last-order";
@@ -143,13 +144,13 @@ function OrderConfirmationPage() {
             Message us on WhatsApp with your reference so an optician can confirm availability,
             fitting and delivery straight away.
           </p>
-          <Button asChild size="lg" className="mt-5 min-h-12 rounded-full px-8">
+          <Button asChild size="lg" className="mt-5 min-h-12 rounded-full px-8 bg-[#25D366] hover:bg-[#20BA5A] text-white font-bold border-0 shadow-md">
             <a
               href={whatsappLink(settings.whatsapp, waMessage)}
               target="_blank"
               rel="noreferrer noopener"
             >
-              <MessageCircle className="mr-2 h-4 w-4" aria-hidden="true" />
+              <WhatsAppIcon className="mr-2 h-5 w-5 text-white" />
               Contact us on WhatsApp
             </a>
           </Button>
