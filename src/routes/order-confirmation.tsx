@@ -55,6 +55,7 @@ function OrderConfirmationPage() {
           </p>
           <Link
             to="/order-status"
+            search={{ ref: undefined }}
             className="mt-8 inline-flex min-h-11 items-center rounded-full bg-gold px-6 text-xs tracking-[0.18em] uppercase text-primary-foreground"
           >
             Track an order

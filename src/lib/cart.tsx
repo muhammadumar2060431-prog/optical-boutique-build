@@ -40,12 +40,12 @@ function isCartItem(value: unknown): value is CartItem {
   if (!value || typeof value !== "object") return false;
   const i = value as Record<string, unknown>;
   return (
-    typeof i.key === "string" &&
-    typeof i.productId === "string" &&
-    typeof i.name === "string" &&
-    typeof i.image === "string" &&
-    typeof i.price === "number" &&
-    typeof i.qty === "number"
+    typeof i['key'] === "string" &&
+    typeof i['productId'] === "string" &&
+    typeof i['name'] === "string" &&
+    typeof i['image'] === "string" &&
+    typeof i['price'] === "number" &&
+    typeof i['qty'] === "number"
   );
 }
 
