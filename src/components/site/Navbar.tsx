@@ -56,8 +56,8 @@ export function Navbar() {
               <Link
                 to={l.to}
                 activeOptions={{ exact: l.to === "/" }}
-                activeProps={{ className: "text-gold-soft border-gold", "aria-current": "page" }}
-                className="border-b border-transparent pb-1 text-xs tracking-[0.18em] uppercase text-cream/80 transition-colors hover:text-gold-soft"
+                activeProps={{ className: "text-gold border-gold", "aria-current": "page" }}
+                className="border-b border-transparent pb-1 text-xs tracking-[0.18em] uppercase text-ink-muted transition-colors hover:text-gold"
               >
                 {l.label}
               </Link>
