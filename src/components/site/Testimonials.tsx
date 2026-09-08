@@ -32,7 +32,8 @@ export function Testimonials() {
               </h2>
             </div>
             <p className="text-xs sm:text-sm text-ink-muted max-w-sm">
-              Real screenshots from WhatsApp chats, Facebook reviews, and happy customer photos. Click to enlarge.
+              Real screenshots from WhatsApp chats, Facebook reviews, and happy customer photos.
+              Click to enlarge.
             </p>
           </div>
         </Reveal>
@@ -70,7 +71,7 @@ export function Testimonials() {
                           key={s}
                           className={cn(
                             "h-3 w-3",
-                            s < t.rating ? "fill-gold text-gold" : "text-stone/60"
+                            s < t.rating ? "fill-amber-400 text-amber-400" : "text-zinc-500/60",
                           )}
                         />
                       ))}
@@ -116,7 +117,7 @@ export function Testimonials() {
                         key={s}
                         className={cn(
                           "h-4 w-4",
-                          s < t.rating ? "fill-gold text-gold" : "text-stone/60"
+                          s < t.rating ? "fill-amber-400 text-amber-400" : "text-zinc-400/60",
                         )}
                       />
                     ))}
@@ -179,7 +180,9 @@ export function Testimonials() {
                         key={s}
                         className={cn(
                           "h-3 w-3",
-                          s < selectedReview.rating ? "fill-gold text-gold" : "text-stone/60"
+                          s < selectedReview.rating
+                            ? "fill-amber-400 text-amber-400"
+                            : "text-zinc-500/60",
                         )}
                       />
                     ))}

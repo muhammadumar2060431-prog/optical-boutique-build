@@ -82,7 +82,7 @@ export function ProductCard({ product }: { product: Product }) {
               <span
                 key={v.id}
                 title={v.label}
-                className="h-3 w-3 rounded-full border border-stone/80 shadow-xs inline-block"
+                className="h-5 w-5 rounded-full border border-stone/80 shadow-xs inline-block"
                 style={{ backgroundColor: v.swatchColourHex || "#141416" }}
               />
             ))}
@@ -96,11 +96,13 @@ export function ProductCard({ product }: { product: Product }) {
         <div className="mt-auto pt-3 flex items-baseline gap-2">
           {product.salePrice ? (
             <>
-              <p className="text-base font-bold text-destructive">{formatPrice(product.salePrice)}</p>
-              <p className="text-xs text-ink-muted line-through">{formatPrice(product.price)}</p>
+              <p className="text-base font-bold text-black">{formatPrice(product.salePrice)}</p>
+              <p className="text-xs text-red-600 line-through font-medium">
+                {formatPrice(product.price)}
+              </p>
             </>
           ) : (
-            <p className="text-base font-semibold text-gold">{formatPrice(product.price)}</p>
+            <p className="text-base font-bold text-black">{formatPrice(product.price)}</p>
           )}
         </div>
       </div>

@@ -13,7 +13,10 @@ export function NewArrivalsShowcase() {
     const list = products.filter((p) => p.isNewArrival);
     if (list.length >= 3) return list;
     // If fewer than 3 marked as new arrival, include bestsellers/featured to maintain the 3-item 3D stage
-    return Array.from(new Set([...list, ...products.filter((p) => p.featured), ...products])).slice(0, 7);
+    return Array.from(new Set([...list, ...products.filter((p) => p.featured), ...products])).slice(
+      0,
+      7,
+    );
   }, [products]);
 
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -43,12 +46,14 @@ export function NewArrivalsShowcase() {
   // Helper to get item at relative offset (-1, 0, +1)
   const getItemAt = (offset: number): Product => {
     const idx = (currentIndex + offset + items.length) % items.length;
-    return items[idx];
+    return items[idx]!;
   };
 
   const leftItem = getItemAt(-1);
-  const centerItem = currentProduct;
+  const centerItem: Product = currentProduct!;
   const rightItem = getItemAt(1);
+
+  if (!centerItem) return null;
 
   return (
     <section

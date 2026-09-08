@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { toast } from "sonner";
 
@@ -6,7 +6,6 @@ import { ImageUpload } from "@/components/admin/ImageUpload";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { useStore } from "@/lib/store";
 
 export const Route = createFileRoute("/admin/settings")({
@@ -17,6 +16,11 @@ function AdminSettings() {
   const { settings, updateSettings } = useStore();
   const [form, setForm] = useState(settings);
   const [newPassword, setNewPassword] = useState("");
+
+  // Keep form in sync when settings are loaded or updated from store / Supabase
+  useEffect(() => {
+    setForm(settings);
+  }, [settings]);
 
   const field = (key: keyof typeof form, label: string, type = "text") => (
     <div className="space-y-2">
@@ -58,28 +62,12 @@ function AdminSettings() {
           onChange={(logo) => setForm({ ...form, logo })}
         />
 
-        <div className="space-y-2">
-          <Label htmlFor="s-aboutHeadline">About headline</Label>
-          <Input
-            id="s-aboutHeadline"
-            value={form.aboutHeadline}
-            onChange={(e) => setForm({ ...form, aboutHeadline: e.target.value })}
-            className="min-h-11"
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="s-aboutBody">About copy</Label>
-          <Textarea
-            id="s-aboutBody"
-            rows={8}
-            value={form.aboutBody}
-            onChange={(e) => setForm({ ...form, aboutBody: e.target.value })}
-          />
-        </div>
-
         <Button
           className="min-h-11 rounded-full"
           onClick={() => {
+            if (!window.confirm("Aap ye settings save karna chahte hain? (Are you sure you want to save these settings?)")) {
+              return;
+            }
             updateSettings(form);
             toast.success("Settings saved — the storefront is already showing them.");
           }}
@@ -117,6 +105,9 @@ function AdminSettings() {
           onClick={() => {
             if (newPassword && newPassword.length < 6) {
               toast.error("Use at least 6 characters.");
+              return;
+            }
+            if (!window.confirm("Aap admin credentials update karna chahte hain? (Are you sure you want to update credentials?)")) {
               return;
             }
             updateSettings({

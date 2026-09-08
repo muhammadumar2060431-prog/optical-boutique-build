@@ -2,32 +2,24 @@ import { Link } from "@tanstack/react-router";
 import { Mail, MapPin, Phone } from "lucide-react";
 
 import { useStore } from "@/lib/store";
-import { whatsappLink } from "@/lib/whatsapp";
-import { WhatsAppIcon } from "./WhatsAppIcon";
-
 export function Footer() {
   const { settings } = useStore();
-  const wa = whatsappLink(settings.whatsapp, `Hello ${settings.storeName}, I'd like some advice.`);
 
   return (
     <footer className="bg-jet text-cream/80">
       <div className="mx-auto grid max-w-7xl gap-10 px-4 py-16 sm:px-6 md:grid-cols-3 lg:grid-cols-4">
         <div className="space-y-4 lg:col-span-2">
           <div className="flex items-center">
-            <img src="/brand-logo.png" alt={settings.storeName} className="h-20 sm:h-24 md:h-28 w-auto object-contain shrink-0 invert" />
+            <img
+              src="/brand-logo.png"
+              alt={settings.storeName}
+              className="h-20 sm:h-24 md:h-28 w-auto object-contain shrink-0 invert"
+            />
           </div>
           <p className="max-w-sm text-sm leading-relaxed">
             A small optical house making a short, considered range of frames and lenses — cut,
             polished and fitted by hand.
           </p>
-          <a
-            href={wa}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex min-h-11 items-center gap-2 rounded-full bg-[#25D366] hover:bg-[#20BA5A] px-6 text-xs font-bold tracking-[0.18em] uppercase text-white shadow-md transition-all hover:scale-105"
-          >
-            <WhatsAppIcon className="h-4 w-4 text-white" /> Order on WhatsApp
-          </a>
         </div>
 
         <div className="space-y-3">
@@ -72,12 +64,22 @@ export function Footer() {
         </div>
       </div>
 
+      {/* Footer banner image */}
+      <div className="w-full overflow-hidden" style={{ lineHeight: 0 }}>
+        <img
+          src="/footer-banner.png"
+          alt="Optical Boutique"
+          className="animate-subtle-bounce"
+          style={{ display: "block", width: "100%", height: "180px", objectFit: "fill" }}
+        />
+      </div>
+
       <div className="border-t border-white/10">
-        <div className="mx-auto flex max-w-7xl flex-col gap-2 px-4 py-6 text-xs text-cream/50 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+        <div className="mx-auto flex max-w-7xl flex-col gap-2 px-4 py-2 text-xs text-cream/50 sm:flex-row sm:items-center sm:justify-between sm:px-6">
           <p>
             © {new Date().getFullYear()} {settings.storeName}. All rights reserved.
           </p>
-          <p>Prescriptions dispensed by registered opticians.</p>
+          <p>Prescriptions dispensed by registered nigah.</p>
         </div>
       </div>
     </footer>

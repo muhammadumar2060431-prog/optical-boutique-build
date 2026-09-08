@@ -28,7 +28,6 @@ import type {
   VideoSettings,
   FAQItem,
   Subscriber,
-  EmailCampaign,
 } from "./types";
 
 export const seedCategories: Category[] = [
@@ -171,8 +170,22 @@ export const seedProducts: Product[] = [
     subImages: [pAviatorBlue, pRound],
     stock: 0,
     variants: [
-      { id: "var-aviator-black", label: "Jet Black", swatchColourHex: "#141416", image: pAviatorBlack, stock: 12, price: 8900 },
-      { id: "var-aviator-blue", label: "Sapphire Blue", swatchColourHex: "#1e3a8a", image: pAviatorBlue, stock: 3, price: 9200 },
+      {
+        id: "var-aviator-black",
+        label: "Jet Black",
+        swatchColourHex: "#141416",
+        image: pAviatorBlack,
+        stock: 12,
+        price: 8900,
+      },
+      {
+        id: "var-aviator-blue",
+        label: "Sapphire Blue",
+        swatchColourHex: "#1e3a8a",
+        image: pAviatorBlue,
+        stock: 3,
+        price: 9200,
+      },
     ],
     details: {
       frameMaterial: "Acetate",
@@ -206,7 +219,13 @@ export const seedProducts: Product[] = [
     subImages: [pTitanium],
     stock: 9,
     variants: [
-      { id: "var-round-tortoise", label: "Havana Tortoise", swatchColourHex: "#78350f", image: pRound, stock: 9 },
+      {
+        id: "var-round-tortoise",
+        label: "Havana Tortoise",
+        swatchColourHex: "#78350f",
+        image: pRound,
+        stock: 9,
+      },
     ],
     details: {
       frameMaterial: "Acetate",
@@ -239,7 +258,13 @@ export const seedProducts: Product[] = [
     subImages: [],
     stock: 4,
     variants: [
-      { id: "var-titanium-silver", label: "Brushed Silver", swatchColourHex: "#94a3b8", image: pTitanium, stock: 4 },
+      {
+        id: "var-titanium-silver",
+        label: "Brushed Silver",
+        swatchColourHex: "#94a3b8",
+        image: pTitanium,
+        stock: 4,
+      },
     ],
     details: {
       frameMaterial: "Titanium",
@@ -272,9 +297,30 @@ export const seedProducts: Product[] = [
     subImages: [pAviatorBlue, pRound, pTitanium],
     stock: 0,
     variants: [
-      { id: "var-way-black", label: "Matte Black", swatchColourHex: "#1a1a1a", image: pAviatorBlack, stock: 8, price: 9800 },
-      { id: "var-way-tortoise", label: "Amber Tortoise", swatchColourHex: "#92400e", image: pRound, stock: 5, price: 9800 },
-      { id: "var-way-blue", label: "Midnight Navy", swatchColourHex: "#1e40af", image: pAviatorBlue, stock: 2, price: 10200 },
+      {
+        id: "var-way-black",
+        label: "Matte Black",
+        swatchColourHex: "#1a1a1a",
+        image: pAviatorBlack,
+        stock: 8,
+        price: 9800,
+      },
+      {
+        id: "var-way-tortoise",
+        label: "Amber Tortoise",
+        swatchColourHex: "#92400e",
+        image: pRound,
+        stock: 5,
+        price: 9800,
+      },
+      {
+        id: "var-way-blue",
+        label: "Midnight Navy",
+        swatchColourHex: "#1e40af",
+        image: pAviatorBlue,
+        stock: 2,
+        price: 10200,
+      },
     ],
     details: {
       frameMaterial: "Acetate",
@@ -282,7 +328,8 @@ export const seedProducts: Product[] = [
       lensType: ["Single Vision", "Polarized", "Photochromic"],
       uvProtection: "Polarized+UV",
       warranty: "2 Years Comprehensive Frame Warranty",
-      material: "Italian bio-acetate front with grade-5 titanium spring hinges. Hypoallergenic nose pads.",
+      material:
+        "Italian bio-acetate front with grade-5 titanium spring hinges. Hypoallergenic nose pads.",
       lensInfo: "Fits single-vision, progressive and blue-light filter lenses up to +/- 6.00.",
       care: "Clean with the supplied microfibre cloth. Store in the hard case when not in use. Avoid extreme heat.",
     },
@@ -309,8 +356,20 @@ export const seedProducts: Product[] = [
     subImages: [pAviatorBlue],
     stock: 15,
     variants: [
-      { id: "var-kids-blue", label: "Electric Blue", swatchColourHex: "#2563eb", image: pAviatorBlue, stock: 10 },
-      { id: "var-kids-amber", label: "Warm Amber", swatchColourHex: "#d97706", image: pRound, stock: 5 },
+      {
+        id: "var-kids-blue",
+        label: "Electric Blue",
+        swatchColourHex: "#2563eb",
+        image: pAviatorBlue,
+        stock: 10,
+      },
+      {
+        id: "var-kids-amber",
+        label: "Warm Amber",
+        swatchColourHex: "#d97706",
+        image: pRound,
+        stock: 5,
+      },
     ],
     details: {
       frameMaterial: "Plastic",
@@ -374,7 +433,13 @@ export const seedProducts: Product[] = [
     subImages: [],
     stock: 2,
     variants: [
-      { id: "var-color-hazel", label: "Warm Hazel", swatchColourHex: "#b45309", image: pColor, stock: 2 },
+      {
+        id: "var-color-hazel",
+        label: "Warm Hazel",
+        swatchColourHex: "#b45309",
+        image: pColor,
+        stock: 2,
+      },
     ],
     details: {
       lensMaterial: "Silicone hydrogel",
@@ -438,8 +503,10 @@ export const seedProducts: Product[] = [
       lensType: ["Single Vision"],
       uvProtection: "UV400",
       warranty: "100% Fit Comfort Guarantee",
-      material: "Silicone hydrogel with moisture-lock polymer coating. UV-A and UV-B blocking built in.",
-      lensInfo: "Powers -0.25 to -10.00 and +0.25 to +4.00. Cylinder and axis available for toric version.",
+      material:
+        "Silicone hydrogel with moisture-lock polymer coating. UV-A and UV-B blocking built in.",
+      lensInfo:
+        "Powers -0.25 to -10.00 and +0.25 to +4.00. Cylinder and axis available for toric version.",
       care: "Use fresh multipurpose solution nightly. Replace lens case every 3 months. Never rinse with tap water.",
     },
     featured: true,
@@ -640,7 +707,8 @@ export const seedTestimonials: Testimonial[] = [
     productId: "prd-wayfarer-demo",
     productName: "Optique Wayfarer Pro",
     title: "Quiet showroom, genuine staff",
-    quote: "Quiet showroom, no pressure, genuinely knowledgeable staff. The wayfarer frames speak for themselves.",
+    quote:
+      "Quiet showroom, no pressure, genuinely knowledgeable staff. The wayfarer frames speak for themselves.",
     rating: 5,
     verified: true,
     createdAt: "2026-08-25T18:00:00.000Z",
@@ -653,7 +721,8 @@ export const seedVideo: VideoSettings = {
   lockedChannel: "",
   videoUrl: "",
   videoId: null,
-  caption: "A look inside the workshop where every OPTIQUE frame is finished and quality-checked by hand.",
+  caption:
+    "A look inside the workshop where every OPTIQUE frame is finished and quality-checked by hand.",
 };
 
 export const seedSettings: StoreSettings = {
@@ -665,8 +734,8 @@ export const seedSettings: StoreSettings = {
   address: "24 Lens Court, Clifton Block 4, Karachi",
   hours: "Mon–Sat, 11:00 – 20:00",
   lowStockThreshold: 5,
-  adminEmail: "admin@optique.com",
-  adminPassword: "optique123",
+  adminEmail: import.meta.env.VITE_ADMIN_EMAIL || "admin@optique.com",
+  adminPassword: import.meta.env.VITE_ADMIN_PASSWORD || "optique123",
   aboutHeadline: "Optics, made deliberately slow",
   aboutBody:
     "OPTIQUE began in a single workshop with one belief: a pair of glasses is a medical instrument you happen to wear on your face. Every frame we sell is chosen for how it holds a lens, not just how it photographs.\n\nWe cut, polish and fit in-house. Our opticians measure each pupil individually, adjust the bridge to your nose, and keep your file so a repair years later still fits like the first day.\n\nWe stock only what we would wear ourselves — a short, considered range of frames and lenses backed by a full warranty and honest advice.",
@@ -836,21 +905,5 @@ export const seedSubscribers: Subscriber[] = [
     email: "usman.optical@example.com",
     createdAt: "2026-09-01T11:20:00.000Z",
     status: "active",
-  },
-];
-
-export const seedCampaigns: EmailCampaign[] = [
-  {
-    id: "cmp-1",
-    subject: "✨ Exclusive 20% Off: New Handcrafted Titanium Arrivals",
-    headline: "Autumn Optical Collection is Live",
-    bodyText:
-      "Explore our newest drop of ultra-light Japanese titanium and Mazzucchelli acetate frames. Designed for all-day comfort and fitted with precision blue-light or prescription lenses.",
-    bannerImage: heroOne,
-    promoCode: "OPTIQUE20",
-    ctaText: "Explore New Frames",
-    ctaLink: "/glasses",
-    sentAt: "2026-09-01T12:00:00.000Z",
-    recipientCount: 4,
   },
 ];

@@ -82,7 +82,8 @@ export function CategoryBestsellersShowcase() {
               Shop by Category
             </h2>
             <p className="mt-3 text-sm sm:text-base text-ink-muted">
-              Select a category to explore our top-rated best sellers and signature collection banners
+              Select a category to explore our top-rated best sellers and signature collection
+              banners
             </p>
           </Reveal>
         </div>
@@ -155,8 +156,7 @@ export function CategoryBestsellersShowcase() {
                       {cat.name}
                     </span>
                     <p className="text-[11px] text-ink-muted uppercase tracking-wider mt-0.5">
-                      {productCount}{" "}
-                      {productCount === 1 ? "Product" : "Products"}
+                      {productCount} {productCount === 1 ? "Product" : "Products"}
                     </p>
                   </div>
                 </button>
@@ -167,7 +167,7 @@ export function CategoryBestsellersShowcase() {
 
         {/* ── Dynamic Collection Banners + Best Selling Products (Scrollable Flow) ── */}
         <div className="mt-14 sm:mt-20 pt-10 border-t border-stone/40 space-y-16 sm:space-y-20">
-          {collectionSections.totalCount === 0 ? (
+          {Array.isArray(collectionSections) || collectionSections.totalCount === 0 ? (
             <div className="rounded-2xl border border-dashed border-stone p-12 text-center bg-card/40">
               <p className="font-display text-lg text-foreground">
                 No products found in {activeCategory?.name} yet
@@ -179,47 +179,66 @@ export function CategoryBestsellersShowcase() {
           ) : (
             <>
               {/* Render Each Collection with its Banner first, followed by its Best Selling Products */}
-              {collectionSections.collectionsWithProducts.map(
-                ({ collection, products: colProducts }, colIdx) => (
+              {!Array.isArray(collectionSections) && collectionSections.collectionsWithProducts.map(
+                ({ collection, products: colProducts }: { collection: import('@/lib/types').Collection; products: import('@/lib/types').Product[] }, colIdx: number) => (
                   <div key={collection.id} className="space-y-8">
                     <Reveal delay={colIdx * 100}>
                       {/* ── Collection Banner (Matching Reference Image 2) ── */}
-                      <div className="relative isolate overflow-hidden rounded-2xl bg-jet shadow-xl border border-stone/60 group">
-                        {collection.banner?.image ? (
-                          <img
-                            src={collection.banner.image}
-                            alt={collection.name}
-                            loading="lazy"
-                            className="absolute inset-0 h-full w-full object-cover opacity-50 transition-transform duration-700 group-hover:scale-105"
-                          />
-                        ) : (
-                          <div className="absolute inset-0 bg-radial from-jet via-zinc-950 to-black" />
-                        )}
-                        <div className="absolute inset-0 bg-gradient-to-r from-black/95 via-black/80 to-transparent" />
+                      {(() => {
+                        const hasImage = Boolean(collection.banner?.image);
+                        const hasText = Boolean(collection.banner?.heading?.trim() || collection.banner?.subtext?.trim());
 
-                        <div className="relative px-6 py-10 sm:px-10 sm:py-14 max-w-2xl space-y-2">
-                          <div className="flex items-center gap-2">
-                            <span className="eyebrow text-gold font-bold uppercase tracking-[0.2em] text-xs">
-                              {activeCategory?.name} Collection
-                            </span>
-                            <span className="text-zinc-500">•</span>
-                            <span className="text-[11px] text-zinc-400 font-semibold uppercase tracking-wider">
-                              {colProducts.length}{" "}
-                              {colProducts.length === 1 ? "Item" : "Items"}
-                            </span>
+                        if (hasImage && !hasText) {
+                          return (
+                            <div className="relative isolate overflow-hidden rounded-2xl bg-jet shadow-xl border border-stone/60 group">
+                              <img
+                                src={collection.banner!.image}
+                                alt={collection.name}
+                                loading="lazy"
+                                className="w-full h-auto max-h-[360px] object-cover transition-transform duration-700 group-hover:scale-105 block"
+                              />
+                            </div>
+                          );
+                        }
+
+                        return (
+                          <div className="relative isolate overflow-hidden rounded-2xl bg-jet shadow-xl border border-stone/60 group">
+                            {collection.banner?.image ? (
+                              <img
+                                src={collection.banner.image}
+                                alt={collection.name}
+                                loading="lazy"
+                                className="absolute inset-0 h-full w-full object-cover opacity-50 transition-transform duration-700 group-hover:scale-105"
+                              />
+                            ) : (
+                              <div className="absolute inset-0 bg-radial from-jet via-zinc-950 to-black" />
+                            )}
+                            <div className="absolute inset-0 bg-gradient-to-r from-black/95 via-black/80 to-transparent" />
+
+                            <div className="relative px-6 py-10 sm:px-10 sm:py-14 max-w-2xl space-y-2">
+                              <div className="flex items-center gap-2">
+                                <span className="eyebrow text-gold font-bold uppercase tracking-[0.2em] text-xs">
+                                  {activeCategory?.name} Collection
+                                </span>
+                                <span className="text-zinc-500">•</span>
+                                <span className="text-[11px] text-zinc-400 font-semibold uppercase tracking-wider">
+                                  {colProducts.length} {colProducts.length === 1 ? "Item" : "Items"}
+                                </span>
+                              </div>
+
+                              <h3 className="font-display text-2xl sm:text-4xl text-cream font-medium tracking-tight">
+                                {collection.banner?.heading || collection.name}
+                              </h3>
+
+                              {collection.banner?.subtext && (
+                                <p className="text-xs sm:text-sm text-cream/80 leading-relaxed font-light pt-0.5">
+                                  {collection.banner.subtext}
+                                </p>
+                              )}
+                            </div>
                           </div>
-
-                          <h3 className="font-display text-2xl sm:text-4xl text-cream font-medium tracking-tight">
-                            {collection.banner?.heading || collection.name}
-                          </h3>
-
-                          {collection.banner?.subtext && (
-                            <p className="text-xs sm:text-sm text-cream/80 leading-relaxed font-light pt-0.5">
-                              {collection.banner.subtext}
-                            </p>
-                          )}
-                        </div>
-                      </div>
+                        );
+                      })()}
                     </Reveal>
 
                     {/* ── Collection Products Grid (Placed Directly Below its Banner) ── */}
@@ -235,7 +254,7 @@ export function CategoryBestsellersShowcase() {
               )}
 
               {/* Unassigned products if any */}
-              {collectionSections.unassignedProducts.length > 0 && (
+              {!Array.isArray(collectionSections) && collectionSections.unassignedProducts.length > 0 && (
                 <div className="space-y-8 pt-4">
                   <Reveal>
                     <div className="border-l-4 border-gold pl-4 py-1">
@@ -249,7 +268,7 @@ export function CategoryBestsellersShowcase() {
                   </Reveal>
 
                   <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                    {collectionSections.unassignedProducts.map((product, pIdx) => (
+                    {!Array.isArray(collectionSections) && collectionSections.unassignedProducts.map((product: import('@/lib/types').Product, pIdx: number) => (
                       <Reveal key={product.id} delay={pIdx * 80}>
                         <ProductCard product={product} />
                       </Reveal>
@@ -266,7 +285,7 @@ export function CategoryBestsellersShowcase() {
                       ? "/lenses"
                       : activeCategory?.slug === "glasses"
                         ? "/glasses"
-                        : `/category/${activeCategory?.slug}`
+                        : "/glasses"
                   }
                   className="inline-flex items-center gap-2 rounded-full bg-jet hover:bg-jet/90 text-cream px-8 py-3.5 text-xs font-bold uppercase tracking-[0.16em] transition-all hover:scale-105 shadow-md border border-gold/40 group"
                 >

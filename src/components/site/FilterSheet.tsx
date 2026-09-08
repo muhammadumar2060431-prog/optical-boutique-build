@@ -18,7 +18,7 @@ import { cn } from "@/lib/utils";
 
 import { defaultFilters, useFilters } from "./filters";
 
-export function FilterSheet({ dark = false }: { dark?: boolean }) {
+export function FilterSheet({ dark = false, className }: { dark?: boolean; className?: string }) {
   const { categories, products } = useStore();
   const { filters, setFilters, active } = useFilters();
   const [open, setOpen] = useState(false);
@@ -41,11 +41,13 @@ export function FilterSheet({ dark = false }: { dark?: boolean }) {
         <button
           type="button"
           className={cn(
-            "inline-flex min-h-11 items-center gap-2 rounded-full border px-4 text-xs tracking-[0.16em] uppercase transition-colors",
-            dark
-              ? "border-white/20 text-cream hover:border-gold hover:text-gold"
-              : "border-stone text-ink hover:border-gold hover:text-gold",
-            active && "border-gold text-gold",
+            "inline-flex min-h-11 items-center gap-2 rounded-full border px-4 text-xs tracking-[0.16em] uppercase transition-all duration-200 cursor-pointer",
+            className
+              ? className
+              : dark
+                ? "border-white/20 text-cream hover:border-gold hover:text-gold"
+                : "border-stone text-ink hover:border-gold hover:text-gold",
+            active && !className && "border-gold text-gold",
           )}
         >
           <SlidersHorizontal className="h-4 w-4" />

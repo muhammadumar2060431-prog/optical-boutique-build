@@ -303,7 +303,10 @@ function ProductPage() {
               {/* Floating Badges */}
               <div className="absolute top-4 left-4 flex flex-col gap-2 z-10">
                 {product.salePrice && (
-                  <Badge variant="destructive" className="px-3 py-1 text-xs font-bold uppercase tracking-wider shadow-md">
+                  <Badge
+                    variant="destructive"
+                    className="px-3 py-1 text-xs font-bold uppercase tracking-wider shadow-md"
+                  >
                     Sale Offer
                   </Badge>
                 )}
@@ -360,7 +363,9 @@ function ProductPage() {
                       key={i}
                       className={cn(
                         "h-4 w-4",
-                        i < Math.round(avgRating) ? "fill-amber-400 text-amber-400" : "text-stone-300",
+                        i < Math.round(avgRating)
+                          ? "fill-amber-400 text-amber-400"
+                          : "text-stone-300",
                       )}
                     />
                   ))}
@@ -373,14 +378,19 @@ function ProductPage() {
               <div className="flex items-baseline gap-3 pt-1">
                 {isDiscounted ? (
                   <>
-                    <p className="text-3xl font-bold text-destructive">{formatPrice(currentPrice)}</p>
-                    <p className="text-lg text-ink-muted line-through">{formatPrice(product.price)}</p>
-                    <Badge variant="outline" className="text-xs text-destructive border-destructive/40">
+                    <p className="text-3xl font-bold text-black">{formatPrice(currentPrice)}</p>
+                    <p className="text-lg text-red-600 line-through font-medium">
+                      {formatPrice(product.price)}
+                    </p>
+                    <Badge
+                      variant="outline"
+                      className="text-xs font-semibold text-emerald-600 border-emerald-500/40 bg-white shadow-xs"
+                    >
                       Save {formatPrice(product.price - currentPrice)}
                     </Badge>
                   </>
                 ) : (
-                  <p className="text-3xl font-semibold text-gold">{formatPrice(currentPrice)}</p>
+                  <p className="text-3xl font-bold text-black">{formatPrice(currentPrice)}</p>
                 )}
               </div>
             </div>
@@ -398,7 +408,9 @@ function ProductPage() {
                     </span>
                   </p>
                   {variant && variant.stock > 0 && (
-                    <span className="text-xs text-ink/60">{variant.stock} available in this colour</span>
+                    <span className="text-xs text-ink/60">
+                      {variant.stock} available in this colour
+                    </span>
                   )}
                 </div>
 
@@ -427,7 +439,9 @@ function ProductPage() {
                           )}
                           style={{ backgroundColor: hex }}
                         >
-                          {isSelected && <Check className="h-3.5 w-3.5 text-white drop-shadow-md" />}
+                          {isSelected && (
+                            <Check className="h-3.5 w-3.5 text-white drop-shadow-md" />
+                          )}
                         </span>
                         {v.price && v.price !== product.price && (
                           <span className="text-[10px] text-ink/60 font-semibold">
@@ -475,7 +489,11 @@ function ProductPage() {
                   >
                     <ShoppingBag className="mr-2 h-4 w-4" /> Add to bag
                   </Button>
-                  <Button asChild size="lg" className="min-h-12 rounded-full px-8 bg-[#25D366] hover:bg-[#20BA5A] text-white font-bold tracking-wider border-0 shadow-md">
+                  <Button
+                    asChild
+                    size="lg"
+                    className="min-h-12 rounded-full px-8 bg-[#25D366] hover:bg-[#20BA5A] text-white font-bold tracking-wider border-0 shadow-md"
+                  >
                     <a href={waHref} target="_blank" rel="noreferrer" onClick={recordIntent}>
                       <WhatsAppIcon className="mr-2 h-5 w-5 text-white" /> ORDER ON WHATSAPP
                     </a>
@@ -518,7 +536,10 @@ function ProductPage() {
             </TabsList>
 
             {/* Description Tab Content */}
-            <TabsContent value="description" className="py-8 max-w-3xl mx-auto space-y-4 leading-relaxed text-ink-muted text-base">
+            <TabsContent
+              value="description"
+              className="py-8 max-w-3xl mx-auto space-y-4 leading-relaxed text-ink-muted text-base"
+            >
               <p>{product.description}</p>
               <p>
                 {product.details?.material ||
@@ -532,13 +553,17 @@ function ProductPage() {
                 {product.details?.frameMaterial && (
                   <div className="grid grid-cols-2 p-3.5">
                     <span className="font-semibold text-ink-muted">Frame Material</span>
-                    <span className="text-foreground font-medium">{product.details.frameMaterial}</span>
+                    <span className="text-foreground font-medium">
+                      {product.details.frameMaterial}
+                    </span>
                   </div>
                 )}
                 {product.details?.lensMaterial && (
                   <div className="grid grid-cols-2 p-3.5">
                     <span className="font-semibold text-ink-muted">Lens Material</span>
-                    <span className="text-foreground font-medium">{product.details.lensMaterial}</span>
+                    <span className="text-foreground font-medium">
+                      {product.details.lensMaterial}
+                    </span>
                   </div>
                 )}
                 {product.details?.uvProtection && (
@@ -572,7 +597,8 @@ function ProductPage() {
                 {/* Big Score Box */}
                 <div className="flex flex-col items-center justify-center border-b border-stone-400/60 pb-6 md:border-b-0 md:border-r md:pr-8 md:pb-0 text-center">
                   <div className="font-display text-5xl sm:text-6xl font-bold text-white">
-                    {avgRating} <span className="text-lg font-sans text-stone-200 font-normal">out of 5</span>
+                    {avgRating}{" "}
+                    <span className="text-lg font-sans text-stone-200 font-normal">out of 5</span>
                   </div>
                   <div className="flex text-amber-400 my-2">
                     {Array.from({ length: 5 }).map((_, i) => (
@@ -580,7 +606,9 @@ function ProductPage() {
                         key={i}
                         className={cn(
                           "h-5 w-5",
-                          i < Math.round(avgRating) ? "fill-amber-400 text-amber-400" : "text-stone-400",
+                          i < Math.round(avgRating)
+                            ? "fill-amber-400 text-amber-400"
+                            : "text-stone-400",
                         )}
                       />
                     ))}
@@ -592,7 +620,8 @@ function ProductPage() {
                     onClick={() => setReviewFormOpen((prev) => !prev)}
                     className="mt-4 rounded-full min-h-10 px-5 text-xs font-bold bg-white text-stone-900 hover:bg-stone-100 shadow-md border-0"
                   >
-                    <Plus className="mr-1.5 h-4 w-4 text-stone-900" /> {reviewFormOpen ? "Close Review Form" : "Write a Review"}
+                    <Plus className="mr-1.5 h-4 w-4 text-stone-900" />{" "}
+                    {reviewFormOpen ? "Close Review Form" : "Write a Review"}
                   </Button>
                 </div>
 
@@ -600,7 +629,8 @@ function ProductPage() {
                 <div className="space-y-2.5">
                   {[5, 4, 3, 2, 1].map((star) => {
                     const count = starCounts[star as 1 | 2 | 3 | 4 | 5];
-                    const percent = totalReviewsCount > 0 ? Math.round((count / totalReviewsCount) * 100) : 0;
+                    const percent =
+                      totalReviewsCount > 0 ? Math.round((count / totalReviewsCount) * 100) : 0;
                     return (
                       <div key={star} className="flex items-center gap-3 text-xs">
                         <span className="w-10 font-semibold text-white shrink-0">{star} Star</span>
@@ -679,7 +709,9 @@ function ProductPage() {
                           <Star
                             className={cn(
                               "h-7 w-7 transition-colors",
-                              star <= revRating ? "fill-amber-400 text-amber-400" : "text-stone-300 hover:text-amber-300",
+                              star <= revRating
+                                ? "fill-amber-400 text-amber-400"
+                                : "text-stone-300 hover:text-amber-300",
                             )}
                           />
                         </button>
@@ -724,7 +756,12 @@ function ProductPage() {
                   </div>
 
                   <div className="pt-2 flex justify-end gap-3">
-                    <Button type="button" variant="outline" className="min-h-11 rounded-full" onClick={() => setReviewFormOpen(false)}>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="min-h-11 rounded-full"
+                      onClick={() => setReviewFormOpen(false)}
+                    >
                       Cancel
                     </Button>
                     <Button type="submit" className="min-h-11 rounded-full px-8 font-semibold">
@@ -776,7 +813,9 @@ function ProductPage() {
                             </div>
                             <div>
                               <div className="flex items-center gap-2">
-                                <h4 className="font-semibold text-foreground text-sm">{rev.name}</h4>
+                                <h4 className="font-semibold text-foreground text-sm">
+                                  {rev.name}
+                                </h4>
                                 {rev.verified !== false && (
                                   <span className="inline-flex items-center gap-0.5 text-[10px] text-emerald-600 font-semibold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
                                     <CheckCircle2 className="h-3 w-3" /> Verified
@@ -803,7 +842,9 @@ function ProductPage() {
                                   key={i}
                                   className={cn(
                                     "h-3.5 w-3.5",
-                                    i < rev.rating ? "fill-amber-400 text-amber-400" : "text-stone-300",
+                                    i < rev.rating
+                                      ? "fill-amber-400 text-amber-400"
+                                      : "text-stone-300",
                                   )}
                                 />
                               ))}
@@ -814,7 +855,9 @@ function ProductPage() {
 
                         {/* Title & Comment */}
                         {rev.title && (
-                          <h5 className="font-semibold text-base text-foreground pt-1">{rev.title}</h5>
+                          <h5 className="font-semibold text-base text-foreground pt-1">
+                            {rev.title}
+                          </h5>
                         )}
                         <p className="text-sm text-ink-muted leading-relaxed">{rev.quote}</p>
 
@@ -851,7 +894,8 @@ function ProductPage() {
                 Seen on Creators & Real Wearers
               </h2>
               <p className="text-xs sm:text-sm text-ink-muted mt-1">
-                Watch real unboxings, style breakdowns, and optical fitting reviews for {product.name}.
+                Watch real unboxings, style breakdowns, and optical fitting reviews for{" "}
+                {product.name}.
               </p>
             </div>
           </div>
@@ -877,8 +921,25 @@ function ProductPage() {
 
                 {/* Platform Tag & Tagged Badge (Image 2 style) */}
                 <div className="absolute top-3 left-3 right-3 flex items-center justify-between z-10">
-                  <span className="inline-flex items-center gap-1 rounded-full bg-black/70 backdrop-blur-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white border border-white/20">
-                    {reel.platform === "instagram" ? "Insta" : reel.platform === "tiktok" ? "TikTok" : "Shorts"}
+                  <span
+                    className={cn(
+                      "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white shadow-sm",
+                      reel.platform === "instagram" &&
+                        "bg-gradient-to-r from-[#833ab4] via-[#fd1d1d] to-[#fcb045]",
+                      reel.platform === "tiktok" && "bg-black/90 border border-white/20",
+                      reel.platform === "youtube" && "bg-[#ff0000]",
+                      reel.platform === "facebook" && "bg-[#1877f2]",
+                      !["instagram", "tiktok", "youtube", "facebook"].includes(reel.platform) &&
+                        "bg-black/70 border border-white/20",
+                    )}
+                  >
+                    {reel.platform === "instagram"
+                      ? "Insta"
+                      : reel.platform === "tiktok"
+                        ? "TikTok"
+                        : reel.platform === "youtube"
+                          ? "Shorts"
+                          : reel.platform}
                   </span>
                   <span className="flex items-center gap-1 text-[10px] bg-black/60 backdrop-blur-md text-cream/90 px-2 py-0.5 rounded-full border border-white/10 font-medium">
                     <ShoppingBag className="h-2.5 w-2.5 text-gold" />
@@ -988,9 +1049,12 @@ function ProductPage() {
               <div className="relative aspect-video w-full bg-black flex items-center justify-center">
                 <iframe
                   src={
-                    selectedVideoUrl.includes("youtube.com") || selectedVideoUrl.includes("youtu.be")
+                    selectedVideoUrl.includes("youtube.com") ||
+                    selectedVideoUrl.includes("youtu.be")
                       ? `https://www.youtube.com/embed/${
-                          selectedVideoUrl.match(/(?:shorts\/|watch\?v=|youtu\.be\/)([A-Za-z0-9_-]+)/)?.[1] || ""
+                          selectedVideoUrl.match(
+                            /(?:shorts\/|watch\?v=|youtu\.be\/)([A-Za-z0-9_-]+)/,
+                          )?.[1] || ""
                         }?autoplay=1`
                       : selectedVideoUrl
                   }
@@ -1021,5 +1085,3 @@ function ProductPage() {
     </SiteLayout>
   );
 }
-
-

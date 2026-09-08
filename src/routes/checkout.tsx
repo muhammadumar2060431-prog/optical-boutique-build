@@ -41,23 +41,30 @@ const checkoutSchema = z.object({
     .trim()
     .min(2, { message: "Please enter your full name (at least 2 characters)." })
     .max(80, { message: "Name must be under 80 characters." })
-    .regex(/^[\p{L}\p{M}'\-.\s]+$/u, { message: "Name can only contain letters, spaces and - ' ." }),
+    .regex(/^[\p{L}\p{M}'\-.\s]+$/u, {
+      message: "Name can only contain letters, spaces and - ' .",
+    }),
   email: z
     .string()
     .trim()
+    .min(1, { message: "Email address is required." })
     .max(255, { message: "Email must be under 255 characters." })
-    .email({ message: "Enter a valid email address, e.g. name@example.com." })
-    .or(z.literal("")),
+    .email({ message: "Enter a valid email address, e.g. name@example.com." }),
   phone: z
     .string()
     .trim()
+    .min(1, { message: "Phone number is required." })
     .max(24, { message: "Phone number is too long." })
-    .regex(phonePattern, { message: "Enter a valid phone number, e.g. +92 300 1234567." })
-    .or(z.literal("")),
+    .regex(phonePattern, { message: "Enter a valid phone number, e.g. +92 300 1234567." }),
+  address: z
+    .string()
+    .trim()
+    .min(5, { message: "Please provide your full delivery address." })
+    .max(500, { message: "Address must be under 500 characters." }),
   notes: z.string().trim().max(500, { message: "Notes must be under 500 characters." }),
 });
 
-type FieldName = "name" | "email" | "phone" | "notes";
+type FieldName = "name" | "email" | "phone" | "address" | "notes";
 type Errors = Partial<Record<FieldName, string>>;
 
 function CheckoutPage() {
@@ -65,7 +72,7 @@ function CheckoutPage() {
   const { addOrder, getStockFor, adjustStock } = useStore();
   const navigate = useNavigate();
 
-  const [values, setValues] = useState({ name: "", email: "", phone: "", notes: "" });
+  const [values, setValues] = useState({ name: "", email: "", phone: "", address: "", notes: "" });
   const [errors, setErrors] = useState<Errors>({});
   const [touched, setTouched] = useState<Partial<Record<FieldName, boolean>>>({});
 
@@ -83,10 +90,6 @@ function CheckoutPage() {
         const key = issue.path[0] as FieldName;
         if (!found[key]) found[key] = issue.message;
       }
-    }
-    if (!next.email.trim() && !next.phone.trim()) {
-      found.phone = found.phone ?? "Give us at least one way to reach you — phone or email.";
-      found.email = found.email ?? "Give us at least one way to reach you — phone or email.";
     }
     return found;
   };
@@ -106,7 +109,7 @@ function CheckoutPage() {
     event.preventDefault();
     const found = validate();
     setErrors(found);
-    setTouched({ name: true, email: true, phone: true, notes: true });
+    setTouched({ name: true, email: true, phone: true, address: true, notes: true });
     if (Object.keys(found).length > 0 || items.length === 0 || stockBlocked) return;
 
     const reference = newOrderReference();
@@ -124,10 +127,11 @@ function CheckoutPage() {
         variantLabel: item.variantLabel,
         message: [
           `Checkout order ${reference} — quantity ${item.qty} (${formatPrice(item.price * item.qty)}).`,
+          `Delivery address: ${values.address.trim()}`,
           values.notes.trim() ? `Customer notes: ${values.notes.trim()}` : "",
         ]
           .filter(Boolean)
-          .join(" "),
+          .join("\n"),
         reference,
         source: "cart",
         stockDeducted: true,
@@ -139,6 +143,7 @@ function CheckoutPage() {
       customerName: values.name.trim(),
       phone: values.phone.trim(),
       email: values.email.trim(),
+      address: values.address.trim(),
       notes: values.notes.trim(),
       lines: items.map((i) => ({
         name: i.name,
@@ -237,11 +242,23 @@ function CheckoutPage() {
                 {fieldError("email")}
               </div>
             </div>
-            <p className="text-xs text-ink-muted">
-              At least one contact method is required — we confirm every order personally.
-            </p>
             <div className="space-y-2">
-              <Label htmlFor="co-notes">Delivery address or notes (optional)</Label>
+              <Label htmlFor="co-address">Delivery address</Label>
+              <Textarea
+                id="co-address"
+                value={values.address}
+                onChange={(e) => setField("address", e.target.value)}
+                onBlur={() => blurField("address")}
+                aria-invalid={Boolean(touched.address && errors.address)}
+                aria-describedby={describedBy("address")}
+                rows={3}
+                maxLength={500}
+                placeholder="House no., street, area, city..."
+              />
+              {fieldError("address")}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="co-notes">Order notes (optional)</Label>
               <Textarea
                 id="co-notes"
                 value={values.notes}
@@ -249,12 +266,11 @@ function CheckoutPage() {
                 onBlur={() => blurField("notes")}
                 aria-invalid={Boolean(touched.notes && errors.notes)}
                 aria-describedby={describedBy("notes")}
-                rows={4}
+                rows={2}
                 maxLength={500}
-                placeholder="Prescription details, delivery address, preferred contact time…"
+                placeholder="Prescription details, preferred contact time…"
               />
               {fieldError("notes")}
-              <p className="text-xs text-ink-muted">{values.notes.length}/500 characters</p>
             </div>
             {stockBlocked && (
               <p role="alert" className="text-xs font-semibold text-destructive">

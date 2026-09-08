@@ -13,12 +13,7 @@ import {
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -63,8 +58,7 @@ function AdminFaqs() {
 
   const filteredFaqs = useMemo(() => {
     return faqs.filter((f) => {
-      const matchesCategory =
-        filterCategory === "All" || f.category?.trim() === filterCategory;
+      const matchesCategory = filterCategory === "All" || f.category?.trim() === filterCategory;
       const query = filterQuery.trim().toLowerCase();
       const matchesQuery =
         !query ||
@@ -88,7 +82,8 @@ function AdminFaqs() {
             Frequently Asked Questions (FAQs)
           </h1>
           <p className="text-xs text-ink-muted mt-1">
-            Manage the FAQ section on your website. Add questions about prescriptions, frame fittings, delivery, and returns.
+            Manage the FAQ section on your website. Add questions about prescriptions, frame
+            fittings, delivery, and returns.
           </p>
         </div>
         <Button
@@ -116,10 +111,10 @@ function AdminFaqs() {
             <button
               key={cat}
               onClick={() => setFilterCategory(cat)}
-              className={`px-3 py-1 rounded-full text-xs transition-colors cursor-pointer ${
+              className={`px-3 py-1 rounded-full text-xs transition-all duration-200 cursor-pointer border ${
                 filterCategory === cat
-                  ? "bg-gold text-jet font-semibold"
-                  : "bg-background border border-stone text-ink-muted hover:text-foreground"
+                  ? "bg-[#666666] text-white font-semibold border-[#666666]"
+                  : "bg-white border-zinc-300 text-zinc-600 hover:bg-[#666666] hover:text-white hover:border-[#666666]"
               }`}
             >
               {cat}
@@ -134,13 +129,10 @@ function AdminFaqs() {
           <HelpCircle className="h-10 w-10 text-gold mx-auto mb-3 opacity-60" />
           <p className="font-semibold text-foreground">No FAQs created yet</p>
           <p className="text-xs text-ink-muted mt-1">
-            Add common questions to help your customers learn about your lenses, frames, and services.
+            Add common questions to help your customers learn about your lenses, frames, and
+            services.
           </p>
-          <Button
-            size="sm"
-            className="mt-4 rounded-full"
-            onClick={() => setDraft(blankFaq())}
-          >
+          <Button size="sm" className="mt-4 rounded-full" onClick={() => setDraft(blankFaq())}>
             <Plus className="mr-1.5 h-4 w-4" /> Add First Question
           </Button>
         </div>
@@ -213,12 +205,7 @@ function AdminFaqs() {
                 >
                   <ArrowDown className="h-4 w-4" aria-hidden="true" />
                 </Button>
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  aria-label="Edit"
-                  onClick={() => setDraft(faq)}
-                >
+                <Button size="icon" variant="ghost" aria-label="Edit" onClick={() => setDraft(faq)}>
                   <Pencil className="h-4 w-4" aria-hidden="true" />
                 </Button>
                 <Button
@@ -259,9 +246,7 @@ function AdminFaqs() {
                   <Input
                     id="faq-question"
                     value={draft.question}
-                    onChange={(e) =>
-                      setDraft({ ...draft, question: e.target.value })
-                    }
+                    onChange={(e) => setDraft({ ...draft, question: e.target.value })}
                     placeholder="e.g. How do I submit my prescription?"
                     className="min-h-11"
                   />
@@ -274,9 +259,7 @@ function AdminFaqs() {
                     id="faq-answer"
                     rows={5}
                     value={draft.answer}
-                    onChange={(e) =>
-                      setDraft({ ...draft, answer: e.target.value })
-                    }
+                    onChange={(e) => setDraft({ ...draft, answer: e.target.value })}
                     placeholder="Provide a clear, helpful answer for your customers..."
                     className="leading-relaxed"
                   />
@@ -288,9 +271,7 @@ function AdminFaqs() {
                   <Input
                     id="faq-category"
                     value={draft.category || ""}
-                    onChange={(e) =>
-                      setDraft({ ...draft, category: e.target.value })
-                    }
+                    onChange={(e) => setDraft({ ...draft, category: e.target.value })}
                     placeholder="e.g. Prescription & Lenses, Orders & Delivery"
                   />
                   {/* Quick Category Chips */}
@@ -339,6 +320,13 @@ function AdminFaqs() {
                     }
                     if (!draft.answer.trim()) {
                       toast.error("Please enter an answer.");
+                      return;
+                    }
+                    if (
+                      !window.confirm(
+                        "Aap is FAQ ko save karna chahte hain? (Are you sure you want to save this FAQ?)",
+                      )
+                    ) {
                       return;
                     }
                     saveFaq({

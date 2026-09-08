@@ -7,6 +7,7 @@ import {
   Layers,
   Pencil,
   Plus,
+  ShieldCheck,
   Sparkles,
   Trash2,
 } from "lucide-react";
@@ -117,7 +118,11 @@ function ProductsTab() {
   const list = useMemo(
     () =>
       products.filter((p) => {
-        if (query && !p.name.toLowerCase().includes(query.toLowerCase()) && !p.sku?.toLowerCase().includes(query.toLowerCase()))
+        if (
+          query &&
+          !p.name.toLowerCase().includes(query.toLowerCase()) &&
+          !p.sku?.toLowerCase().includes(query.toLowerCase())
+        )
           return false;
         if (categoryFilter !== "all" && p.categoryId !== categoryFilter) return false;
         if (collectionFilter !== "all" && p.collectionId !== collectionFilter) return false;
@@ -133,7 +138,7 @@ function ProductsTab() {
           placeholder="Search by name or SKU..."
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          className="min-h-11"
+          className="min-h-11 bg-white border-zinc-300"
         />
         <Select
           value={categoryFilter}
@@ -142,7 +147,10 @@ function ProductsTab() {
             setCollectionFilter("all");
           }}
         >
-          <SelectTrigger aria-label="Filter by category" className="min-h-11">
+          <SelectTrigger
+            aria-label="Filter by category"
+            className="min-h-11 bg-white border-zinc-300"
+          >
             <SelectValue placeholder="Category" />
           </SelectTrigger>
           <SelectContent>
@@ -156,7 +164,10 @@ function ProductsTab() {
         </Select>
 
         <Select value={collectionFilter} onValueChange={setCollectionFilter}>
-          <SelectTrigger aria-label="Filter by collection" className="min-h-11">
+          <SelectTrigger
+            aria-label="Filter by collection"
+            className="min-h-11 bg-white border-zinc-300"
+          >
             <SelectValue placeholder="Collection" />
           </SelectTrigger>
           <SelectContent>
@@ -170,7 +181,7 @@ function ProductsTab() {
         </Select>
 
         <Button
-          className="min-h-11 rounded-full"
+          className="min-h-11 rounded-full bg-[#666666] text-white hover:bg-[#555555] border-0"
           disabled={categories.length === 0}
           onClick={() => {
             const catId = categories[0]?.id ?? "";
@@ -183,28 +194,28 @@ function ProductsTab() {
       </div>
 
       {list.length === 0 ? (
-        <p className="rounded-xl border border-dashed border-stone bg-card px-6 py-16 text-center text-sm text-ink-muted">
+        <p className="rounded-xl border border-dashed border-[#666666] bg-[#f9f9f9] px-6 py-16 text-center text-sm text-ink-muted">
           No products found matching the criteria. Add your first piece to see it on the storefront.
         </p>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-stone bg-card">
+        <div className="overflow-x-auto rounded-xl border border-[#666666] bg-[#f9f9f9] shadow-sm">
           <table className="w-full min-w-[760px] text-sm">
-            <thead className="border-b border-stone text-left text-xs tracking-[0.14em] uppercase text-ink-muted">
+            <thead className="border-b-2 border-[#555555] bg-[#666666] text-left text-xs tracking-[0.14em] uppercase text-white">
               <tr>
-                <th className="px-4 py-3">Product</th>
-                <th className="px-4 py-3">Category & Collection</th>
-                <th className="px-4 py-3">Price</th>
-                <th className="px-4 py-3">Status & Badges</th>
-                <th className="px-4 py-3">Stock</th>
-                <th className="px-4 py-3 text-right">Actions</th>
+                <th className="px-4 py-3 text-white font-semibold">Product</th>
+                <th className="px-4 py-3 text-white font-semibold">Category & Collection</th>
+                <th className="px-4 py-3 text-white font-semibold">Price</th>
+                <th className="px-4 py-3 text-white font-semibold">Status & Badges</th>
+                <th className="px-4 py-3 text-white font-semibold">Stock</th>
+                <th className="px-4 py-3 text-right text-white font-semibold">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-stone">
+            <tbody className="divide-y divide-zinc-300 bg-[#f9f9f9]">
               {list.map((p) => {
                 const cat = categories.find((c) => c.id === p.categoryId);
                 const col = collections.find((c) => c.id === p.collectionId);
                 return (
-                  <tr key={p.id}>
+                  <tr key={p.id} className="hover:bg-zinc-200/80 transition-colors">
                     <td className="px-4 py-3">
                       <div className="flex min-w-0 items-center gap-3">
                         <img
@@ -228,11 +239,15 @@ function ProductsTab() {
                       <div>
                         {p.salePrice ? (
                           <div className="flex items-center gap-1.5">
-                            <span className="font-semibold text-destructive">{formatPrice(p.salePrice)}</span>
-                            <span className="text-xs text-ink-muted line-through">{formatPrice(p.price)}</span>
+                            <span className="font-semibold text-black">
+                              {formatPrice(p.salePrice)}
+                            </span>
+                            <span className="text-xs text-red-600 line-through font-medium">
+                              {formatPrice(p.price)}
+                            </span>
                           </div>
                         ) : (
-                          <span className="font-semibold">{formatPrice(p.price)}</span>
+                          <span className="font-semibold text-black">{formatPrice(p.price)}</span>
                         )}
                       </div>
                     </td>
@@ -250,16 +265,16 @@ function ProductsTab() {
                           </Badge>
                         )}
                         {p.isNewArrival && (
-                          <Badge className="bg-amber-600 text-white text-[10px]">
-                            NEW
-                          </Badge>
+                          <Badge className="bg-amber-600 text-white text-[10px]">NEW</Badge>
                         )}
                       </div>
                     </td>
                     <td className="px-4 py-3">
                       {productStock(p)}
                       {p.variants.length ? (
-                        <span className="text-xs text-ink-muted block">({p.variants.length} variants)</span>
+                        <span className="text-xs text-ink-muted block">
+                          ({p.variants.length} variants)
+                        </span>
                       ) : null}
                     </td>
                     <td className="px-4 py-3">
@@ -308,15 +323,6 @@ function ProductsTab() {
   );
 }
 
-const LENS_TYPE_OPTIONS = [
-  "Single Vision",
-  "Bifocal",
-  "Progressive",
-  "Blue Light",
-  "Photochromic",
-  "Polarized",
-];
-
 function ProductDialog({
   draft,
   onClose,
@@ -350,21 +356,6 @@ function ProductDialog({
     });
   };
 
-  const toggleLensType = (type: string) => {
-    if (!value) return;
-    const current = value.details?.lensType || [];
-    const updated = current.includes(type)
-      ? current.filter((t) => t !== type)
-      : [...current, type];
-    setForm({
-      ...value,
-      details: {
-        ...value.details,
-        lensType: updated,
-      },
-    });
-  };
-
   return (
     <Dialog open={!!draft} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="max-h-[92vh] max-w-3xl overflow-y-auto">
@@ -373,7 +364,9 @@ function ProductDialog({
             <DialogHeader>
               <DialogTitle className="font-display text-2xl flex items-center justify-between">
                 <span>{value.id ? `Edit: ${value.name}` : "Add New Product"}</span>
-                {value.sku && <span className="text-xs font-sans text-ink-muted">SKU: {value.sku}</span>}
+                {value.sku && (
+                  <span className="text-xs font-sans text-ink-muted">SKU: {value.sku}</span>
+                )}
               </DialogTitle>
             </DialogHeader>
 
@@ -506,7 +499,9 @@ function ProductDialog({
                   <Label htmlFor="p-status">Status</Label>
                   <Select
                     value={value.status || "Published"}
-                    onValueChange={(s: any) => setForm({ ...value, status: s })}
+                    onValueChange={(s: "Published" | "Draft" | "Archived") =>
+                      setForm({ ...value, status: s })
+                    }
                   >
                     <SelectTrigger id="p-status" className="min-h-11">
                       <SelectValue />
@@ -571,175 +566,27 @@ function ProductDialog({
                 </div>
               </div>
 
-              {/* Specs Section */}
+              {/* Warranty Section */}
               <div className="space-y-4 rounded-xl border border-stone bg-card p-4">
                 <div className="flex items-center gap-2">
-                  <Layers className="h-4 w-4 text-gold" />
-                  <h3 className="font-display text-lg">Technical Specifications</h3>
-                </div>
-
-                <div className="grid gap-4 sm:grid-cols-3">
-                  <div className="space-y-2">
-                    <Label htmlFor="p-frame-mat">Frame Material</Label>
-                    <Select
-                      value={value.details?.frameMaterial || "Acetate"}
-                      onValueChange={(val) =>
-                        setForm({
-                          ...value,
-                          details: { ...value.details, frameMaterial: val },
-                        })
-                      }
-                    >
-                      <SelectTrigger id="p-frame-mat" className="min-h-11">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Acetate">Acetate (Handcrafted)</SelectItem>
-                        <SelectItem value="Titanium">Beta-Titanium</SelectItem>
-                        <SelectItem value="Metal">Stainless Steel / Metal</SelectItem>
-                        <SelectItem value="Plastic">TR-90 / Plastic</SelectItem>
-                        <SelectItem value="Wood">Wood Finish</SelectItem>
-                        <SelectItem value="Rimless">Rimless Featherweight</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="p-lens-mat">Lens Material</Label>
-                    <Select
-                      value={value.details?.lensMaterial || "Polycarbonate"}
-                      onValueChange={(val) =>
-                        setForm({
-                          ...value,
-                          details: { ...value.details, lensMaterial: val },
-                        })
-                      }
-                    >
-                      <SelectTrigger id="p-lens-mat" className="min-h-11">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Polycarbonate">Polycarbonate (Impact resistant)</SelectItem>
-                        <SelectItem value="Hydrogel">Hydrogel (Soft contact)</SelectItem>
-                        <SelectItem value="Silicone Hydrogel">Silicone Hydrogel (High O2)</SelectItem>
-                        <SelectItem value="Glass">Mineral Glass (Ultra clear)</SelectItem>
-                        <SelectItem value="Trivex">Trivex (High Index)</SelectItem>
-                        <SelectItem value="CR-39">CR-39 Optical Resin</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="p-uv">UV Protection</Label>
-                    <Select
-                      value={value.details?.uvProtection || "UV400"}
-                      onValueChange={(val) =>
-                        setForm({
-                          ...value,
-                          details: { ...value.details, uvProtection: val },
-                        })
-                      }
-                    >
-                      <SelectTrigger id="p-uv" className="min-h-11">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="UV400">UV400 (100% Protection)</SelectItem>
-                        <SelectItem value="Polarized+UV">Polarized + UV400</SelectItem>
-                        <SelectItem value="BlueLight+UV">Blue Light Block + UV</SelectItem>
-                        <SelectItem value="None">Standard / Non-UV</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  <ShieldCheck className="h-4 w-4 text-gold" />
+                  <h3 className="font-display text-lg">Product Warranty</h3>
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Compatible Lens Types (Multi-select)</Label>
-                  <div className="flex flex-wrap gap-2 pt-1">
-                    {LENS_TYPE_OPTIONS.map((type) => {
-                      const isChecked = (value.details?.lensType || []).includes(type);
-                      return (
-                        <button
-                          key={type}
-                          type="button"
-                          onClick={() => toggleLensType(type)}
-                          className={`rounded-full px-3 py-1.5 text-xs font-semibold border transition-all ${
-                            isChecked
-                              ? "bg-gold text-white border-gold shadow-sm"
-                              : "bg-mist/60 text-ink-muted border-stone hover:bg-mist"
-                          }`}
-                        >
-                          {type} {isChecked && "✓"}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="p-warranty">Warranty Text</Label>
-                    <Input
-                      id="p-warranty"
-                      value={value.details?.warranty || ""}
-                      onChange={(e) =>
-                        setForm({
-                          ...value,
-                          details: { ...value.details, warranty: e.target.value },
-                        })
-                      }
-                      placeholder="e.g. 1 Year Comprehensive Guarantee"
-                      className="min-h-11"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="p-details-mat">Detailed Material Description</Label>
-                    <Input
-                      id="p-details-mat"
-                      value={value.details?.material || ""}
-                      onChange={(e) =>
-                        setForm({
-                          ...value,
-                          details: { ...value.details, material: e.target.value },
-                        })
-                      }
-                      placeholder="e.g. Hand-polished Italian acetate with titanium joints"
-                      className="min-h-11"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="p-lens-info">Lens & Prescription Info</Label>
-                    <Textarea
-                      id="p-lens-info"
-                      rows={2}
-                      value={value.details?.lensInfo || ""}
-                      onChange={(e) =>
-                        setForm({
-                          ...value,
-                          details: { ...value.details, lensInfo: e.target.value },
-                        })
-                      }
-                      placeholder="Prescription range, fitting notes..."
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="p-care-info">Care Instructions</Label>
-                    <Textarea
-                      id="p-care-info"
-                      rows={2}
-                      value={value.details?.care || ""}
-                      onChange={(e) =>
-                        setForm({
-                          ...value,
-                          details: { ...value.details, care: e.target.value },
-                        })
-                      }
-                      placeholder="Rinse with lukewarm water, microfibre cloth..."
-                    />
-                  </div>
+                  <Label htmlFor="p-warranty">Warranty Text</Label>
+                  <Input
+                    id="p-warranty"
+                    value={value.details?.warranty || ""}
+                    onChange={(e) =>
+                      setForm({
+                        ...value,
+                        details: { ...value.details, warranty: e.target.value },
+                      })
+                    }
+                    placeholder="e.g. 1 Year Official Optique Guarantee"
+                    className="min-h-11"
+                  />
                 </div>
               </div>
 
@@ -749,7 +596,8 @@ function ProductDialog({
                   <div>
                     <h3 className="font-display text-lg">Colour Swatches & Variants</h3>
                     <p className="text-xs text-ink-muted">
-                      Assign exact swatch colours (Hex code) so customers see true interactive color circles.
+                      Assign exact swatch colours (Hex code) so customers see true interactive color
+                      circles.
                     </p>
                   </div>
                   <Button
@@ -773,15 +621,22 @@ function ProductDialog({
 
                 {value.variants.length === 0 ? (
                   <p className="text-xs text-ink-muted py-2">
-                    No variant added yet. Add variants if this frame is available in multiple colours with specific photos.
+                    No variant added yet. Add variants if this frame is available in multiple
+                    colours with specific photos.
                   </p>
                 ) : (
                   <ul className="space-y-3">
                     {value.variants.map((v) => (
-                      <li key={v.id} className="space-y-3 rounded-lg bg-mist/50 border border-stone/60 p-3.5">
+                      <li
+                        key={v.id}
+                        className="space-y-3 rounded-lg bg-mist/50 border border-stone/60 p-3.5"
+                      >
                         <div className="grid gap-3 sm:grid-cols-[1fr_100px_100px_90px_auto] items-center">
                           <div className="space-y-1">
-                            <span className="text-[11px] font-semibold uppercase text-ink-muted">Colour Name <span className="normal-case text-ink-muted/60">(Optional)</span></span>
+                            <span className="text-[11px] font-semibold uppercase text-ink-muted">
+                              Colour Name{" "}
+                              <span className="normal-case text-ink-muted/60">(Optional)</span>
+                            </span>
                             <Input
                               value={v.label}
                               onChange={(e) => setVariant({ ...v, label: e.target.value })}
@@ -791,20 +646,28 @@ function ProductDialog({
                           </div>
 
                           <div className="space-y-1">
-                            <span className="text-[11px] font-semibold uppercase text-ink-muted">Swatch Colour</span>
+                            <span className="text-[11px] font-semibold uppercase text-ink-muted">
+                              Swatch Colour
+                            </span>
                             <div className="flex items-center gap-2">
                               <input
                                 type="color"
                                 value={v.swatchColourHex || "#000000"}
-                                onChange={(e) => setVariant({ ...v, swatchColourHex: e.target.value })}
+                                onChange={(e) =>
+                                  setVariant({ ...v, swatchColourHex: e.target.value })
+                                }
                                 className="h-10 w-12 rounded cursor-pointer border border-stone"
                               />
-                              <span className="text-xs font-mono">{v.swatchColourHex || "#000"}</span>
+                              <span className="text-xs font-mono">
+                                {v.swatchColourHex || "#000"}
+                              </span>
                             </div>
                           </div>
 
                           <div className="space-y-1">
-                            <span className="text-[11px] font-semibold uppercase text-ink-muted">Price (Rs.)</span>
+                            <span className="text-[11px] font-semibold uppercase text-ink-muted">
+                              Price (Rs.)
+                            </span>
                             <Input
                               type="number"
                               value={v.price ?? ""}
@@ -812,7 +675,7 @@ function ProductDialog({
                               onChange={(e) =>
                                 setVariant({
                                   ...v,
-                                  price: e.target.value ? Number(e.target.value) : undefined,
+                                  price: e.target.value ? Number(e.target.value) : 0,
                                 })
                               }
                               className="min-h-10 bg-card"
@@ -820,7 +683,9 @@ function ProductDialog({
                           </div>
 
                           <div className="space-y-1">
-                            <span className="text-[11px] font-semibold uppercase text-ink-muted">Stock Qty</span>
+                            <span className="text-[11px] font-semibold uppercase text-ink-muted">
+                              Stock Qty
+                            </span>
                             <Input
                               type="number"
                               value={v.stock}
@@ -866,13 +731,17 @@ function ProductDialog({
                 </div>
 
                 <div className="space-y-4">
-                  {/* New Arrival Toggle & Image */}
-                  <div className="rounded-lg border border-stone/60 p-3.5 space-y-3">
+                  {/* New Arrival Toggle & Dedicated Showcase Image */}
+                  <div className="rounded-xl border border-stone/80 bg-card p-4 space-y-3.5">
                     <label className="flex items-center justify-between gap-4 cursor-pointer">
                       <div>
-                        <span className="text-sm font-semibold">Mark as "New Arrival"</span>
-                        <p className="text-xs text-ink-muted">
-                          Enables special promotion badges and placement in the New Arrivals showcase.
+                        <span className="text-sm font-semibold flex items-center gap-1.5">
+                          <Sparkles className="h-4 w-4 text-gold" />
+                          Mark as "New Arrival"
+                        </span>
+                        <p className="text-xs text-ink-muted mt-0.5">
+                          Enables special promotion badges and places this product in the homepage
+                          3D New Arrivals showcase.
                         </p>
                       </div>
                       <Switch
@@ -882,9 +751,18 @@ function ProductDialog({
                     </label>
 
                     {value.isNewArrival && (
-                      <div className="pt-2 border-t border-stone/40">
+                      <div className="pt-3 border-t border-stone/50 space-y-2">
+                        <div className="rounded-lg bg-gold/10 border border-gold/30 p-2.5 text-xs">
+                          <p className="font-semibold text-gold">
+                            📸 Dedicated New Arrival Section Image
+                          </p>
+                          <p className="text-[11px] text-ink-muted mt-0.5">
+                            Yeh image <strong>sirf New Arrivals section</strong> mein show hogi.
+                            Agar upload nahi karenge to standard product image use hogi.
+                          </p>
+                        </div>
                         <ImageUpload
-                          label="Dedicated New Arrival Showcase Image (Optional)"
+                          label="New Arrival Section Image (Only for New Arrivals Showcase)"
                           optional
                           value={value.newArrivalImage || null}
                           onChange={(img) => setForm({ ...value, newArrivalImage: img })}
@@ -930,6 +808,9 @@ function ProductDialog({
                     toast.error("A primary base image is required.");
                     return;
                   }
+                  if (!window.confirm("Aap is product ke changes save karna chahte hain? (Are you sure you want to save this product?)")) {
+                    return;
+                  }
                   onSave({
                     ...value,
                     id: value.id || newId("prd"),
@@ -948,8 +829,15 @@ function ProductDialog({
 }
 
 function CategoriesTab() {
-  const { categories, collections, products, saveCategory, deleteCategory, saveCollection, deleteCollection } =
-    useStore();
+  const {
+    categories,
+    collections,
+    products,
+    saveCategory,
+    deleteCategory,
+    saveCollection,
+    deleteCollection,
+  } = useStore();
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
   const [categoryDraft, setCategoryDraft] = useState<Category | null>(null);
   const [collectionDraft, setCollectionDraft] = useState<Collection | null>(null);
@@ -962,11 +850,7 @@ function CategoriesTab() {
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <Button
-            variant="ghost"
-            className="gap-2"
-            onClick={() => setSelectedCategory(null)}
-          >
+          <Button variant="ghost" className="gap-2" onClick={() => setSelectedCategory(null)}>
             <ArrowLeft className="h-4 w-4" /> Back to Categories
           </Button>
 
@@ -1044,14 +928,18 @@ function CategoriesTab() {
                       <td className="px-4 py-3">
                         <p className="font-semibold">{col.name}</p>
                         {col.description && (
-                          <p className="text-xs text-ink-muted truncate max-w-xs">{col.description}</p>
+                          <p className="text-xs text-ink-muted truncate max-w-xs">
+                            {col.description}
+                          </p>
                         )}
                       </td>
                       <td className="px-4 py-3 font-medium">{count} products</td>
                       <td className="px-4 py-3">
                         <Switch
                           checked={!!col.showInNav}
-                          onCheckedChange={(checked) => saveCollection({ ...col, showInNav: checked })}
+                          onCheckedChange={(checked) =>
+                            saveCollection({ ...col, showInNav: checked })
+                          }
                         />
                       </td>
                       <td className="px-4 py-3">
@@ -1102,7 +990,9 @@ function CategoriesTab() {
                     <Input
                       id="col-name"
                       value={collectionDraft.name}
-                      onChange={(e) => setCollectionDraft({ ...collectionDraft, name: e.target.value })}
+                      onChange={(e) =>
+                        setCollectionDraft({ ...collectionDraft, name: e.target.value })
+                      }
                       placeholder="e.g. Sunglasses / Kids Glasses"
                       className="min-h-11"
                     />
@@ -1113,7 +1003,9 @@ function CategoriesTab() {
                     <Input
                       id="col-desc"
                       value={collectionDraft.description || ""}
-                      onChange={(e) => setCollectionDraft({ ...collectionDraft, description: e.target.value })}
+                      onChange={(e) =>
+                        setCollectionDraft({ ...collectionDraft, description: e.target.value })
+                      }
                       placeholder="e.g. 100% UV polarized frames"
                       className="min-h-11"
                     />
@@ -1129,7 +1021,7 @@ function CategoriesTab() {
                         banner: img
                           ? {
                               image: img,
-                              heading: collectionDraft.banner?.heading || collectionDraft.name,
+                              heading: collectionDraft.banner?.heading || "",
                               subtext: collectionDraft.banner?.subtext || "",
                               ctaText: "Shop Collection",
                               ctaLink: `/${activeCategory.slug}`,
@@ -1142,8 +1034,9 @@ function CategoriesTab() {
                   {collectionDraft.banner && (
                     <div className="grid gap-3 sm:grid-cols-2">
                       <div className="space-y-1">
-                        <Label className="text-xs">Banner Heading</Label>
+                        <Label className="text-xs">Banner Heading (Optional)</Label>
                         <Input
+                          placeholder="Optional — khali chhodne par sirf image dikhegi"
                           value={collectionDraft.banner.heading}
                           onChange={(e) =>
                             setCollectionDraft({
@@ -1155,8 +1048,9 @@ function CategoriesTab() {
                         />
                       </div>
                       <div className="space-y-1">
-                        <Label className="text-xs">Banner Subtext</Label>
+                        <Label className="text-xs">Banner Subtext (Optional)</Label>
                         <Input
+                          placeholder="Optional"
                           value={collectionDraft.banner.subtext}
                           onChange={(e) =>
                             setCollectionDraft({
@@ -1174,7 +1068,9 @@ function CategoriesTab() {
                     <span className="text-sm font-semibold">Show in Navigation Menu</span>
                     <Switch
                       checked={!!collectionDraft.showInNav}
-                      onCheckedChange={(v) => setCollectionDraft({ ...collectionDraft, showInNav: v })}
+                      onCheckedChange={(v) =>
+                        setCollectionDraft({ ...collectionDraft, showInNav: v })
+                      }
                     />
                   </label>
 
@@ -1183,6 +1079,9 @@ function CategoriesTab() {
                     onClick={() => {
                       if (!collectionDraft.name.trim()) {
                         toast.error("Collection name is required.");
+                        return;
+                      }
+                      if (!window.confirm("Aap is collection ko save karna chahte hain? (Are you sure you want to save this collection?)")) {
                         return;
                       }
                       saveCollection({
@@ -1212,12 +1111,15 @@ function CategoriesTab() {
         <div>
           <h2 className="font-display text-xl">Categories (Level 1)</h2>
           <p className="text-xs text-ink-muted">
-            Manage your store categories (Glasses, Lenses, etc.) with custom circular icon images and internal collections.
+            Manage your store categories (Glasses, Lenses, etc.) with custom circular icon images
+            and internal collections.
           </p>
         </div>
         <Button
           className="min-h-11 rounded-full"
-          onClick={() => setCategoryDraft({ id: "", slug: "", name: "", image: null, banner: null })}
+          onClick={() =>
+            setCategoryDraft({ id: "", slug: "", name: "", image: null, banner: null })
+          }
         >
           <Plus className="mr-2 h-4 w-4" aria-hidden="true" /> Add Category
         </Button>
@@ -1244,11 +1146,7 @@ function CategoriesTab() {
                   <td className="px-4 py-3">
                     {c.image ? (
                       <div className="h-12 w-12 rounded-full overflow-hidden border-2 border-gold/60 shadow-xs">
-                        <img
-                          src={c.image}
-                          alt={c.name}
-                          className="h-full w-full object-cover"
-                        />
+                        <img src={c.image} alt={c.name} className="h-full w-full object-cover" />
                       </div>
                     ) : (
                       <div className="h-12 w-12 rounded-full bg-stone/40 flex items-center justify-center text-xs font-semibold text-ink-muted border border-stone">
@@ -1350,7 +1248,9 @@ function CategoriesTab() {
                   <Input
                     id="c-slug"
                     value={categoryDraft.slug}
-                    onChange={(e) => setCategoryDraft({ ...categoryDraft, slug: slugify(e.target.value) })}
+                    onChange={(e) =>
+                      setCategoryDraft({ ...categoryDraft, slug: slugify(e.target.value) })
+                    }
                     placeholder="e.g. glasses, lenses"
                     className="min-h-11 font-mono text-sm"
                   />
@@ -1363,7 +1263,8 @@ function CategoriesTab() {
                     onChange={(img) => setCategoryDraft({ ...categoryDraft, image: img })}
                   />
                   <p className="text-[11px] text-ink-muted">
-                    This image will appear in the "Shop by Category" circular icons row on the Homepage.
+                    This image will appear in the "Shop by Category" circular icons row on the
+                    Homepage.
                   </p>
                 </div>
 
@@ -1372,6 +1273,9 @@ function CategoriesTab() {
                   onClick={() => {
                     if (!categoryDraft.name.trim()) {
                       toast.error("A category name is required.");
+                      return;
+                    }
+                    if (!window.confirm("Aap is category ko save karna chahte hain? (Are you sure you want to save this category?)")) {
                       return;
                     }
                     saveCategory({

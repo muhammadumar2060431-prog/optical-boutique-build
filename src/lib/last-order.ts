@@ -13,6 +13,7 @@ export interface OrderReceipt {
   customerName: string;
   phone: string;
   email: string;
+  address: string;
   notes: string;
   lines: OrderReceiptLine[];
   subtotal: number;
@@ -33,8 +34,9 @@ export function loadOrderReceipt(reference?: string): OrderReceipt | null {
     const raw = window.localStorage.getItem(KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as OrderReceipt;
-    if (!parsed || typeof parsed.reference !== "string" || !Array.isArray(parsed.lines)) return null;
-    if (reference && parsed.reference.toLowerCase() !== reference.trim().toLowerCase()) return null;
+    if (!parsed || typeof parsed.reference !== "string" || !Array.isArray(parsed.lines))
+      return null;
+    if (reference && (parsed.reference || "").toLowerCase() !== reference.trim().toLowerCase()) return null;
     return parsed;
   } catch {
     return null;

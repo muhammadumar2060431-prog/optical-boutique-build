@@ -45,7 +45,8 @@ const blank = (): Testimonial => ({
 });
 
 function AdminTestimonials() {
-  const { testimonials, saveTestimonial, deleteTestimonial, moveTestimonial, products } = useStore();
+  const { testimonials, saveTestimonial, deleteTestimonial, moveTestimonial, products } =
+    useStore();
   const [draft, setDraft] = useState<Testimonial | null>(null);
   const [filterTab, setFilterTab] = useState<"all" | "good" | "bad" | "product">("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -89,7 +90,8 @@ function AdminTestimonials() {
           <p className="eyebrow text-gold">Social Proof & Feedback</p>
           <h1 className="mt-2 font-display text-3xl">Customer Reviews & Testimonials</h1>
           <p className="text-xs text-ink-muted mt-1">
-            Manage product reviews, customer emails, star ratings, and homepage social proof testimonials.
+            Manage product reviews, customer emails, star ratings, and homepage social proof
+            testimonials.
           </p>
         </div>
         <Button className="min-h-11 shrink-0 rounded-full" onClick={() => setDraft(blank())}>
@@ -109,7 +111,9 @@ function AdminTestimonials() {
           onClick={() => setFilterTab("good")}
           className={cn(
             "rounded-xl border p-4 cursor-pointer transition-all",
-            filterTab === "good" ? "border-emerald-500 bg-emerald-50/20 ring-2 ring-emerald-500/20" : "border-stone bg-card hover:border-emerald-400/60",
+            filterTab === "good"
+              ? "border-emerald-500 bg-emerald-50/20 ring-2 ring-emerald-500/20"
+              : "border-stone bg-card hover:border-emerald-400/60",
           )}
         >
           <div className="flex items-center justify-between">
@@ -118,7 +122,8 @@ function AdminTestimonials() {
           </div>
           <p className="mt-2 font-display text-3xl text-emerald-600">{goodReviews.length}</p>
           <p className="text-[11px] text-emerald-700/80 mt-1">
-            {totalCount > 0 ? Math.round((goodReviews.length / totalCount) * 100) : 0}% Satisfaction Rate
+            {totalCount > 0 ? Math.round((goodReviews.length / totalCount) * 100) : 0}% Satisfaction
+            Rate
           </p>
         </div>
 
@@ -126,11 +131,15 @@ function AdminTestimonials() {
           onClick={() => setFilterTab("bad")}
           className={cn(
             "rounded-xl border p-4 cursor-pointer transition-all",
-            filterTab === "bad" ? "border-amber-500 bg-amber-50/20 ring-2 ring-amber-500/20" : "border-stone bg-card hover:border-amber-400/60",
+            filterTab === "bad"
+              ? "border-amber-500 bg-amber-50/20 ring-2 ring-amber-500/20"
+              : "border-stone bg-card hover:border-amber-400/60",
           )}
         >
           <div className="flex items-center justify-between">
-            <p className="text-xs text-amber-700 font-semibold uppercase">Bad / Low Reviews (1-3 ★)</p>
+            <p className="text-xs text-amber-700 font-semibold uppercase">
+              Bad / Low Reviews (1-3 ★)
+            </p>
             <ThumbsDown className="h-4 w-4 text-amber-600" />
           </div>
           <p className="mt-2 font-display text-3xl text-amber-600">{badReviews.length}</p>
@@ -247,11 +256,17 @@ function AdminTestimonials() {
 
                     {/* Bad vs Good Tag */}
                     {isBad ? (
-                      <Badge variant="outline" className="text-[10px] text-amber-700 border-amber-400 bg-amber-50">
+                      <Badge
+                        variant="outline"
+                        className="text-[10px] text-amber-700 border-amber-400 bg-amber-50"
+                      >
                         Low Rating
                       </Badge>
                     ) : (
-                      <Badge variant="outline" className="text-[10px] text-emerald-700 border-emerald-400 bg-emerald-50">
+                      <Badge
+                        variant="outline"
+                        className="text-[10px] text-emerald-700 border-emerald-400 bg-emerald-50"
+                      >
                         Good Review
                       </Badge>
                     )}
@@ -272,7 +287,9 @@ function AdminTestimonials() {
                       <div className="h-14 w-14 rounded-lg overflow-hidden border border-stone bg-jet shrink-0 shadow-xs">
                         <img src={t.reviewImage} alt="" className="h-full w-full object-cover" />
                       </div>
-                      <span className="text-[11px] text-ink-muted">Customer Photo / Screenshot attached</span>
+                      <span className="text-[11px] text-ink-muted">
+                        Customer Photo / Screenshot attached
+                      </span>
                     </div>
                   )}
 
@@ -453,6 +470,13 @@ function AdminTestimonials() {
                       toast.error("Please provide review text.");
                       return;
                     }
+                    if (
+                      !window.confirm(
+                        "Aap is review/testimonial ko save karna chahte hain? (Are you sure you want to save this review?)",
+                      )
+                    ) {
+                      return;
+                    }
                     saveTestimonial({
                       ...draft,
                       id: draft.id || newId("tst"),
@@ -473,4 +497,3 @@ function AdminTestimonials() {
     </div>
   );
 }
-

@@ -157,7 +157,9 @@ function BrandsPanel() {
                 {brand.logo ? (
                   <img src={brand.logo} alt={brand.name} className="h-7 object-contain" />
                 ) : (
-                  <span className="text-xs text-ink-muted font-display uppercase tracking-widest">{brand.name}</span>
+                  <span className="text-xs text-ink-muted font-display uppercase tracking-widest">
+                    {brand.name}
+                  </span>
                 )}
               </div>
 
@@ -222,17 +224,16 @@ function BrandsPanel() {
             }}
           >
             <div className="marquee-track py-2">
-              {[
-                ...brands.filter((b) => b.enabled),
-                ...brands.filter((b) => b.enabled),
-              ].map((b, i) => (
-                <span
-                  key={`prev-${b.id}-${i}`}
-                  className="px-8 font-display text-base uppercase tracking-widest opacity-60"
-                >
-                  {b.name}
-                </span>
-              ))}
+              {[...brands.filter((b) => b.enabled), ...brands.filter((b) => b.enabled)].map(
+                (b, i) => (
+                  <span
+                    key={`prev-${b.id}-${i}`}
+                    className="px-8 font-display text-base uppercase tracking-widest opacity-60"
+                  >
+                    {b.name}
+                  </span>
+                ),
+              )}
             </div>
           </div>
         </div>
@@ -353,49 +354,58 @@ function HeroPanel() {
             onChange={(img) => updateHeroSlide(slide.id, { image: img ?? slide.image })}
           />
 
+          <p className="text-xs text-ink-muted">
+            💡 <strong>Image-only banner tip:</strong> Agar aap text fields (Headline, Eyebrow, Subtext, CTA) khali chhodenge to storefront par bina kisi dark overlay ke pure full-image banner show hoga.
+          </p>
+
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor={`h-eyebrow-${slide.id}`}>Eyebrow label</Label>
+              <Label htmlFor={`h-eyebrow-${slide.id}`}>Eyebrow label (Optional)</Label>
               <Input
                 id={`h-eyebrow-${slide.id}`}
                 value={slide.eyebrow}
+                placeholder="Optional"
                 onChange={(e) => updateHeroSlide(slide.id, { eyebrow: e.target.value })}
                 className="min-h-11"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor={`h-headline-${slide.id}`}>Headline</Label>
+              <Label htmlFor={`h-headline-${slide.id}`}>Headline (Optional)</Label>
               <Input
                 id={`h-headline-${slide.id}`}
                 value={slide.headline}
+                placeholder="Optional — khali chhodne par sirf image dikhegi"
                 onChange={(e) => updateHeroSlide(slide.id, { headline: e.target.value })}
                 className="min-h-11"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor={`h-sub-${slide.id}`}>Subtext</Label>
+              <Label htmlFor={`h-sub-${slide.id}`}>Subtext (Optional)</Label>
               <Input
                 id={`h-sub-${slide.id}`}
                 value={slide.subtext}
+                placeholder="Optional"
                 onChange={(e) => updateHeroSlide(slide.id, { subtext: e.target.value })}
                 className="min-h-11"
               />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
-                <Label htmlFor={`h-cta-${slide.id}`}>CTA text</Label>
+                <Label htmlFor={`h-cta-${slide.id}`}>CTA button text (Optional)</Label>
                 <Input
                   id={`h-cta-${slide.id}`}
                   value={slide.ctaText}
+                  placeholder="Optional"
                   onChange={(e) => updateHeroSlide(slide.id, { ctaText: e.target.value })}
                   className="min-h-11"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor={`h-link-${slide.id}`}>CTA link</Label>
+                <Label htmlFor={`h-link-${slide.id}`}>Banner / CTA link (Optional)</Label>
                 <Input
                   id={`h-link-${slide.id}`}
                   value={slide.ctaLink}
+                  placeholder="e.g. /glasses (pure image par click se ye open hoga)"
                   onChange={(e) => updateHeroSlide(slide.id, { ctaLink: e.target.value })}
                   className="min-h-11"
                 />
@@ -443,39 +453,46 @@ function BannerPanel() {
                 onChange={(img) => patch({ image: img ?? "" })}
               />
             </div>
+            <p className="text-xs text-ink-muted">
+              💡 <strong>Tip:</strong> Heading aur Subtext optional hain. Agar inko khali chhodenge to category page par clean image banner dikhega.
+            </p>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor={`b-head-${c.id}`}>Heading</Label>
+                <Label htmlFor={`b-head-${c.id}`}>Heading (Optional)</Label>
                 <Input
                   id={`b-head-${c.id}`}
                   value={banner.heading}
+                  placeholder="Optional — khali chhodne par sirf image dikhegi"
                   onChange={(e) => patch({ heading: e.target.value })}
                   className="min-h-11"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor={`b-sub-${c.id}`}>Subtext</Label>
+                <Label htmlFor={`b-sub-${c.id}`}>Subtext (Optional)</Label>
                 <Input
                   id={`b-sub-${c.id}`}
                   value={banner.subtext}
+                  placeholder="Optional"
                   onChange={(e) => patch({ subtext: e.target.value })}
                   className="min-h-11"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor={`b-cta-${c.id}`}>CTA text</Label>
+                <Label htmlFor={`b-cta-${c.id}`}>CTA text (Optional)</Label>
                 <Input
                   id={`b-cta-${c.id}`}
                   value={banner.ctaText}
+                  placeholder="Optional"
                   onChange={(e) => patch({ ctaText: e.target.value })}
                   className="min-h-11"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor={`b-link-${c.id}`}>CTA link</Label>
+                <Label htmlFor={`b-link-${c.id}`}>CTA link (Optional)</Label>
                 <Input
                   id={`b-link-${c.id}`}
                   value={banner.ctaLink}
+                  placeholder={`/${c.slug}`}
                   onChange={(e) => patch({ ctaLink: e.target.value })}
                   className="min-h-11"
                 />
@@ -580,7 +597,9 @@ function VideoPanel() {
               toast.error("Enter the channel handle, starting with @.");
               return;
             }
-            if (confirm(`Lock the approved channel to ${channel.trim()}? This is a sensitive change.`)) {
+            if (
+              confirm(`Lock the approved channel to ${channel.trim()}? This is a sensitive change.`)
+            ) {
               lockChannel(channel.trim());
               toast.success("Approved channel locked.");
             }
@@ -591,6 +610,50 @@ function VideoPanel() {
       </div>
     </div>
   );
+}
+
+function SocialPlatformBadge({ platform }: { platform: string }) {
+  switch (platform) {
+    case "instagram":
+      return (
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-[#833ab4] via-[#fd1d1d] to-[#fcb045] px-2.5 py-1 text-xs font-semibold text-white shadow-xs">
+          <svg className="h-3 w-3 fill-current" viewBox="0 0 24 24">
+            <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
+          </svg>
+          <span>Instagram</span>
+        </span>
+      );
+    case "tiktok":
+      return (
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-black px-2.5 py-1 text-xs font-semibold text-white shadow-xs border border-zinc-700">
+          <svg className="h-3 w-3 fill-current" viewBox="0 0 24 24">
+            <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.24 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z" />
+          </svg>
+          <span>TikTok</span>
+        </span>
+      );
+    case "youtube":
+      return (
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-[#FF0000] px-2.5 py-1 text-xs font-semibold text-white shadow-xs">
+          <svg className="h-3 w-3 fill-current" viewBox="0 0 24 24">
+            <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
+          </svg>
+          <span>YouTube</span>
+        </span>
+      );
+    case "facebook":
+      return (
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-[#1877F2] px-2.5 py-1 text-xs font-semibold text-white shadow-xs">
+          <span>Facebook</span>
+        </span>
+      );
+    default:
+      return (
+        <span className="inline-flex items-center gap-1 rounded-full bg-zinc-800 text-zinc-200 px-2.5 py-1 text-xs font-semibold shadow-xs">
+          <span className="capitalize">{platform}</span>
+        </span>
+      );
+  }
 }
 
 function SocialReelsPanel() {
@@ -620,13 +683,21 @@ function SocialReelsPanel() {
       toast.error("Please upload or provide a thumbnail image for the reel.");
       return;
     }
+    if (
+      !window.confirm(
+        "Aap is reel ko save karna chahte hain? (Are you sure you want to save this reel?)",
+      )
+    ) {
+      return;
+    }
 
     saveSocialReel({
       ...draft,
       id: draft.id || newId("reel"),
-      creatorHandle: draft.creatorHandle?.trim().startsWith("@") || !draft.creatorHandle?.trim()
-        ? draft.creatorHandle?.trim()
-        : `@${draft.creatorHandle.trim()}`,
+      creatorHandle:
+        draft.creatorHandle?.trim().startsWith("@") || !draft.creatorHandle?.trim()
+          ? (draft.creatorHandle?.trim() ?? "")
+          : `@${draft.creatorHandle.trim()}`,
     });
 
     setDraft(null);
@@ -640,10 +711,14 @@ function SocialReelsPanel() {
         <div>
           <h2 className="font-display text-2xl">Social Proof & Collaboration Reels</h2>
           <p className="text-xs text-ink-muted mt-1">
-            Display scrollable UGC creator reels (Instagram, TikTok, YouTube Shorts, Facebook) on the homepage with custom thumbnails and product tags.
+            Display scrollable UGC creator reels (Instagram, TikTok, YouTube Shorts, Facebook) on
+            the homepage with custom thumbnails and product tags.
           </p>
         </div>
-        <Button className="min-h-11 rounded-full shrink-0" onClick={() => setDraft({ ...blankReel })}>
+        <Button
+          className="min-h-11 rounded-full shrink-0"
+          onClick={() => setDraft({ ...blankReel })}
+        >
           <Plus className="h-4 w-4 mr-2" />
           Add New Reel
         </Button>
@@ -655,31 +730,34 @@ function SocialReelsPanel() {
           <Film className="h-10 w-10 mx-auto text-ink-muted opacity-40 mb-3" />
           <p className="font-display text-lg">No reels added yet</p>
           <p className="text-xs text-ink-muted mt-1 mb-4">
-            Add Instagram reels, TikTok videos, or YouTube Shorts to showcase social proof on your homepage.
+            Add Instagram reels, TikTok videos, or YouTube Shorts to showcase social proof on your
+            homepage.
           </p>
           <Button className="min-h-11 rounded-full" onClick={() => setDraft({ ...blankReel })}>
             <Plus className="h-4 w-4 mr-2" /> Add First Reel
           </Button>
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-stone bg-card">
+        <div className="overflow-x-auto rounded-xl border border-[#666666] bg-[#f9f9f9] shadow-sm">
           <table className="w-full min-w-[700px] text-sm">
-            <thead className="border-b border-stone text-left text-xs tracking-[0.14em] uppercase text-ink-muted">
+            <thead className="border-b-2 border-[#555555] bg-[#666666] text-left text-xs tracking-[0.14em] uppercase text-white">
               <tr>
-                <th className="px-4 py-3">Thumbnail / Duration</th>
-                <th className="px-4 py-3">Creator & Title</th>
-                <th className="px-4 py-3">Platform</th>
-                <th className="px-4 py-3">Tagged Product</th>
-                <th className="px-4 py-3 text-center">Live Status</th>
-                <th className="px-4 py-3 text-right">Actions</th>
+                <th className="px-4 py-3 text-white font-semibold">Thumbnail / Duration</th>
+                <th className="px-4 py-3 text-white font-semibold">Creator & Title</th>
+                <th className="px-4 py-3 text-white font-semibold">Platform</th>
+                <th className="px-4 py-3 text-white font-semibold">Tagged Product</th>
+                <th className="px-4 py-3 text-center text-white font-semibold">Live Status</th>
+                <th className="px-4 py-3 text-right text-white font-semibold">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-stone">
+            <tbody className="divide-y divide-zinc-300 bg-[#f9f9f9]">
               {socialReels.map((reel, index) => {
-                const product = reel.productId ? products.find((p) => p.id === reel.productId) : null;
+                const product = reel.productId
+                  ? products.find((p) => p.id === reel.productId)
+                  : null;
 
                 return (
-                  <tr key={reel.id} className="hover:bg-mist/30 transition-colors">
+                  <tr key={reel.id} className="hover:bg-zinc-200/80 transition-colors">
                     {/* Thumbnail */}
                     <td className="px-4 py-3">
                       <div className="relative w-14 aspect-[9/16] rounded-lg overflow-hidden border border-stone bg-jet shadow-xs">
@@ -697,11 +775,17 @@ function SocialReelsPanel() {
 
                     {/* Creator & Title */}
                     <td className="px-4 py-3">
-                      <p className="font-semibold text-foreground text-sm truncate max-w-xs">{reel.title}</p>
+                      <p className="font-semibold text-foreground text-sm truncate max-w-xs">
+                        {reel.title}
+                      </p>
                       <div className="flex items-center gap-2 mt-0.5">
-                        <span className="text-xs text-ink-muted">{reel.creatorName || "Anonymous"}</span>
+                        <span className="text-xs text-ink-muted">
+                          {reel.creatorName || "Anonymous"}
+                        </span>
                         {reel.creatorHandle && (
-                          <span className="text-[11px] font-mono text-gold-soft">{reel.creatorHandle}</span>
+                          <span className="text-[11px] font-mono text-gold-soft">
+                            {reel.creatorHandle}
+                          </span>
                         )}
                       </div>
                       {reel.videoUrl && (
@@ -719,16 +803,18 @@ function SocialReelsPanel() {
 
                     {/* Platform */}
                     <td className="px-4 py-3">
-                      <Badge variant="outline" className="capitalize text-xs font-medium">
-                        {reel.platform}
-                      </Badge>
+                      <SocialPlatformBadge platform={reel.platform} />
                     </td>
 
                     {/* Tagged Product */}
                     <td className="px-4 py-3">
                       {product ? (
                         <div className="flex items-center gap-2">
-                          <img src={product.image} alt="" className="h-7 w-7 rounded object-cover border border-stone" />
+                          <img
+                            src={product.image}
+                            alt=""
+                            className="h-7 w-7 rounded object-cover border border-stone"
+                          />
                           <div className="min-w-0 max-w-[140px]">
                             <p className="text-xs font-semibold truncate">{product.name}</p>
                             <p className="text-[10px] text-gold font-bold">
@@ -884,7 +970,9 @@ function SocialReelsPanel() {
 
                 {/* Video URL */}
                 <div className="space-y-2">
-                  <Label htmlFor="r-url">Video Link / URL (Instagram, TikTok, YouTube Shorts, MP4)</Label>
+                  <Label htmlFor="r-url">
+                    Video Link / URL (Instagram, TikTok, YouTube Shorts, MP4)
+                  </Label>
                   <Input
                     id="r-url"
                     value={draft.videoUrl}
@@ -893,7 +981,8 @@ function SocialReelsPanel() {
                     className="min-h-11 font-mono text-xs"
                   />
                   <p className="text-[11px] text-ink-muted">
-                    Paste the reel link from Instagram, TikTok, YouTube Shorts, Facebook, or a direct .mp4 video URL.
+                    Paste the reel link from Instagram, TikTok, YouTube Shorts, Facebook, or a
+                    direct .mp4 video URL.
                   </p>
                 </div>
 
@@ -914,7 +1003,9 @@ function SocialReelsPanel() {
                   <Label htmlFor="r-product">Tag a Product (Optional - "Shop This Look")</Label>
                   <Select
                     value={draft.productId || "none"}
-                    onValueChange={(v) => setDraft({ ...draft, productId: v === "none" ? null : v })}
+                    onValueChange={(v) =>
+                      setDraft({ ...draft, productId: v === "none" ? null : v })
+                    }
                   >
                     <SelectTrigger id="r-product" className="min-h-11">
                       <SelectValue placeholder="Select a product to tag" />
@@ -951,4 +1042,3 @@ function SocialReelsPanel() {
     </div>
   );
 }
-

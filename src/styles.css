@@ -26,12 +26,12 @@
   /* Semantic (shadcn) mapping */
   --background: #ffffff;
   --foreground: var(--color-text-primary);
-  --card: #fffdf9;
+  --card: #ffffff;
   --card-foreground: var(--color-text-primary);
-  --popover: #fffdf9;
+  --popover: #ffffff;
   --popover-foreground: var(--color-text-primary);
   --primary: var(--color-accent-gold);
-  --primary-foreground: #fffdf9;
+  --primary-foreground: #ffffff;
   --secondary: var(--color-light-gray);
   --secondary-foreground: var(--color-text-primary);
   --muted: var(--color-light-gray);
@@ -39,7 +39,7 @@
   --accent: var(--color-light-gray-deep);
   --accent-foreground: var(--color-text-primary);
   --destructive: #a33a2d;
-  --destructive-foreground: #fffdf9;
+  --destructive-foreground: #ffffff;
   --border: var(--color-light-gray-deep);
   --input: var(--color-light-gray-deep);
   --ring: var(--color-accent-gold);
@@ -51,7 +51,7 @@
   --sidebar: var(--color-jet-black);
   --sidebar-foreground: var(--color-off-white);
   --sidebar-primary: var(--color-accent-gold-soft);
-  --sidebar-primary-foreground: #fffdf9;
+  --sidebar-primary-foreground: #ffffff;
   --sidebar-accent: #1a1a1e;
   --sidebar-accent-foreground: var(--color-off-white);
   --sidebar-border: #26262b;
@@ -317,6 +317,50 @@
   animation-play-state: paused;
 }
 
+/* ── Social Proof Reels Infinite Scroll (Left to Right) ────────── */
+@keyframes reels-scroll-ltr {
+  0% {
+    transform: translateX(-50%);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+
+.reels-scroll-outer {
+  overflow: hidden;
+  position: relative;
+  width: 100%;
+  padding: 8px 0 20px 0;
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent 0%,
+    black 4%,
+    black 96%,
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to right,
+    transparent 0%,
+    black 4%,
+    black 96%,
+    transparent 100%
+  );
+}
+
+.reels-track {
+  display: flex;
+  gap: 1.5rem;
+  width: max-content;
+  animation: reels-scroll-ltr 36s linear infinite;
+  will-change: transform;
+}
+
+.reels-scroll-outer:hover .reels-track {
+  animation-play-state: paused;
+}
+
+
 
 /* ── 3D Floating & Bouncing Showcase with Floor Shadow ─────────── */
 @keyframes float-bounce {
@@ -360,6 +404,20 @@
   filter: blur(4px);
 }
 
+@keyframes subtle-bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+.animate-subtle-bounce {
+  animation: subtle-bounce 3s ease-in-out infinite;
+}
+
+
 
 @keyframes optique-rise {
   from {
@@ -386,3 +444,75 @@
     scroll-behavior: auto !important;
   }
 }
+
+/* ==========================================================================
+   ADMIN PORTAL EXCLUSIVE THEME (Strictly scoped - does not affect storefront)
+   ========================================================================== */
+
+.admin-portal {
+  background-color: #ffffff !important;
+}
+
+/* 1 & 2: Tables light gray with dark gray borders, heading #666666 with white text */
+.admin-portal table {
+  background-color: #f4f4f6 !important;
+}
+
+.admin-portal .admin-table-container,
+.admin-portal div:has(> table) {
+  background-color: #f4f4f6 !important;
+  border: 1px solid #666666 !important;
+  border-radius: 0.75rem;
+  overflow: hidden;
+}
+
+.admin-portal thead {
+  background-color: #666666 !important;
+  color: #ffffff !important;
+  border-bottom: 2px solid #555555 !important;
+}
+
+.admin-portal thead th {
+  color: #ffffff !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.12em !important;
+  border-bottom: 2px solid #555555 !important;
+}
+
+.admin-portal tbody tr {
+  background-color: #f4f4f6;
+  transition: background-color 0.15s ease;
+}
+
+.admin-portal tbody tr:hover {
+  background-color: #e8e8ec !important;
+}
+
+.admin-portal tbody.divide-y > tr,
+.admin-portal tbody > tr {
+  border-color: #d1d5db !important;
+}
+
+/* 3: Filters in Admin Panel (Inputs and Select Triggers) */
+.admin-portal .admin-filter,
+.admin-portal input:not([type="checkbox"]):not([type="radio"]):not([type="color"]):not([type="file"]),
+.admin-portal button[role="combobox"] {
+  background-color: #f0f0f3 !important;
+  border: 1px solid #d1d5db !important;
+  color: #1b1b1d !important;
+}
+
+.admin-portal input:focus,
+.admin-portal button[role="combobox"]:focus {
+  border-color: #666666 !important;
+  box-shadow: 0 0 0 1px #666666 !important;
+}
+
+/* 5: Low stock badge light red */
+.admin-portal .badge-low-stock,
+.admin-portal .badge-low {
+  background-color: #fee2e2 !important;
+  color: #b91c1c !important;
+  border: 1px solid #fca5a5 !important;
+}
+

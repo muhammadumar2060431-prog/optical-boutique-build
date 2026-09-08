@@ -16,12 +16,7 @@ export function BrandsScrollBar() {
         {items.map((brand, i) => (
           <div key={`${brand.id}-${i}`} className="brand-item">
             {brand.logo ? (
-              <img
-                src={brand.logo}
-                alt={brand.name}
-                className="brand-logo-img"
-                draggable={false}
-              />
+              <img src={brand.logo} alt={brand.name} className="brand-logo-img" draggable={false} />
             ) : (
               <span className="brand-logo-text">{brand.name}</span>
             )}

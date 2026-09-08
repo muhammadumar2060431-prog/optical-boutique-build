@@ -15,7 +15,7 @@ const CANONICAL = "https://optical-boutique-build.lovable.app/order-status";
 
 export const Route = createFileRoute("/order-status")({
   validateSearch: (search: Record<string, unknown>) => ({
-    ref: typeof search['ref'] === "string" ? (search['ref'] as string) : undefined,
+    ref: typeof search["ref"] === "string" ? (search["ref"] as string) : undefined,
   }),
   head: () => ({
     meta: [
@@ -59,6 +59,12 @@ const statusCopy: Record<OrderStatus, { label: string; note: string; tone: strin
     note: "This order was cancelled. Message us if that looks wrong.",
     tone: "bg-destructive/10 text-destructive",
   },
+};
+
+const getStatusInfo = (status?: string) => {
+  if (!status) return statusCopy.New;
+  const key = (status.charAt(0).toUpperCase() + status.slice(1).toLowerCase()) as OrderStatus;
+  return statusCopy[key] || statusCopy.New;
 };
 
 function OrderStatusPage() {
@@ -138,7 +144,10 @@ function OrderStatusPage() {
           )}
 
           {results.length > 0 && (
-            <section aria-label={`Order ${query}`} className="rounded-xl border border-stone bg-card p-6 sm:p-8">
+            <section
+              aria-label={`Order ${query}`}
+              className="rounded-xl border border-stone bg-card p-6 sm:p-8"
+            >
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <h2 className="font-display text-2xl">Order {results[0]!.reference}</h2>
@@ -153,13 +162,13 @@ function OrderStatusPage() {
                   </p>
                 </div>
                 <span
-                  className={`rounded-full px-3 py-1 text-[11px] tracking-[0.16em] uppercase ${statusCopy[results[0]!.status].tone}`}
+                  className={`rounded-full px-3 py-1 text-[11px] tracking-[0.16em] uppercase ${getStatusInfo(results[0]?.status).tone}`}
                 >
-                  {statusCopy[results[0]!.status].label}
+                  {getStatusInfo(results[0]?.status).label}
                 </span>
               </div>
 
-              <p className="mt-4 text-sm text-ink-muted">{statusCopy[results[0]!.status].note}</p>
+              <p className="mt-4 text-sm text-ink-muted">{getStatusInfo(results[0]?.status).note}</p>
 
               <ul className="mt-6 divide-y divide-stone border-t border-stone">
                 {results.map((order) => (
@@ -169,7 +178,7 @@ function OrderStatusPage() {
                       {order.variantLabel ? ` — ${order.variantLabel}` : ""}
                     </span>
                     <span className="text-xs tracking-[0.14em] uppercase text-ink-muted">
-                      {statusCopy[order.status].label}
+                      {getStatusInfo(order.status).label}
                     </span>
                   </li>
                 ))}
@@ -178,7 +187,10 @@ function OrderStatusPage() {
           )}
         </div>
 
-        <section aria-labelledby="order-help" className="mt-12 rounded-xl border border-stone bg-mist p-6 sm:p-8">
+        <section
+          aria-labelledby="order-help"
+          className="mt-12 rounded-xl border border-stone bg-mist p-6 sm:p-8"
+        >
           <h2 id="order-help" className="font-display text-2xl">
             Need help with this order?
           </h2>

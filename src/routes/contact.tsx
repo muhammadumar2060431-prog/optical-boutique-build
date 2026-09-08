@@ -13,7 +13,7 @@ import { whatsappLink } from "@/lib/whatsapp";
 
 export const Route = createFileRoute("/contact")({
   validateSearch: (search: Record<string, unknown>) => ({
-    product: typeof search['product'] === "string" ? (search['product'] as string) : undefined,
+    product: typeof search["product"] === "string" ? (search["product"] as string) : undefined,
   }),
   head: () => ({
     meta: [
@@ -69,9 +69,7 @@ function ContactPage() {
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!validate()) return;
-    const matched = products.find(
-      (p) => p.name.toLowerCase() === productRef.trim().toLowerCase(),
-    );
+    const matched = products.find((p) => p.name.toLowerCase() === productRef.trim().toLowerCase());
     addOrder({
       customerName: name.trim(),
       contact: contact.trim(),
@@ -124,6 +122,7 @@ function ContactPage() {
                   <Label htmlFor="name">Name</Label>
                   <Input
                     id="name"
+                    placeholder="e.g. Ayesha Khan"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     className="min-h-11"
@@ -134,6 +133,7 @@ function ContactPage() {
                   <Label htmlFor="contact">Phone or email</Label>
                   <Input
                     id="contact"
+                    placeholder="e.g. +92 300 1234567 or your@email.com"
                     value={contact}
                     onChange={(e) => setContact(e.target.value)}
                     className="min-h-11"
@@ -144,6 +144,7 @@ function ContactPage() {
                   <Label htmlFor="productRef">Product reference (optional)</Label>
                   <Input
                     id="productRef"
+                    placeholder="e.g. Aviator Classic, SKU, or model name"
                     value={productRef}
                     onChange={(e) => setProductRef(e.target.value)}
                     className="min-h-11"
@@ -154,6 +155,7 @@ function ContactPage() {
                   <Textarea
                     id="message"
                     rows={5}
+                    placeholder="Tell us what you're looking for, ask about lens options, or leave any special requests..."
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}
                   />
@@ -182,7 +184,7 @@ function ContactPage() {
               </span>
             </a>
 
-            <div className="space-y-4 rounded-xl border border-stone bg-card p-6 text-sm">
+            <div className="space-y-4 rounded-xl border border-stone bg-mist p-6 text-sm">
               <p className="eyebrow text-gold">Showroom</p>
               <p className="flex gap-3">
                 <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-gold" />

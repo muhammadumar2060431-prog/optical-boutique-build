@@ -11,7 +11,7 @@ import { whatsappLink } from "@/lib/whatsapp";
 
 export const Route = createFileRoute("/order-confirmation")({
   validateSearch: (search: Record<string, unknown>) => ({
-    ref: typeof search['ref'] === "string" ? (search['ref'] as string) : undefined,
+    ref: typeof search["ref"] === "string" ? (search["ref"] as string) : undefined,
   }),
   head: () => ({
     meta: [
@@ -87,7 +87,9 @@ function OrderConfirmationPage() {
         <div className="text-center">
           <CheckCircle2 className="mx-auto h-10 w-10 text-gold" aria-hidden="true" />
           <p className="eyebrow mt-4 text-gold">Order confirmed</p>
-          <h1 className="mt-2 font-display text-4xl sm:text-5xl">Thank you{customerName ? `, ${customerName.split(" ")[0]}` : ""}</h1>
+          <h1 className="mt-2 font-display text-4xl sm:text-5xl">
+            Thank you{customerName ? `, ${customerName.split(" ")[0]}` : ""}
+          </h1>
           <p className="mt-3 text-sm text-ink-muted">
             Your reference is <span className="font-semibold text-ink">{ref}</span>. Keep it safe —
             you can check progress any time on the order status page.
@@ -144,7 +146,11 @@ function OrderConfirmationPage() {
             Message us on WhatsApp with your reference so an optician can confirm availability,
             fitting and delivery straight away.
           </p>
-          <Button asChild size="lg" className="mt-5 min-h-12 rounded-full px-8 bg-[#25D366] hover:bg-[#20BA5A] text-white font-bold border-0 shadow-md">
+          <Button
+            asChild
+            size="lg"
+            className="mt-5 min-h-12 rounded-full px-8 bg-[#25D366] hover:bg-[#20BA5A] text-white font-bold border-0 shadow-md"
+          >
             <a
               href={whatsappLink(settings.whatsapp, waMessage)}
               target="_blank"

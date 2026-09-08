@@ -1,22 +1,12 @@
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { Link } from "@tanstack/react-router";
-import {
-  ChevronLeft,
-  ChevronRight,
-  ExternalLink,
-  Play,
-  ShoppingBag,
-  Sparkles,
-  X,
-} from "lucide-react";
+import { ExternalLink, Play, ShoppingBag, Sparkles, X } from "lucide-react";
 
 import { Reveal } from "@/components/site/Reveal";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { formatPrice, useStore } from "@/lib/store";
 import type { SocialPlatform, SocialReel } from "@/lib/types";
-import { cn } from "@/lib/utils";
 
 // Platform Icon Badges
 function PlatformBadge({ platform }: { platform: SocialPlatform }) {
@@ -65,93 +55,67 @@ function PlatformBadge({ platform }: { platform: SocialPlatform }) {
 
 export function SocialProofReels() {
   const { socialReels, products } = useStore();
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const [activeReelIndex, setActiveReelIndex] = useState<number | null>(null);
+  const [selectedReel, setSelectedReel] = useState<SocialReel | null>(null);
 
   const activeReels = socialReels.filter((r) => r.enabled);
 
   if (activeReels.length === 0) return null;
 
-  const scroll = (direction: "left" | "right") => {
-    if (scrollContainerRef.current) {
-      const scrollAmount = direction === "left" ? -340 : 340;
-      scrollContainerRef.current.scrollBy({ left: scrollAmount, behavior: "smooth" });
-    }
-  };
+  // Duplicate reels 4 times for seamless infinite loop (matching customer reviews pattern)
+  const items = [...activeReels, ...activeReels, ...activeReels, ...activeReels];
 
-  const currentReel = activeReelIndex !== null ? activeReels[activeReelIndex] : null;
-  const taggedProduct = currentReel?.productId
-    ? products.find((p) => p.id === currentReel.productId)
+  const taggedProduct = selectedReel?.productId
+    ? products.find((p) => p.id === selectedReel.productId)
     : null;
 
   // Convert video URL to embeddable URL if YouTube/etc
   const getEmbedUrl = (url: string) => {
     if (!url) return "";
-    const ytMatch = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([A-Za-z0-9_-]{6,})/);
+    const ytMatch = url.match(
+      /(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([A-Za-z0-9_-]{6,})/,
+    );
     if (ytMatch?.[1]) {
       return `https://www.youtube.com/embed/${ytMatch[1]}?autoplay=1&rel=0&modestbranding=1`;
     }
     return url;
   };
 
+  const currentIndex = selectedReel ? activeReels.findIndex((r) => r.id === selectedReel.id) : -1;
+
   return (
-    <section className="bg-background py-16 sm:py-24 border-b border-stone/50 overflow-hidden">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6">
-        
+    <section className="bg-[#666666] text-white py-16 sm:py-24 border-b border-stone/50 overflow-hidden">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 mb-10">
         {/* ── Section Header ── */}
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 mb-10">
-          <Reveal>
+        <Reveal>
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
             <div className="space-y-2">
               <p className="eyebrow text-gold font-bold tracking-[0.2em] uppercase text-xs sm:text-sm flex items-center gap-2">
                 <Sparkles className="h-3.5 w-3.5" />
                 <span>SOCIAL PROOF & REEL REVIEWS</span>
               </p>
-              <h2 className="font-display text-3xl sm:text-4xl text-foreground font-semibold">
+              <h2 className="font-display text-3xl sm:text-4xl text-white font-semibold">
                 Seen on Creators & Real Customers
               </h2>
-              <p className="text-sm sm:text-base text-ink-muted max-w-xl">
-                Real unboxings, style breakdowns, and daily wear reviews from our community.
-              </p>
             </div>
-          </Reveal>
-
-          {/* Carousel Arrows */}
-          <div className="flex items-center gap-2 self-end sm:self-auto">
-            <Button
-              size="icon"
-              variant="outline"
-              aria-label="Previous reels"
-              className="h-11 w-11 rounded-full border-stone hover:bg-stone/20"
-              onClick={() => scroll("left")}
-            >
-              <ChevronLeft className="h-5 w-5" />
-            </Button>
-            <Button
-              size="icon"
-              variant="outline"
-              aria-label="Next reels"
-              className="h-11 w-11 rounded-full border-stone hover:bg-stone/20"
-              onClick={() => scroll("right")}
-            >
-              <ChevronRight className="h-5 w-5" />
-            </Button>
+            <p className="text-sm sm:text-base text-white/80 max-w-md">
+              Real unboxings, style breakdowns, and daily wear reviews from our community. Click any
+              video to play.
+            </p>
           </div>
-        </div>
+        </Reveal>
+      </div>
 
-        {/* ── Horizontal Reels Carousel (Matching Image 1 & 2) ── */}
-        <div
-          ref={scrollContainerRef}
-          className="flex gap-4 sm:gap-6 overflow-x-auto pb-4 pt-2 snap-x snap-mandatory no-scrollbar scroll-smooth"
-          style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
-        >
-          {activeReels.map((reel, index) => {
+      {/* ── Seamless Infinite Scrollable Reels Track (Matching Customer Reviews) ── */}
+      <div className="reels-scroll-outer" aria-label="Seen on Creators Reels">
+        <div className="reels-track">
+          {items.map((reel, index) => {
             const product = reel.productId ? products.find((p) => p.id === reel.productId) : null;
 
             return (
               <div
-                key={reel.id}
-                onClick={() => setActiveReelIndex(index)}
-                className="group relative flex-shrink-0 w-[240px] sm:w-[280px] aspect-[9/16] rounded-2xl overflow-hidden cursor-pointer snap-start border border-stone/80 bg-jet shadow-lg transition-all duration-300 hover:-translate-y-1.5 hover:shadow-2xl hover:border-gold/60"
+                key={`${reel.id}-${index}`}
+                onClick={() => setSelectedReel(reel)}
+                className="group relative flex-shrink-0 w-[240px] sm:w-[280px] aspect-[9/16] rounded-2xl overflow-hidden cursor-pointer border border-stone/80 bg-jet shadow-lg transition-all duration-300 hover:-translate-y-1.5 hover:shadow-2xl hover:border-gold/60"
               >
                 {/* Thumbnail Image */}
                 <img
@@ -175,16 +139,15 @@ export function SocialProofReels() {
                   )}
                 </div>
 
-                {/* Center Play Button (Matching Image 2) */}
+                {/* Center Play Button */}
                 <div className="absolute inset-0 flex items-center justify-center z-10">
                   <div className="h-12 w-12 sm:h-14 sm:w-14 rounded-full border-2 border-white/80 bg-black/40 backdrop-blur-sm flex items-center justify-center text-white transition-all duration-300 group-hover:scale-115 group-hover:bg-gold group-hover:border-gold group-hover:text-jet shadow-xl">
                     <Play className="h-5 w-5 sm:h-6 sm:w-6 fill-current translate-x-0.5" />
                   </div>
                 </div>
 
-                {/* Bottom Bar: Creator Info & Duration (Matching Image 2) */}
+                {/* Bottom Bar: Creator Info & Duration */}
                 <div className="absolute inset-x-0 bottom-0 p-4 space-y-2 z-10">
-                  {/* Creator details */}
                   <div className="flex items-end justify-between gap-2">
                     <div className="min-w-0 flex-1">
                       {reel.creatorName && (
@@ -199,7 +162,6 @@ export function SocialProofReels() {
                       )}
                     </div>
 
-                    {/* Timestamp Duration Badge (Bottom Right matching Image 2) */}
                     {reel.duration && (
                       <span className="text-[10px] sm:text-xs font-mono font-bold text-white bg-black/80 px-2 py-0.5 rounded backdrop-blur-xs shrink-0 tracking-wider">
                         {reel.duration}
@@ -208,9 +170,7 @@ export function SocialProofReels() {
                   </div>
 
                   {/* Reel Caption/Title */}
-                  <p className="text-xs text-white/85 line-clamp-2 leading-snug">
-                    {reel.title}
-                  </p>
+                  <p className="text-xs text-white/85 line-clamp-2 leading-snug">{reel.title}</p>
 
                   {/* Tagged Product Pill */}
                   {product && (
@@ -237,22 +197,24 @@ export function SocialProofReels() {
             );
           })}
         </div>
-
       </div>
 
       {/* ── Reel Video Modal Player ── */}
-      <Dialog open={activeReelIndex !== null} onOpenChange={(open) => !open && setActiveReelIndex(null)}>
+      <Dialog open={selectedReel !== null} onOpenChange={(open) => !open && setSelectedReel(null)}>
         <DialogContent className="max-w-md sm:max-w-lg p-0 bg-jet border-stone overflow-hidden rounded-2xl text-white">
-          {currentReel && (
+          {selectedReel && (
             <div className="relative flex flex-col h-[80vh] max-h-[750px]">
-              
               {/* Modal Top Bar */}
               <div className="absolute top-0 inset-x-0 p-4 bg-gradient-to-b from-black/80 to-transparent z-20 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <PlatformBadge platform={currentReel.platform} />
+                  <PlatformBadge platform={selectedReel.platform} />
                   <div>
-                    <p className="text-xs font-semibold text-white">{currentReel.creatorName || "OPTIQUE Community"}</p>
-                    <p className="text-[10px] text-gold-soft font-mono">{currentReel.creatorHandle}</p>
+                    <p className="text-xs font-semibold text-white">
+                      {selectedReel.creatorName || "OPTIQUE Community"}
+                    </p>
+                    <p className="text-[10px] text-gold-soft font-mono">
+                      {selectedReel.creatorHandle}
+                    </p>
                   </div>
                 </div>
 
@@ -261,7 +223,7 @@ export function SocialProofReels() {
                     size="icon"
                     variant="ghost"
                     className="h-8 w-8 text-white/80 hover:text-white rounded-full bg-black/40"
-                    onClick={() => setActiveReelIndex(null)}
+                    onClick={() => setSelectedReel(null)}
                   >
                     <X className="h-4 w-4" />
                   </Button>
@@ -270,17 +232,19 @@ export function SocialProofReels() {
 
               {/* Video Player Frame */}
               <div className="flex-1 w-full bg-black flex items-center justify-center relative overflow-hidden">
-                {currentReel.videoUrl.includes("youtube") || currentReel.videoUrl.includes("youtu.be") ? (
+                {selectedReel.videoUrl.includes("youtube") ||
+                  selectedReel.videoUrl.includes("youtu.be") ? (
                   <iframe
-                    src={getEmbedUrl(currentReel.videoUrl)}
-                    title={currentReel.title}
+                    src={getEmbedUrl(selectedReel.videoUrl)}
+                    title={selectedReel.title}
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                     allowFullScreen
                     className="w-full h-full border-0"
                   />
-                ) : currentReel.videoUrl.endsWith(".mp4") || currentReel.videoUrl.endsWith(".webm") ? (
+                ) : selectedReel.videoUrl.endsWith(".mp4") ||
+                  selectedReel.videoUrl.endsWith(".webm") ? (
                   <video
-                    src={currentReel.videoUrl}
+                    src={selectedReel.videoUrl}
                     controls
                     autoPlay
                     loop
@@ -289,22 +253,22 @@ export function SocialProofReels() {
                 ) : (
                   <div className="relative w-full h-full flex flex-col items-center justify-center p-6 text-center">
                     <img
-                      src={currentReel.thumbnail}
-                      alt={currentReel.title}
+                      src={selectedReel.thumbnail}
+                      alt={selectedReel.title}
                       className="absolute inset-0 w-full h-full object-cover opacity-30"
                     />
                     <div className="relative z-10 space-y-4 max-w-xs">
                       <div className="h-16 w-16 rounded-full bg-gold/20 text-gold border border-gold flex items-center justify-center mx-auto">
                         <Play className="h-8 w-8 fill-current translate-x-0.5" />
                       </div>
-                      <p className="text-sm font-semibold">{currentReel.title}</p>
+                      <p className="text-sm font-semibold">{selectedReel.title}</p>
                       <a
-                        href={currentReel.videoUrl}
+                        href={selectedReel.videoUrl}
                         target="_blank"
                         rel="noreferrer"
                         className="inline-flex items-center gap-2 rounded-full bg-gold px-5 py-2.5 text-xs font-bold uppercase tracking-wider text-jet hover:bg-gold/90"
                       >
-                        <span>Watch on {currentReel.platform}</span>
+                        <span>Watch on {selectedReel.platform}</span>
                         <ExternalLink className="h-3.5 w-3.5" />
                       </a>
                     </div>
@@ -314,7 +278,7 @@ export function SocialProofReels() {
 
               {/* Modal Bottom: Tagged Product & Navigation */}
               <div className="p-4 bg-black/90 border-t border-stone/40 space-y-3 z-20">
-                <p className="text-xs text-white/90 line-clamp-2">{currentReel.title}</p>
+                <p className="text-xs text-white/90 line-clamp-2">{selectedReel.title}</p>
 
                 {taggedProduct && (
                   <div className="flex items-center justify-between gap-3 bg-white/10 rounded-xl p-2.5 border border-white/10">
@@ -325,7 +289,9 @@ export function SocialProofReels() {
                         className="h-10 w-10 rounded-lg object-cover border border-white/20"
                       />
                       <div className="min-w-0">
-                        <p className="text-xs font-semibold text-white truncate">{taggedProduct.name}</p>
+                        <p className="text-xs font-semibold text-white truncate">
+                          {taggedProduct.name}
+                        </p>
                         <p className="text-xs text-gold font-bold">
                           {formatPrice(taggedProduct.salePrice ?? taggedProduct.price)}
                         </p>
@@ -335,7 +301,7 @@ export function SocialProofReels() {
                     <Link
                       to="/product/$slug"
                       params={{ slug: taggedProduct.slug }}
-                      onClick={() => setActiveReelIndex(null)}
+                      onClick={() => setSelectedReel(null)}
                       className="inline-flex items-center gap-1.5 rounded-full bg-gold px-3.5 py-1.5 text-xs font-bold text-jet hover:bg-gold/90 shrink-0"
                     >
                       <ShoppingBag className="h-3.5 w-3.5" />
@@ -348,28 +314,31 @@ export function SocialProofReels() {
                 <div className="flex items-center justify-between text-xs text-ink-muted pt-1">
                   <button
                     type="button"
-                    disabled={activeReelIndex === 0}
-                    onClick={() => setActiveReelIndex((prev) => (prev !== null && prev > 0 ? prev - 1 : prev))}
+                    disabled={currentIndex <= 0}
+                    onClick={() => {
+                      if (currentIndex > 0) setSelectedReel(activeReels[currentIndex - 1] ?? null);
+                    }}
                     className="hover:text-gold disabled:opacity-30 disabled:hover:text-ink-muted"
                   >
                     ← Previous Reel
                   </button>
                   <span>
-                    {(activeReelIndex ?? 0) + 1} of {activeReels.length}
+                    {currentIndex + 1} of {activeReels.length}
                   </span>
                   <button
                     type="button"
-                    disabled={activeReelIndex === activeReels.length - 1}
-                    onClick={() =>
-                      setActiveReelIndex((prev) => (prev !== null && prev < activeReels.length - 1 ? prev + 1 : prev))
-                    }
+                    disabled={currentIndex < 0 || currentIndex >= activeReels.length - 1}
+                    onClick={() => {
+                      if (currentIndex >= 0 && currentIndex < activeReels.length - 1) {
+                        setSelectedReel(activeReels[currentIndex + 1] ?? null);
+                      }
+                    }}
                     className="hover:text-gold disabled:opacity-30 disabled:hover:text-ink-muted"
                   >
                     Next Reel →
                   </button>
                 </div>
               </div>
-
             </div>
           )}
         </DialogContent>

@@ -188,16 +188,3 @@ export interface Subscriber {
   createdAt: string;
   status: "active" | "unsubscribed";
 }
-
-export interface EmailCampaign {
-  id: ID;
-  subject: string;
-  headline: string;
-  bodyText: string;
-  bannerImage: string | null;
-  promoCode?: string;
-  ctaText?: string;
-  ctaLink?: string;
-  sentAt: string;
-  recipientCount: number;
-}

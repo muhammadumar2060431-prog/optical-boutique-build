@@ -5,10 +5,6 @@ import { Menu, ShoppingBag, X } from "lucide-react";
 import { useCart } from "@/lib/cart";
 import { useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
-import { whatsappLink } from "@/lib/whatsapp";
-
-import { FilterSheet } from "./FilterSheet";
-import { WhatsAppIcon } from "./WhatsAppIcon";
 
 const links = [
   { to: "/", label: "Home" },
@@ -32,13 +28,11 @@ export function Navbar() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  const wa = whatsappLink(settings.whatsapp, `Hello ${settings.storeName}, I have a question.`);
-
   return (
     <header
       className={cn(
-        "sticky top-0 z-50 bg-cream/95 backdrop-blur-sm text-ink transition-all duration-300 border-b border-ink/8",
-        scrolled && "shadow-[0_4px_24px_-8px_rgba(0,0,0,0.12)] border-ink/12",
+        "sticky top-0 z-50 bg-white backdrop-blur-sm text-black transition-all duration-300 border-b border-black/8",
+        scrolled && "shadow-[0_4px_24px_-8px_rgba(0,0,0,0.12)] border-black/12",
       )}
     >
       {/* Main nav row */}
@@ -63,13 +57,14 @@ export function Navbar() {
               <Link
                 to={l.to}
                 activeOptions={{ exact: l.to === "/" }}
-                activeProps={{ className: "text-[#666666] border-b border-[#666666]", "aria-current": "page" }}
-                className="group relative pb-0.5 text-[11px] font-medium tracking-[0.2em] uppercase text-ink/70 transition-colors duration-200 hover:text-ink"
+                activeProps={{
+                  className: "text-black border-b border-black",
+                  "aria-current": "page",
+                }}
+                className="group relative pb-0.5 text-[11px] font-medium tracking-[0.2em] uppercase text-black transition-colors duration-200 hover:text-black"
               >
-                <span className="block">
-                  {l.label}
-                </span>
-                <span className="absolute bottom-0 left-0 h-[1.5px] w-0 bg-[#666666] transition-all duration-300 group-hover:w-full" />
+                <span className="block">{l.label}</span>
+                <span className="absolute bottom-0 left-0 h-[1.5px] w-0 bg-black transition-all duration-300 group-hover:w-full" />
               </Link>
             </li>
           ))}
@@ -77,31 +72,15 @@ export function Navbar() {
 
         {/* Right-side actions */}
         <div className="flex items-center gap-2 ml-auto lg:ml-0">
-          {/* Filter — hidden on mobile */}
-          <div className="hidden sm:block">
-            <FilterSheet />
-          </div>
-
-          {/* WhatsApp */}
-          <a
-            href={wa}
-            target="_blank"
-            rel="noreferrer"
-            aria-label="Chat on WhatsApp"
-            className="grid h-9 w-9 place-items-center rounded-full bg-[#25D366] text-white shadow-sm transition-all duration-200 hover:bg-[#20BA5A] hover:scale-105 hover:shadow-md"
-          >
-            <WhatsAppIcon className="h-4 w-4 text-white" />
-          </a>
-
           {/* Cart */}
           <Link
             to="/cart"
             aria-label={`Shopping bag, ${count} item${count === 1 ? "" : "s"}`}
-            className="relative grid h-9 w-9 place-items-center rounded-full border border-ink/15 text-ink/70 transition-all duration-200 hover:border-ink/40 hover:text-ink hover:bg-ink/5"
+            className="relative grid h-9 w-9 place-items-center rounded-full border border-black/15 text-black transition-all duration-200 hover:border-black/40 hover:text-black hover:bg-black/5"
           >
             <ShoppingBag className="h-4 w-4" aria-hidden="true" />
             {count > 0 && (
-              <span className="absolute -top-1 -right-1 grid h-4 min-w-4 place-items-center rounded-full bg-[#666666] px-1 text-[9px] font-bold text-white">
+              <span className="absolute -top-1 -right-1 grid h-4 min-w-4 place-items-center rounded-full bg-black px-1 text-[9px] font-bold text-white">
                 {count}
               </span>
             )}
@@ -114,44 +93,34 @@ export function Navbar() {
             aria-expanded={openMenu}
             aria-controls="mobile-nav"
             onClick={() => setOpenMenu((v) => !v)}
-            className="grid h-9 w-9 place-items-center rounded-full border border-ink/15 text-ink/70 transition-all duration-200 hover:border-ink/40 hover:text-ink hover:bg-ink/5 lg:hidden"
+            className="grid h-9 w-9 place-items-center rounded-full border border-black/15 text-black transition-all duration-200 hover:border-black/40 hover:text-black hover:bg-black/5 lg:hidden"
           >
-            {openMenu ? <X className="h-4 w-4" aria-hidden="true" /> : <Menu className="h-4 w-4" aria-hidden="true" />}
+            {openMenu ? (
+              <X className="h-4 w-4" aria-hidden="true" />
+            ) : (
+              <Menu className="h-4 w-4" aria-hidden="true" />
+            )}
           </button>
         </div>
       </nav>
 
       {/* Mobile drawer */}
       {openMenu && (
-        <div
-          id="mobile-nav"
-          className="border-t border-ink/8 bg-cream/98 lg:hidden"
-        >
-          <ul className="mx-auto max-w-7xl divide-y divide-ink/5 px-4 sm:px-6">
+        <div id="mobile-nav" className="border-t border-black/8 bg-white lg:hidden">
+          <ul className="mx-auto max-w-7xl divide-y divide-black/5 px-4 sm:px-6">
             {links.map((l) => (
               <li key={l.to}>
                 <Link
                   to={l.to}
                   onClick={() => setOpenMenu(false)}
                   activeOptions={{ exact: l.to === "/" }}
-                  activeProps={{ className: "text-[#666666]", "aria-current": "page" }}
-                  className="flex min-h-[48px] items-center text-[11px] font-medium tracking-[0.2em] uppercase text-ink/60 transition-colors hover:text-ink"
+                  activeProps={{ className: "text-black", "aria-current": "page" }}
+                  className="flex min-h-[48px] items-center text-[11px] font-medium tracking-[0.2em] uppercase text-black/80 transition-colors hover:text-black"
                 >
                   {l.label}
                 </Link>
               </li>
             ))}
-            <li className="flex items-center gap-3 py-3 sm:hidden">
-              <FilterSheet />
-              <a
-                href={wa}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-2 rounded-full bg-[#25D366] hover:bg-[#20BA5A] px-5 py-2.5 text-[11px] font-bold tracking-[0.16em] uppercase text-white shadow-sm"
-              >
-                <WhatsAppIcon className="h-4 w-4 text-white" /> WhatsApp
-              </a>
-            </li>
           </ul>
         </div>
       )}
