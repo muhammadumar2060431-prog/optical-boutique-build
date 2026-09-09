@@ -1,6 +1,6 @@
 import { isSafeUrl, sanitizeHref, sanitizeRawInput } from "./security";
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
-import { supabase } from "./supabase";
+import { supabase, isSupabaseConfigured } from "./supabase";
 import {
   fetchInitialSupabaseData,
   autoSeedSupabaseIfEmpty,
@@ -307,6 +307,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   // ── Supabase Real-Time Sync & Initial Hydration ──
   useEffect(() => {
+    // No database configured yet — stay on local demo data
+    if (!isSupabaseConfigured) return;
+
     let isSubscribed = true;
 
     async function initSupabaseData() {
