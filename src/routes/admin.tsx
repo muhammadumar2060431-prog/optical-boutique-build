@@ -8,6 +8,7 @@ import {
   LogOut,
   Mail,
   Menu,
+  MessageSquare,
   Package,
   Quote,
   Settings as SettingsIcon,
@@ -39,6 +40,7 @@ export const Route = createFileRoute("/admin")({
 const nav = [
   { to: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
   { to: "/admin/orders", label: "Orders", icon: ShoppingCart, exact: false },
+  { to: "/admin/queries", label: "Queries", icon: MessageSquare, exact: false },
   { to: "/admin/products", label: "Products", icon: Package, exact: false },
   { to: "/admin/inventory", label: "Inventory", icon: Boxes, exact: false },
   { to: "/admin/content", label: "Content", icon: ImageIcon, exact: false },
@@ -225,6 +227,11 @@ function AdminLogin() {
         >
           {isLocked ? `Locked (${remaining}s)` : "Enter"}
         </Button>
+        <div className="text-center pt-1">
+          <Link to="/" className="text-xs text-sidebar-foreground/60 hover:text-white transition-colors">
+            ← Return to Store
+          </Link>
+        </div>
       </form>
     </div>
   );

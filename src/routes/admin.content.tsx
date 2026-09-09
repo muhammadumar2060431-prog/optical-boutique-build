@@ -15,6 +15,14 @@ import {
 import { toast } from "sonner";
 
 import { ImageUpload } from "@/components/admin/ImageUpload";
+import {
+  isSafeUrl,
+  sanitizeHref,
+  sanitizeText,
+  validateDestinationLink,
+  validateImageUrl,
+  validateSocialVideoUrl,
+} from "@/lib/security";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -683,6 +691,20 @@ function SocialReelsPanel() {
       toast.error("Please upload or provide a thumbnail image for the reel.");
       return;
     }
+    const imgCheck = validateImageUrl(draft.thumbnail);
+    if (!imgCheck.valid) {
+      toast.error(imgCheck.error || "Invalid thumbnail image.");
+      return;
+    }
+    if (!draft.videoUrl.trim()) {
+      toast.error("Video URL link is required.");
+      return;
+    }
+    const videoCheck = validateSocialVideoUrl(draft.videoUrl, draft.platform);
+    if (!videoCheck.valid) {
+      toast.error(videoCheck.error || "Invalid video URL link.");
+      return;
+    }
     if (
       !window.confirm(
         "Aap is reel ko save karna chahte hain? (Are you sure you want to save this reel?)",
@@ -694,6 +716,8 @@ function SocialReelsPanel() {
     saveSocialReel({
       ...draft,
       id: draft.id || newId("reel"),
+      videoUrl: videoCheck.sanitizedUrl || draft.videoUrl.trim(),
+      platform: videoCheck.platform || draft.platform,
       creatorHandle:
         draft.creatorHandle?.trim().startsWith("@") || !draft.creatorHandle?.trim()
           ? (draft.creatorHandle?.trim() ?? "")
@@ -790,9 +814,9 @@ function SocialReelsPanel() {
                       </div>
                       {reel.videoUrl && (
                         <a
-                          href={reel.videoUrl}
+                          href={sanitizeHref(reel.videoUrl)}
                           target="_blank"
-                          rel="noreferrer"
+                          rel="noopener noreferrer"
                           className="inline-flex items-center gap-1 text-[10px] text-ink-muted hover:text-gold mt-1 font-mono truncate max-w-[200px]"
                         >
                           <ExternalLink className="h-2.5 w-2.5" />

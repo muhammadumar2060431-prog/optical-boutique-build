@@ -15,6 +15,7 @@ import {
   Package,
   Phone,
   Receipt,
+  ShoppingCart,
   Sparkles,
   User,
   XCircle,
@@ -205,12 +206,31 @@ function OrderDetailsModal({
 
           {/* Status & Source badges */}
           <div className="flex items-center gap-2">
-            <span className="rounded-full bg-black/25 border border-white/10 px-2.5 py-0.5 text-[11px] font-medium uppercase tracking-wider text-zinc-100">
-              {order.source === "cart"
-                ? "🛒 Checkout"
-                : order.source === "whatsapp"
-                  ? "💬 WhatsApp"
-                  : "✉️ Form"}
+            <span
+              className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-medium uppercase tracking-wider text-white border ${
+                order.source === "whatsapp"
+                  ? "bg-emerald-600 border-emerald-500/50"
+                  : order.source === "cart"
+                    ? "bg-blue-600 border-blue-500/50"
+                    : "bg-purple-600 border-purple-500/50"
+              }`}
+            >
+              {order.source === "whatsapp" ? (
+                <>
+                  <WhatsAppIcon className="h-3.5 w-3.5 fill-current text-white" />
+                  WhatsApp
+                </>
+              ) : order.source === "cart" ? (
+                <>
+                  <ShoppingCart className="h-3.5 w-3.5 text-white" />
+                  Checkout
+                </>
+              ) : (
+                <>
+                  <Mail className="h-3.5 w-3.5 text-white" />
+                  Form
+                </>
+              )}
             </span>
             <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold ${currentStatusCfg.badgeClass}`}>
               <span className={`h-1.5 w-1.5 rounded-full ${currentStatusCfg.dotClass}`} />
@@ -429,6 +449,7 @@ function AdminOrders() {
   const filtered = useMemo(
     () =>
       orders.filter((o) => {
+        if (o.source === "form") return false;
         if (status !== "all" && o.status !== status) return false;
         if (source !== "all" && o.source !== source) return false;
         if (query) {
@@ -467,8 +488,8 @@ function AdminOrders() {
   return (
     <div className="space-y-6">
       <header>
-        <p className="eyebrow text-gold">Inbox</p>
-        <h1 className="mt-2 font-display text-3xl">Orders & enquiries</h1>
+        <p className="eyebrow text-gold">Orders Management</p>
+        <h1 className="mt-2 font-display text-3xl">Checkout & WhatsApp Orders</h1>
       </header>
 
       <div className="grid gap-3 sm:grid-cols-3">
@@ -504,7 +525,6 @@ function AdminOrders() {
           <SelectContent>
             <SelectItem value="all">All sources</SelectItem>
             <SelectItem value="whatsapp">WhatsApp</SelectItem>
-            <SelectItem value="form">Contact form</SelectItem>
             <SelectItem value="cart">Checkout</SelectItem>
           </SelectContent>
         </Select>
@@ -512,7 +532,7 @@ function AdminOrders() {
 
       {filtered.length === 0 ? (
         <p className="rounded-xl border border-dashed border-[#666666] bg-[#f9f9f9] px-6 py-16 text-center text-sm text-ink-muted">
-          No orders yet — new WhatsApp and contact-form enquiries will appear here automatically.
+          No orders yet — new Checkout and WhatsApp orders will appear here automatically.
         </p>
       ) : (
         <div className="overflow-x-auto rounded-xl border border-[#666666] bg-[#f9f9f9] shadow-sm">
@@ -549,13 +569,32 @@ function AdminOrders() {
                     {o.variantLabel ? <span className="text-zinc-600"> · {o.variantLabel}</span> : ""}
                   </td>
                   <td className="px-4 py-3">
-                    <Badge variant={o.source === "whatsapp" ? "default" : "secondary"}>
-                      {o.source === "whatsapp"
-                        ? "WhatsApp"
-                        : o.source === "cart"
-                          ? "Checkout"
-                          : "Form"}
-                    </Badge>
+                    <span
+                      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold shadow-xs ${
+                        o.source === "whatsapp"
+                          ? "bg-emerald-100 text-emerald-800 border border-emerald-300"
+                          : o.source === "cart"
+                            ? "bg-blue-100 text-blue-800 border border-blue-300"
+                            : "bg-purple-100 text-purple-800 border border-purple-300"
+                      }`}
+                    >
+                      {o.source === "whatsapp" ? (
+                        <>
+                          <WhatsAppIcon className="h-3.5 w-3.5 fill-current text-emerald-600" />
+                          <span>WhatsApp</span>
+                        </>
+                      ) : o.source === "cart" ? (
+                        <>
+                          <ShoppingCart className="h-3.5 w-3.5 text-blue-600" />
+                          <span>Checkout</span>
+                        </>
+                      ) : (
+                        <>
+                          <Mail className="h-3.5 w-3.5 text-purple-600" />
+                          <span>Form</span>
+                        </>
+                      )}
+                    </span>
                   </td>
                   <td className="px-4 py-3">
                     <Badge

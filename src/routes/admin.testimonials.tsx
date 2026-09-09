@@ -454,9 +454,12 @@ function AdminTestimonials() {
                   <ImageUpload
                     label="Customer Photo or Review Screenshot"
                     optional
-                    value={draft.reviewImage || null}
-                    onChange={(img) => setDraft({ ...draft, reviewImage: img })}
+                    value={draft.reviewImage || draft.photo || null}
+                    onChange={(img) => setDraft({ ...draft, reviewImage: img, photo: img })}
                   />
+                  <p className="text-[11px] text-ink-muted">
+                    💡 Screenshot upload karne par ye storefront review section par proof card ke tor par display hoga.
+                  </p>
                 </div>
 
                 <Button
@@ -477,10 +480,13 @@ function AdminTestimonials() {
                     ) {
                       return;
                     }
+                    const finalImg = draft.reviewImage || draft.photo || null;
                     saveTestimonial({
                       ...draft,
                       id: draft.id || newId("tst"),
                       quote: draft.quote.trim(),
+                      photo: finalImg,
+                      reviewImage: finalImg,
                       createdAt: draft.createdAt || new Date().toISOString(),
                     });
                     setDraft(null);

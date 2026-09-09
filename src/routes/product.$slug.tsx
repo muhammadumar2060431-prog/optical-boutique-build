@@ -20,6 +20,7 @@ import { ProductCard } from "@/components/site/ProductCard";
 import { Reveal } from "@/components/site/Reveal";
 import { SiteLayout } from "@/components/site/SiteLayout";
 import { WhatsAppIcon } from "@/components/site/WhatsAppIcon";
+import { useWhatsAppModal } from "@/components/site/WhatsAppModal";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
@@ -92,6 +93,7 @@ function ProductPage() {
   } = useStore();
 
   const { addItem } = useCart();
+  const { openWhatsAppModal } = useWhatsAppModal();
   const navigate = useNavigate();
   const product = getProductBySlug(slug);
 
@@ -490,13 +492,19 @@ function ProductPage() {
                     <ShoppingBag className="mr-2 h-4 w-4" /> Add to bag
                   </Button>
                   <Button
-                    asChild
+                    type="button"
                     size="lg"
-                    className="min-h-12 rounded-full px-8 bg-[#25D366] hover:bg-[#20BA5A] text-white font-bold tracking-wider border-0 shadow-md"
+                    onClick={() =>
+                      openWhatsAppModal({
+                        productName: product.name,
+                        productId: product.id,
+                        variantId: variant?.id ?? null,
+                        variantLabel: variant?.label ?? null,
+                      })
+                    }
+                    className="min-h-12 rounded-full px-8 bg-[#25D366] hover:bg-[#20BA5A] text-white font-bold tracking-wider border-0 shadow-md cursor-pointer"
                   >
-                    <a href={waHref} target="_blank" rel="noreferrer" onClick={recordIntent}>
-                      <WhatsAppIcon className="mr-2 h-5 w-5 text-white" /> ORDER ON WHATSAPP
-                    </a>
+                    <WhatsAppIcon className="mr-2 h-5 w-5 text-white" /> ORDER ON WHATSAPP
                   </Button>
                 </>
               )}

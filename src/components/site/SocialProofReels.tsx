@@ -5,6 +5,7 @@ import { ExternalLink, Play, ShoppingBag, Sparkles, X } from "lucide-react";
 import { Reveal } from "@/components/site/Reveal";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { sanitizeHref } from "@/lib/security";
 import { formatPrice, useStore } from "@/lib/store";
 import type { SocialPlatform, SocialReel } from "@/lib/types";
 
@@ -71,13 +72,14 @@ export function SocialProofReels() {
   // Convert video URL to embeddable URL if YouTube/etc
   const getEmbedUrl = (url: string) => {
     if (!url) return "";
-    const ytMatch = url.match(
+    const clean = sanitizeHref(url, "");
+    const ytMatch = clean.match(
       /(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([A-Za-z0-9_-]{6,})/,
     );
     if (ytMatch?.[1]) {
-      return `https://www.youtube.com/embed/${ytMatch[1]}?autoplay=1&rel=0&modestbranding=1`;
+      return `https://www.youtube-nocookie.com/embed/${ytMatch[1]}?autoplay=1&rel=0&modestbranding=1`;
     }
-    return url;
+    return clean;
   };
 
   const currentIndex = selectedReel ? activeReels.findIndex((r) => r.id === selectedReel.id) : -1;
@@ -263,9 +265,9 @@ export function SocialProofReels() {
                       </div>
                       <p className="text-sm font-semibold">{selectedReel.title}</p>
                       <a
-                        href={selectedReel.videoUrl}
+                        href={sanitizeHref(selectedReel.videoUrl)}
                         target="_blank"
-                        rel="noreferrer"
+                        rel="noopener noreferrer"
                         className="inline-flex items-center gap-2 rounded-full bg-gold px-5 py-2.5 text-xs font-bold uppercase tracking-wider text-jet hover:bg-gold/90"
                       >
                         <span>Watch on {selectedReel.platform}</span>

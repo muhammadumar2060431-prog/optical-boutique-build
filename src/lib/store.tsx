@@ -1,3 +1,4 @@
+import { isSafeUrl, sanitizeHref, sanitizeRawInput } from "./security";
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { supabase } from "./supabase";
 import {
@@ -26,6 +27,17 @@ import {
   dbUpsertSettings,
   dbUpsertAnnouncement,
   dbUpsertVideo,
+  dbInsertQuery,
+  dbUpdateQueryStatus,
+  dbDeleteQuery,
+  mapDbProductToStore,
+  mapDbCollectionToStore,
+  mapDbHeroSlideToStore,
+  mapDbBrandToStore,
+  mapDbSocialReelToStore,
+  mapDbTestimonialToStore,
+  mapDbFaqToStore,
+  mapDbQueryToStore,
 } from "./supabaseSync";
 
 import {
@@ -48,6 +60,7 @@ import type {
   Brand,
   Category,
   Collection,
+  ContactQuery,
   HeroSlide,
   Order,
   OrderStatus,
@@ -73,6 +86,7 @@ export interface StoreState {
   collections: Collection[];
   products: Product[];
   orders: Order[];
+  queries: ContactQuery[];
   heroSlides: HeroSlide[];
   announcement: AnnouncementSettings;
   testimonials: Testimonial[];
@@ -124,6 +138,9 @@ interface StoreApi extends StoreState {
   /** Customer-facing lookup: every order sharing one reference code. */
   getOrdersByReference: (reference: string) => Order[];
   setOrderStatus: (orderId: string, status: OrderStatus) => void;
+  addQuery: (data: Omit<ContactQuery, "id" | "createdAt" | "status">) => ContactQuery;
+  setQueryStatus: (id: string, status: "New" | "Responded" | "Archived") => void;
+  deleteQuery: (id: string) => void;
   saveProduct: (product: Product) => void;
   deleteProduct: (id: string) => void;
   saveCategory: (category: Category) => void;
@@ -228,7 +245,15 @@ function parseOrderRecord(raw: any, existing?: Order): Order {
     variantId: raw?.variantId || raw?.items?.[0]?.variantId || existing?.variantId || null,
     variantLabel: raw?.variantLabel || raw?.items?.[0]?.variantLabel || existing?.variantLabel || null,
     message: raw?.message || raw?.address || existing?.message || "",
-    source: raw?.source || existing?.source || "cart",
+    source:
+      raw?.source ||
+      raw?.items?.[0]?.source ||
+      existing?.source ||
+      ((raw?.productName || raw?.items?.[0]?.productName || "")
+        .toLowerCase()
+        .includes("whatsapp")
+        ? "whatsapp"
+        : "cart"),
     status: (raw?.status
       ? raw.status.charAt(0).toUpperCase() + raw.status.slice(1).toLowerCase()
       : existing?.status || "New") as OrderStatus,
@@ -241,6 +266,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [collections, setCollections] = useState<Collection[]>(() => getSaved("collections", seedCollections));
   const [products, setProducts] = useState<Product[]>(() => getSaved("products", seedProducts));
   const [orders, setOrders] = useState<Order[]>(() => getSaved("orders", seedOrders));
+  const [queries, setQueries] = useState<ContactQuery[]>(() => getSaved("queries", []));
   const [heroSlides, setHeroSlidesState] = useState<HeroSlide[]>(() => getSaved("heroSlides", seedHeroSlides));
   const [announcement, setAnnouncement] = useState<AnnouncementSettings>(() => getSaved("announcement", seedAnnouncement));
   const [testimonials, setTestimonials] = useState<Testimonial[]>(() => getSaved("testimonials", seedTestimonials));
@@ -250,20 +276,17 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [socialReels, setSocialReelsState] = useState<SocialReel[]>(() => getSaved("socialReels", seedSocialReels));
   const [faqs, setFaqsState] = useState<FAQItem[]>(() => getSaved("faqs", seedFaqs));
   const [subscribers, setSubscribersState] = useState<Subscriber[]>(() => getSaved("subscribers", seedSubscribers));
-  const [isAdmin, setIsAdmin] = useState(() => {
-    if (typeof window === "undefined") return false;
-    // Validate session token — cannot be faked by console setItem
-    const token = localStorage.getItem("optique_admin_session_token");
-    const fingerprint = localStorage.getItem("optique_admin_fp");
-    if (!token || !fingerprint) return false;
-    // Token must be a 64-char hex string (SHA-256 output)
-    if (!/^[0-9a-f]{64}$/.test(token)) return false;
-    // Fingerprint must match — prevents copy-paste attacks across different machines
-    const expectedFp = btoa(
-      navigator.userAgent.slice(0, 40) + window.screen.width + window.screen.height
-    ).slice(0, 20);
-    return fingerprint === expectedFp;
-  });
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  // Ensure admin session is NEVER automatically persisted across page loads/links.
+  // Requires fresh login every time a user visits /admin or loads/refreshes the page.
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("optique_admin_session_token");
+      localStorage.removeItem("optique_admin_fp");
+      localStorage.removeItem("optique_admin_session");
+    }
+  }, []);
   const [stockTouched, setStockTouched] = useState<Record<string, string>>({});
 
   // ── Auto-persist to localStorage on every change ──
@@ -271,6 +294,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   useEffect(() => { saveItem("collections", collections); }, [collections]);
   useEffect(() => { saveItem("products", products); }, [products]);
   useEffect(() => { saveItem("orders", orders); }, [orders]);
+  useEffect(() => { saveItem("queries", queries); }, [queries]);
   useEffect(() => { saveItem("heroSlides", heroSlides); }, [heroSlides]);
   useEffect(() => { saveItem("announcement", announcement); }, [announcement]);
   useEffect(() => { saveItem("testimonials", testimonials); }, [testimonials]);
@@ -283,45 +307,50 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   // ── Supabase Real-Time Sync & Initial Hydration ──
   useEffect(() => {
-    // 1. Fetch initial data from Supabase
-    fetchInitialSupabaseData().then((data) => {
-      if (!data) return;
-      if (data.categories && data.categories.length > 0) setCategories(data.categories);
-      if (data.collections && data.collections.length > 0) setCollections(data.collections);
-      if (data.products && data.products.length > 0) setProducts(data.products);
-      if (data.orders && data.orders.length > 0) {
+    let isSubscribed = true;
+
+    async function initSupabaseData() {
+      // 1. Auto-seed any empty tables in Supabase first
+      await autoSeedSupabaseIfEmpty({
+        categories: seedCategories,
+        collections: seedCollections,
+        products: seedProducts,
+        heroSlides: seedHeroSlides,
+        brands: seedBrands,
+        socialReels: seedSocialReels,
+        testimonials: seedTestimonials,
+        faqs: seedFaqs,
+      });
+
+      // 2. Fetch fresh synchronized data
+      const data = await fetchInitialSupabaseData();
+      if (!isSubscribed || !data) return;
+
+      if (data.categories !== null) setCategories(data.categories);
+      if (data.collections !== null) setCollections(data.collections);
+      if (data.products !== null) setProducts(data.products);
+      if (data.orders !== null) {
         const fetchedOrders = data.orders;
         setOrders((prev) => {
           const map = new Map(prev.map((o) => [o.id, o]));
           return fetchedOrders.map((o) => parseOrderRecord(o, map.get(o.id)));
         });
       }
-      if (data.heroSlides && data.heroSlides.length > 0) setHeroSlidesState(data.heroSlides);
-      if (data.brands && data.brands.length > 0) setBrands(data.brands);
-      if (data.socialReels && data.socialReels.length > 0) setSocialReelsState(data.socialReels);
-      if (data.testimonials && data.testimonials.length > 0) setTestimonials(data.testimonials);
-      if (data.faqs && data.faqs.length > 0) setFaqsState(data.faqs);
-      if (data.subscribers && data.subscribers.length > 0) setSubscribersState(data.subscribers);
+      if (data.queries !== null && data.queries !== undefined) setQueries(data.queries);
+      if (data.heroSlides !== null) setHeroSlidesState(data.heroSlides);
+      if (data.brands !== null) setBrands(data.brands);
+      if (data.socialReels !== null) setSocialReelsState(data.socialReels);
+      if (data.testimonials !== null) setTestimonials(data.testimonials);
+      if (data.faqs !== null) setFaqsState(data.faqs);
+      if (data.subscribers !== null) setSubscribersState(data.subscribers);
       if (data.settings) setSettings((prev) => ({ ...prev, ...data.settings }));
       if (data.announcement) setAnnouncement((prev) => ({ ...prev, ...data.announcement }));
       if (data.video) setVideo((prev) => ({ ...prev, ...data.video }));
+    }
 
-      // Auto-populate Supabase if newly created and empty
-      if (!data.categories || data.categories.length === 0) {
-        autoSeedSupabaseIfEmpty({
-          categories: seedCategories,
-          collections: seedCollections,
-          products: seedProducts,
-          heroSlides: seedHeroSlides,
-          brands: seedBrands,
-          socialReels: seedSocialReels,
-          testimonials: seedTestimonials,
-          faqs: seedFaqs,
-        });
-      }
-    });
+    initSupabaseData();
 
-    // 2. Real-time WebSocket replication channel
+    // 3. Real-time WebSocket replication channel
     const channel = supabase
       .channel("public-db-changes")
       .on("postgres_changes", { event: "*", schema: "public" }, (payload) => {
@@ -332,16 +361,26 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
         if (table === "products") {
           if (eventType === "DELETE") setProducts((prev) => prev.filter((p) => p.id !== oldRecord.id));
-          else if (eventType === "INSERT") setProducts((prev) => [newRecord, ...prev.filter((p) => p.id !== newRecord.id)]);
-          else if (eventType === "UPDATE") setProducts((prev) => prev.map((p) => (p.id === newRecord.id ? newRecord : p)));
+          else if (eventType === "INSERT") {
+            const mapped = mapDbProductToStore(newRecord);
+            setProducts((prev) => [mapped, ...prev.filter((p) => p.id !== mapped.id)]);
+          } else if (eventType === "UPDATE") {
+            const mapped = mapDbProductToStore(newRecord);
+            setProducts((prev) => prev.map((p) => (p.id === mapped.id ? mapped : p)));
+          }
         } else if (table === "categories") {
           if (eventType === "DELETE") setCategories((prev) => prev.filter((c) => c.id !== oldRecord.id));
           else if (eventType === "INSERT") setCategories((prev) => [...prev.filter((c) => c.id !== newRecord.id), newRecord]);
           else if (eventType === "UPDATE") setCategories((prev) => prev.map((c) => (c.id === newRecord.id ? newRecord : c)));
         } else if (table === "collections") {
           if (eventType === "DELETE") setCollections((prev) => prev.filter((c) => c.id !== oldRecord.id));
-          else if (eventType === "INSERT") setCollections((prev) => [...prev.filter((c) => c.id !== newRecord.id), newRecord]);
-          else if (eventType === "UPDATE") setCollections((prev) => prev.map((c) => (c.id === newRecord.id ? newRecord : c)));
+          else if (eventType === "INSERT") {
+            const mapped = mapDbCollectionToStore(newRecord);
+            setCollections((prev) => [...prev.filter((c) => c.id !== mapped.id), mapped]);
+          } else if (eventType === "UPDATE") {
+            const mapped = mapDbCollectionToStore(newRecord);
+            setCollections((prev) => prev.map((c) => (c.id === mapped.id ? mapped : c)));
+          }
         } else if (table === "orders") {
           if (eventType === "INSERT") {
             setOrders((prev) => {
@@ -356,34 +395,63 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           }
         } else if (table === "hero_slides") {
           if (eventType === "UPDATE" || eventType === "INSERT") {
-            setHeroSlidesState((prev) => prev.map((s) => (s.id === newRecord.id ? newRecord : s)));
+            const mapped = mapDbHeroSlideToStore(newRecord);
+            setHeroSlidesState((prev) => {
+              const exists = prev.some((s) => s.id === mapped.id);
+              return exists ? prev.map((s) => (s.id === mapped.id ? mapped : s)) : [...prev, mapped];
+            });
+          } else if (eventType === "DELETE") {
+            setHeroSlidesState((prev) => prev.filter((s) => s.id !== oldRecord.id));
           }
         } else if (table === "brands") {
           if (eventType === "DELETE") setBrands((prev) => prev.filter((b) => b.id !== oldRecord.id));
-          else if (eventType === "INSERT") setBrands((prev) => [...prev.filter((b) => b.id !== newRecord.id), newRecord]);
-          else if (eventType === "UPDATE") setBrands((prev) => prev.map((b) => (b.id === newRecord.id ? newRecord : b)));
+          else if (eventType === "INSERT") {
+            const mapped = mapDbBrandToStore(newRecord);
+            setBrands((prev) => [...prev.filter((b) => b.id !== mapped.id), mapped]);
+          } else if (eventType === "UPDATE") {
+            const mapped = mapDbBrandToStore(newRecord);
+            setBrands((prev) => prev.map((b) => (b.id === mapped.id ? mapped : b)));
+          }
         } else if (table === "social_reels") {
           if (eventType === "DELETE") setSocialReelsState((prev) => prev.filter((r) => r.id !== oldRecord.id));
-          else if (eventType === "INSERT") setSocialReelsState((prev) => [...prev.filter((r) => r.id !== newRecord.id), newRecord]);
-          else if (eventType === "UPDATE") setSocialReelsState((prev) => prev.map((r) => (r.id === newRecord.id ? newRecord : r)));
+          else if (eventType === "INSERT") {
+            const mapped = mapDbSocialReelToStore(newRecord);
+            setSocialReelsState((prev) => [...prev.filter((r) => r.id !== mapped.id), mapped]);
+          } else if (eventType === "UPDATE") {
+            const mapped = mapDbSocialReelToStore(newRecord);
+            setSocialReelsState((prev) => prev.map((r) => (r.id === mapped.id ? mapped : r)));
+          }
         } else if (table === "store_settings") {
           if (newRecord) setSettings((prev) => ({ ...prev, ...newRecord }));
         } else if (table === "announcements") {
           if (newRecord) setAnnouncement((prev) => ({ ...prev, ...newRecord }));
         } else if (table === "testimonials") {
           if (eventType === "DELETE") setTestimonials((prev) => prev.filter((t) => t.id !== oldRecord.id));
-          else if (eventType === "INSERT" || eventType === "UPDATE") setTestimonials((prev) => prev.map((t) => (t.id === newRecord.id ? newRecord : t)));
+          else if (eventType === "INSERT" || eventType === "UPDATE") {
+            const mapped = mapDbTestimonialToStore(newRecord);
+            setTestimonials((prev) => (prev.some((t) => t.id === mapped.id) ? prev.map((t) => (t.id === mapped.id ? mapped : t)) : [...prev, mapped]));
+          }
         } else if (table === "faqs") {
           if (eventType === "DELETE") setFaqsState((prev) => prev.filter((f) => f.id !== oldRecord.id));
-          else if (eventType === "INSERT" || eventType === "UPDATE") setFaqsState((prev) => prev.map((f) => (f.id === newRecord.id ? newRecord : f)));
+          else if (eventType === "INSERT" || eventType === "UPDATE") {
+            const mapped = mapDbFaqToStore(newRecord);
+            setFaqsState((prev) => (prev.some((f) => f.id === mapped.id) ? prev.map((f) => (f.id === mapped.id ? mapped : f)) : [...prev, mapped]));
+          }
         } else if (table === "subscribers") {
           if (eventType === "DELETE") setSubscribersState((prev) => prev.filter((s) => s.id !== oldRecord.id));
           else if (eventType === "INSERT") setSubscribersState((prev) => [newRecord, ...prev.filter((s) => s.id !== newRecord.id)]);
+        } else if (table === "queries") {
+          if (eventType === "DELETE") setQueries((prev) => prev.filter((q) => q.id !== oldRecord.id));
+          else if (eventType === "INSERT" || eventType === "UPDATE") {
+            const mapped = mapDbQueryToStore(newRecord);
+            setQueries((prev) => (prev.some((q) => q.id === mapped.id) ? prev.map((q) => (q.id === mapped.id ? mapped : q)) : [mapped, ...prev]));
+          }
         }
       })
       .subscribe();
 
     return () => {
+      isSubscribed = false;
       supabase.removeChannel(channel);
     };
   }, []);
@@ -491,15 +559,19 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       setProducts((prev) =>
         prev.map((p) => {
           if (p.id !== productId) return p;
+          let updated: Product;
           if (variantId) {
-            return {
+            updated = {
               ...p,
               variants: p.variants.map((v) =>
                 v.id === variantId ? { ...v, stock: Math.max(0, v.stock + delta) } : v,
               ),
             };
+          } else {
+            updated = { ...p, stock: Math.max(0, p.stock + delta) };
           }
-          return { ...p, stock: Math.max(0, p.stock + delta) };
+          dbUpsertProduct(updated);
+          return updated;
         }),
       );
       setStockTouched((prev) => ({ ...prev, [`${productId}:${variantId ?? "base"}`]: nowIso() }));
@@ -512,13 +584,17 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setProducts((prev) =>
       prev.map((p) => {
         if (p.id !== productId) return p;
+        let updated: Product;
         if (variantId) {
-          return {
+          updated = {
             ...p,
             variants: p.variants.map((v) => (v.id === variantId ? { ...v, stock: safe } : v)),
           };
+        } else {
+          updated = { ...p, stock: safe };
         }
-        return { ...p, stock: safe };
+        dbUpsertProduct(updated);
+        return updated;
       }),
     );
     setStockTouched((prev) => ({ ...prev, [`${productId}:${variantId ?? "base"}`]: nowIso() }));
@@ -585,6 +661,28 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     [applyStockDelta],
   );
 
+  const addQuery = useCallback<StoreApi["addQuery"]>((data) => {
+    const query: ContactQuery = {
+      ...data,
+      id: uid("qry"),
+      createdAt: nowIso(),
+      status: "New",
+    };
+    setQueries((prev) => [query, ...prev]);
+    dbInsertQuery(query);
+    return query;
+  }, []);
+
+  const setQueryStatus = useCallback<StoreApi["setQueryStatus"]>((id, status) => {
+    setQueries((prev) => prev.map((q) => (q.id === id ? { ...q, status } : q)));
+    dbUpdateQueryStatus(id, status);
+  }, []);
+
+  const deleteQuery = useCallback<StoreApi["deleteQuery"]>((id) => {
+    setQueries((prev) => prev.filter((q) => q.id !== id));
+    dbDeleteQuery(id);
+  }, []);
+
   const saveProduct = useCallback<StoreApi["saveProduct"]>((product) => {
     const fullProduct = { ...product, id: product.id || uid("prd") };
     setProducts((prev) =>
@@ -640,21 +738,26 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       prev.map((p) => {
         if (p.id !== productId) return p;
         const exists = p.variants.some((v) => v.id === variant.id);
-        return {
+        const updated = {
           ...p,
           variants: exists
             ? p.variants.map((v) => (v.id === variant.id ? variant : v))
             : [...p.variants, { ...variant, id: variant.id || uid("var") }],
         };
+        dbUpsertProduct(updated);
+        return updated;
       }),
     );
   }, []);
 
   const deleteVariant = useCallback<StoreApi["deleteVariant"]>((productId, variantId) => {
     setProducts((prev) =>
-      prev.map((p) =>
-        p.id === productId ? { ...p, variants: p.variants.filter((v) => v.id !== variantId) } : p,
-      ),
+      prev.map((p) => {
+        if (p.id !== productId) return p;
+        const updated = { ...p, variants: p.variants.filter((v) => v.id !== variantId) };
+        dbUpsertProduct(updated);
+        return updated;
+      }),
     );
   }, []);
 
@@ -692,7 +795,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const saveTestimonial = useCallback<StoreApi["saveTestimonial"]>((t) => {
-    const fullT = { ...t, id: t.id || uid("tst") };
+    const img = t.reviewImage || t.photo || null;
+    const fullT = { ...t, id: t.id || uid("tst"), photo: img, reviewImage: img };
     setTestimonials((prev) =>
       prev.some((x) => x.id === fullT.id)
         ? prev.map((x) => (x.id === fullT.id ? fullT : x))
@@ -730,21 +834,25 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const submitVideoUrl = useCallback<StoreApi["submitVideoUrl"]>(
     (url) => {
-      const id = parseYouTubeId(url);
+      const clean = sanitizeRawInput(url);
+      if (!isSafeUrl(clean)) {
+        return { ok: false, error: "🔒 Security Alert: Unsafe URL scheme detected." };
+      }
+      const id = parseYouTubeId(clean);
       if (!id) return { ok: false, error: "That doesn't look like a valid YouTube link." };
       if (!video.lockedChannel)
         return {
           ok: false,
           error: "No channel is locked yet. Lock an approved channel before publishing a video.",
         };
-      const channel = parseYouTubeChannel(url);
+      const channel = parseYouTubeChannel(clean);
       if (!channel || channel.toLowerCase() !== video.lockedChannel.toLowerCase())
         return {
           ok: false,
           error: "This video isn't from the approved channel and wasn't published.",
         };
       setVideo((prev) => {
-        const next = { ...prev, videoUrl: url, videoId: id };
+        const next = { ...prev, videoUrl: clean, videoId: id };
         dbUpsertVideo(next);
         return next;
       });
@@ -770,7 +878,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const saveBrand = useCallback<StoreApi["saveBrand"]>((brand) => {
-    const fullBrand = { ...brand, id: brand.id || uid("brd") };
+    const fullBrand: Brand = {
+      ...brand,
+      id: brand.id || uid("brd"),
+      logo: sanitizeHref(brand.logo, ""),
+    };
     setBrands((prev) =>
       prev.some((b) => b.id === fullBrand.id)
         ? prev.map((b) => (b.id === fullBrand.id ? fullBrand : b))
@@ -799,7 +911,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const saveSocialReel = useCallback<StoreApi["saveSocialReel"]>((reel) => {
-    const fullReel = { ...reel, id: reel.id || uid("reel") };
+    const fullReel = {
+      ...reel,
+      id: reel.id || uid("reel"),
+      videoUrl: sanitizeHref(reel.videoUrl, ""),
+      thumbnail: sanitizeHref(reel.thumbnail, ""),
+    };
     setSocialReelsState((prev) =>
       prev.some((r) => r.id === fullReel.id)
         ? prev.map((r) => (r.id === fullReel.id ? fullReel : r))
@@ -913,21 +1030,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       if (ok) {
         setIsAdmin(true);
         if (typeof window !== "undefined") {
-          // Store a hashed token instead of a plain boolean
-          makeSessionToken(email, password).then((token) => {
-            localStorage.setItem("optique_admin_session_token", token);
-            const fp = btoa(
-              navigator.userAgent.slice(0, 40) + window.screen.width + window.screen.height
-            ).slice(0, 20);
-            localStorage.setItem("optique_admin_fp", fp);
-            // Remove old insecure key if present
-            localStorage.removeItem("optique_admin_session");
-          });
+          localStorage.removeItem("optique_admin_session_token");
+          localStorage.removeItem("optique_admin_fp");
+          localStorage.removeItem("optique_admin_session");
         }
       }
       return ok;
     },
-    [settings.adminEmail, settings.adminPassword, makeSessionToken],
+    [settings.adminEmail, settings.adminPassword],
   );
 
   const logout = useCallback(() => {
@@ -939,12 +1049,28 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const setHeroSlides = useCallback<StoreApi["setHeroSlides"]>((slides) => {
+    setHeroSlidesState(slides);
+    dbUpsertHeroSlides(slides);
+  }, []);
+
+  const setSocialReels = useCallback<StoreApi["setSocialReels"]>((reels) => {
+    setSocialReelsState(reels);
+    reels.forEach(dbUpsertSocialReel);
+  }, []);
+
+  const setFaqs = useCallback<StoreApi["setFaqs"]>((faqs) => {
+    setFaqsState(faqs);
+    faqs.forEach(dbUpsertFaq);
+  }, []);
+
   const value = useMemo<StoreApi>(
     () => ({
       categories,
       collections,
       products,
       orders,
+      queries,
       heroSlides,
       announcement,
       testimonials,
@@ -970,6 +1096,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       addOrder,
       getOrdersByReference,
       setOrderStatus,
+      addQuery,
+      setQueryStatus,
+      deleteQuery,
       saveProduct,
       deleteProduct,
       saveCategory,
@@ -981,7 +1110,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       updateStock,
       getStockFor,
       adjustStock: applyStockDelta,
-      setHeroSlides: setHeroSlidesState,
+      setHeroSlides,
       updateHeroSlide,
       moveHeroSlide,
       updateAnnouncement,
@@ -998,11 +1127,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       saveSocialReel,
       deleteSocialReel,
       moveSocialReel,
-      setSocialReels: setSocialReelsState,
+      setSocialReels,
       saveFaq,
       deleteFaq,
       moveFaq,
-      setFaqs: setFaqsState,
+      setFaqs,
       addSubscriber,
       deleteSubscriber,
       login,
@@ -1013,6 +1142,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       collections,
       products,
       orders,
+      queries,
       heroSlides,
       announcement,
       testimonials,
@@ -1036,6 +1166,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       addOrder,
       getOrdersByReference,
       setOrderStatus,
+      addQuery,
+      setQueryStatus,
+      deleteQuery,
       saveProduct,
       deleteProduct,
       saveCategory,

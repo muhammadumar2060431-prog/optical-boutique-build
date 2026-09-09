@@ -188,3 +188,15 @@ export interface Subscriber {
   createdAt: string;
   status: "active" | "unsubscribed";
 }
+
+export interface ContactQuery {
+  id: ID;
+  name: string;
+  contact: string;
+  productName: string;
+  productId?: ID | null;
+  message: string;
+  createdAt: string;
+  status: "New" | "Responded" | "Archived";
+}
+

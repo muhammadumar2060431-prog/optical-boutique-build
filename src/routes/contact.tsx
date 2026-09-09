@@ -44,7 +44,7 @@ interface Errors {
 
 function ContactPage() {
   const search = useSearch({ from: "/contact" });
-  const { settings, addOrder, products } = useStore();
+  const { settings, addQuery, products } = useStore();
   const [name, setName] = useState("");
   const [contact, setContact] = useState("");
   const [productRef, setProductRef] = useState(search.product ?? "");
@@ -70,15 +70,12 @@ function ContactPage() {
     e.preventDefault();
     if (!validate()) return;
     const matched = products.find((p) => p.name.toLowerCase() === productRef.trim().toLowerCase());
-    addOrder({
-      customerName: name.trim(),
+    addQuery({
+      name: name.trim(),
       contact: contact.trim(),
       productId: matched?.id ?? null,
       productName: productRef.trim() || "General enquiry",
-      variantId: null,
-      variantLabel: null,
       message: message.trim(),
-      source: "form",
     });
     setSent(true);
   };
