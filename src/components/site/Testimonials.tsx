@@ -15,8 +15,12 @@ export function Testimonials() {
 
   if (!testimonials.length) return null;
 
-  // Duplicate testimonials 4 times for seamless infinite loop
-  const items = [...testimonials, ...testimonials, ...testimonials, ...testimonials];
+  // Build a single block with enough items to span wide viewports
+  let singleBlock = [...testimonials];
+  while (singleBlock.length < 10) {
+    singleBlock = [...singleBlock, ...testimonials];
+  }
+  const items = [...singleBlock, ...singleBlock];
 
   return (
     <section className="bg-background py-16 sm:py-24 overflow-hidden border-b border-stone/40">

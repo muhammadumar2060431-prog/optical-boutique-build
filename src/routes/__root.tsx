@@ -13,6 +13,7 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { StoreProvider } from "@/lib/store";
 import { CartProvider } from "@/lib/cart";
+import { WhatsAppModalProvider } from "@/components/site/WhatsAppModal";
 import { Toaster } from "@/components/ui/sonner";
 
 function NotFoundComponent() {
@@ -102,7 +103,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         rel: "stylesheet",
         href: "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Manrope:wght@400;500;600;700&display=swap",
       },
-      { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
+      { rel: "icon", href: "/brand-logo.png", type: "image/png" },
+      { rel: "shortcut icon", href: "/brand-logo.png", type: "image/png" },
+      { rel: "apple-touch-icon", href: "/brand-logo.png" },
     ],
   }),
   shellComponent: RootShell,
@@ -132,9 +135,11 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <StoreProvider>
         <CartProvider>
-          {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-          <Outlet />
-          <Toaster position="top-right" />
+          <WhatsAppModalProvider>
+            {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+            <Outlet />
+            <Toaster position="top-right" />
+          </WhatsAppModalProvider>
         </CartProvider>
       </StoreProvider>
     </QueryClientProvider>

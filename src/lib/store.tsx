@@ -262,21 +262,52 @@ function parseOrderRecord(raw: any, existing?: Order): Order {
 }
 
 export function StoreProvider({ children }: { children: ReactNode }) {
-  const [categories, setCategories] = useState<Category[]>(() => getSaved("categories", seedCategories));
-  const [collections, setCollections] = useState<Collection[]>(() => getSaved("collections", seedCollections));
-  const [products, setProducts] = useState<Product[]>(() => getSaved("products", seedProducts));
-  const [orders, setOrders] = useState<Order[]>(() => getSaved("orders", seedOrders));
-  const [queries, setQueries] = useState<ContactQuery[]>(() => getSaved("queries", []));
-  const [heroSlides, setHeroSlidesState] = useState<HeroSlide[]>(() => getSaved("heroSlides", seedHeroSlides));
-  const [announcement, setAnnouncement] = useState<AnnouncementSettings>(() => getSaved("announcement", seedAnnouncement));
-  const [testimonials, setTestimonials] = useState<Testimonial[]>(() => getSaved("testimonials", seedTestimonials));
-  const [video, setVideo] = useState<VideoSettings>(() => getSaved("video", seedVideo));
-  const [settings, setSettings] = useState<StoreSettings>(() => getSaved("settings", seedSettings));
-  const [brands, setBrands] = useState<Brand[]>(() => getSaved("brands", seedBrands));
-  const [socialReels, setSocialReelsState] = useState<SocialReel[]>(() => getSaved("socialReels", seedSocialReels));
-  const [faqs, setFaqsState] = useState<FAQItem[]>(() => getSaved("faqs", seedFaqs));
-  const [subscribers, setSubscribersState] = useState<Subscriber[]>(() => getSaved("subscribers", seedSubscribers));
+  const [categories, setCategories] = useState<Category[]>(() => seedCategories);
+  const [collections, setCollections] = useState<Collection[]>(() => seedCollections);
+  const [products, setProducts] = useState<Product[]>(() => seedProducts);
+  const [orders, setOrders] = useState<Order[]>(() => seedOrders);
+  const [queries, setQueries] = useState<ContactQuery[]>(() => []);
+  const [heroSlides, setHeroSlidesState] = useState<HeroSlide[]>(() => seedHeroSlides);
+  const [announcement, setAnnouncement] = useState<AnnouncementSettings>(() => seedAnnouncement);
+  const [testimonials, setTestimonials] = useState<Testimonial[]>(() => seedTestimonials);
+  const [video, setVideo] = useState<VideoSettings>(() => seedVideo);
+  const [settings, setSettings] = useState<StoreSettings>(() => seedSettings);
+  const [brands, setBrands] = useState<Brand[]>(() => seedBrands);
+  const [socialReels, setSocialReelsState] = useState<SocialReel[]>(() => seedSocialReels);
+  const [faqs, setFaqsState] = useState<FAQItem[]>(() => seedFaqs);
+  const [subscribers, setSubscribersState] = useState<Subscriber[]>(() => seedSubscribers);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [hydrated, setHydrated] = useState(false);
+
+  // Client-only localStorage hydration to eliminate SSR hydration mismatch
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const load = <T,>(key: string, setter: (val: T) => void) => {
+        const raw = localStorage.getItem(`optique_v1_${key}`);
+        if (raw) {
+          try {
+            setter(JSON.parse(raw));
+          } catch {}
+        }
+      };
+      load<Category[]>("categories", setCategories);
+      load<Collection[]>("collections", setCollections);
+      load<Product[]>("products", setProducts);
+      load<Order[]>("orders", setOrders);
+      load<ContactQuery[]>("queries", setQueries);
+      load<HeroSlide[]>("heroSlides", setHeroSlidesState);
+      load<AnnouncementSettings>("announcement", setAnnouncement);
+      load<Testimonial[]>("testimonials", setTestimonials);
+      load<VideoSettings>("video", setVideo);
+      load<StoreSettings>("settings", setSettings);
+      load<Brand[]>("brands", setBrands);
+      load<SocialReel[]>("socialReels", setSocialReelsState);
+      load<FAQItem[]>("faqs", setFaqsState);
+      load<Subscriber[]>("subscribers", setSubscribersState);
+    } catch {}
+    setHydrated(true);
+  }, []);
 
   // Ensure admin session is NEVER automatically persisted across page loads/links.
   // Requires fresh login every time a user visits /admin or loads/refreshes the page.
@@ -289,21 +320,21 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, []);
   const [stockTouched, setStockTouched] = useState<Record<string, string>>({});
 
-  // ── Auto-persist to localStorage on every change ──
-  useEffect(() => { saveItem("categories", categories); }, [categories]);
-  useEffect(() => { saveItem("collections", collections); }, [collections]);
-  useEffect(() => { saveItem("products", products); }, [products]);
-  useEffect(() => { saveItem("orders", orders); }, [orders]);
-  useEffect(() => { saveItem("queries", queries); }, [queries]);
-  useEffect(() => { saveItem("heroSlides", heroSlides); }, [heroSlides]);
-  useEffect(() => { saveItem("announcement", announcement); }, [announcement]);
-  useEffect(() => { saveItem("testimonials", testimonials); }, [testimonials]);
-  useEffect(() => { saveItem("video", video); }, [video]);
-  useEffect(() => { saveItem("settings", settings); }, [settings]);
-  useEffect(() => { saveItem("brands", brands); }, [brands]);
-  useEffect(() => { saveItem("socialReels", socialReels); }, [socialReels]);
-  useEffect(() => { saveItem("faqs", faqs); }, [faqs]);
-  useEffect(() => { saveItem("subscribers", subscribers); }, [subscribers]);
+  // ── Auto-persist to localStorage on every change (after initial mount) ──
+  useEffect(() => { if (hydrated) saveItem("categories", categories); }, [categories, hydrated]);
+  useEffect(() => { if (hydrated) saveItem("collections", collections); }, [collections, hydrated]);
+  useEffect(() => { if (hydrated) saveItem("products", products); }, [products, hydrated]);
+  useEffect(() => { if (hydrated) saveItem("orders", orders); }, [orders, hydrated]);
+  useEffect(() => { if (hydrated) saveItem("queries", queries); }, [queries, hydrated]);
+  useEffect(() => { if (hydrated) saveItem("heroSlides", heroSlides); }, [heroSlides, hydrated]);
+  useEffect(() => { if (hydrated) saveItem("announcement", announcement); }, [announcement, hydrated]);
+  useEffect(() => { if (hydrated) saveItem("testimonials", testimonials); }, [testimonials, hydrated]);
+  useEffect(() => { if (hydrated) saveItem("video", video); }, [video, hydrated]);
+  useEffect(() => { if (hydrated) saveItem("settings", settings); }, [settings, hydrated]);
+  useEffect(() => { if (hydrated) saveItem("brands", brands); }, [brands, hydrated]);
+  useEffect(() => { if (hydrated) saveItem("socialReels", socialReels); }, [socialReels, hydrated]);
+  useEffect(() => { if (hydrated) saveItem("faqs", faqs); }, [faqs, hydrated]);
+  useEffect(() => { if (hydrated) saveItem("subscribers", subscribers); }, [subscribers, hydrated]);
 
   // ── Supabase Real-Time Sync & Initial Hydration ──
   useEffect(() => {

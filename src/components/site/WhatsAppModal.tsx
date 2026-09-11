@@ -27,7 +27,10 @@ const WhatsAppModalContext = createContext<WhatsAppModalContextType | null>(null
 export function useWhatsAppModal() {
   const ctx = useContext(WhatsAppModalContext);
   if (!ctx) {
-    throw new Error("useWhatsAppModal must be used within a WhatsAppModalProvider");
+    return {
+      openWhatsAppModal: () => {},
+      closeWhatsAppModal: () => {},
+    };
   }
   return ctx;
 }
@@ -111,36 +114,39 @@ export function WhatsAppModalProvider({ children }: { children: ReactNode }) {
       {children}
 
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogContent className="max-w-md overflow-hidden p-0 rounded-2xl border-stone/20 bg-card shadow-2xl">
-          {/* Header Banner */}
-          <div className="relative bg-gradient-to-br from-[#128C7E] via-[#075E54] to-[#054c44] px-6 py-6 text-white">
+        <DialogContent className="max-w-md overflow-hidden p-0 rounded-2xl border border-stone/30 bg-card shadow-2xl">
+          {/* Header Banner — Gray background, white text */}
+          <div className="relative bg-gradient-to-br from-gray-500 via-gray-600 to-gray-500 px-6 py-6 border-b border-gray-400/30">
+            {/* Subtle gold accent line at top */}
+            <div className="absolute top-0 inset-x-0 h-0.5 bg-gradient-to-r from-transparent via-[#C9A96E] to-transparent opacity-70" />
+
             <div className="flex items-center gap-3">
-              <div className="grid h-12 w-12 place-items-center rounded-full bg-white/15 backdrop-blur-sm border border-white/20">
-                <WhatsAppIcon className="h-6 w-6 text-white" />
+              <div className="grid h-12 w-12 place-items-center rounded-full bg-[#25D366]/20 border border-[#25D366]/50 shadow-md">
+                <WhatsAppIcon className="h-6 w-6 text-[#25D366]" />
               </div>
               <div>
-                <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-200">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-white/70">
                   Direct WhatsApp Connect
                 </span>
                 <h3 className="font-display text-xl text-white">Chat with an Optician</h3>
               </div>
             </div>
-            <p className="mt-2 text-xs text-emerald-100/90 leading-relaxed">
+            <p className="mt-2 text-xs text-white/80 leading-relaxed">
               Please enter your contact details below to start chatting on WhatsApp. Your inquiry will be logged in our system.
             </p>
             {options.productName && (
-              <div className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-black/25 px-3 py-1 text-xs font-semibold text-white border border-white/15">
-                <span>Product:</span>
-                <span className="text-gold font-bold">{options.productName}</span>
+              <div className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1 text-xs font-semibold">
+                <span className="text-black/60">Product:</span>
+                <span className="text-black font-bold">{options.productName}</span>
                 {options.variantLabel && (
-                  <span className="text-emerald-200">({options.variantLabel})</span>
+                  <span className="text-black/60">({options.variantLabel})</span>
                 )}
               </div>
             )}
           </div>
 
           {/* Form Content */}
-          <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          <form onSubmit={handleSubmit} className="p-6 space-y-4 bg-card">
             {/* Full Name */}
             <div className="space-y-1.5">
               <Label htmlFor="wa-name" className="text-xs font-bold uppercase tracking-wider text-ink">
@@ -154,7 +160,7 @@ export function WhatsAppModalProvider({ children }: { children: ReactNode }) {
                   placeholder="e.g. Muhammad Ali"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="pl-9 min-h-11 bg-background border-stone/30"
+                  className="pl-9 min-h-11 bg-background border-stone/30 focus:border-[#C9A96E]/60"
                 />
               </div>
               {errors.name && <p className="text-xs font-medium text-rose-500">{errors.name}</p>}
@@ -173,7 +179,7 @@ export function WhatsAppModalProvider({ children }: { children: ReactNode }) {
                   placeholder="e.g. 0300 1234567"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  className="pl-9 min-h-11 bg-background border-stone/30"
+                  className="pl-9 min-h-11 bg-background border-stone/30 focus:border-[#C9A96E]/60"
                 />
               </div>
               {errors.phone && <p className="text-xs font-medium text-rose-500">{errors.phone}</p>}
@@ -192,17 +198,17 @@ export function WhatsAppModalProvider({ children }: { children: ReactNode }) {
                   placeholder="e.g. customer@gmail.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="pl-9 min-h-11 bg-background border-stone/30"
+                  className="pl-9 min-h-11 bg-background border-stone/30 focus:border-[#C9A96E]/60"
                 />
               </div>
               {errors.email && <p className="text-xs font-medium text-rose-500">{errors.email}</p>}
             </div>
 
-            {/* Submit Button */}
+            {/* Submit Button — WhatsApp green (brand color, intentionally kept) */}
             <div className="pt-3">
               <Button
                 type="submit"
-                className="w-full min-h-12 rounded-xl bg-[#25D366] hover:bg-[#20BA5A] text-white font-bold text-sm shadow-md transition-all flex items-center justify-center gap-2"
+                className="w-full min-h-12 rounded-xl bg-[#25D366] hover:bg-[#20BA5A] text-white font-bold text-sm shadow-md shadow-[#25D366]/25 transition-all flex items-center justify-center gap-2"
               >
                 <WhatsAppIcon className="h-5 w-5 text-white" />
                 Continue to WhatsApp

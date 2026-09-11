@@ -18,19 +18,25 @@ export function ProductCard({ product }: { product: Product }) {
     >
       <div className="lens-ring relative aspect-square overflow-hidden bg-jet">
         {/* Primary Image */}
-        <img
-          src={product.image}
-          alt={product.name}
-          loading="lazy"
-          width={1024}
-          height={1024}
-          className={`h-full w-full object-cover transition-all duration-500 group-hover:scale-[1.03] ${
-            product.hoverImage ? "group-hover:opacity-0" : ""
-          }`}
-        />
+        {product.image && product.image.trim() ? (
+          <img
+            src={product.image}
+            alt={product.name}
+            loading="lazy"
+            width={1024}
+            height={1024}
+            className={`h-full w-full object-cover transition-all duration-500 group-hover:scale-[1.03] ${
+              product.hoverImage && product.hoverImage.trim() ? "group-hover:opacity-0" : ""
+            }`}
+          />
+        ) : (
+          <div className="h-full w-full bg-jet flex items-center justify-center text-stone-500 text-xs">
+            No image
+          </div>
+        )}
 
         {/* Hover Image — crossfade on hover/touch */}
-        {product.hoverImage && (
+        {product.hoverImage && product.hoverImage.trim() ? (
           <img
             src={product.hoverImage}
             alt={`${product.name} – alternate view`}
@@ -39,7 +45,7 @@ export function ProductCard({ product }: { product: Product }) {
             height={1024}
             className="absolute inset-0 h-full w-full object-cover opacity-0 transition-all duration-500 group-hover:opacity-100 group-hover:scale-[1.03]"
           />
-        )}
+        ) : null}
 
         {/* Top Badges */}
         <div className="absolute top-3 left-3 flex flex-col gap-1.5 z-10">

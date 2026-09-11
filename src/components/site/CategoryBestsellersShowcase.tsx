@@ -195,14 +195,14 @@ export function CategoryBestsellersShowcase() {
                                 src={collection.banner!.image}
                                 alt={collection.name}
                                 loading="lazy"
-                                className="w-full h-auto max-h-[360px] object-cover transition-transform duration-700 group-hover:scale-105 block"
+                                className="w-full h-auto max-h-[460px] min-h-[260px] sm:min-h-[340px] object-cover transition-transform duration-700 group-hover:scale-105 block"
                               />
                             </div>
                           );
                         }
 
                         return (
-                          <div className="relative isolate overflow-hidden rounded-2xl bg-jet shadow-xl border border-stone/60 group">
+                          <div className="relative isolate overflow-hidden rounded-2xl bg-jet shadow-xl border border-stone/60 group min-h-[240px] sm:min-h-[320px] flex items-center">
                             {collection.banner?.image ? (
                               <img
                                 src={collection.banner.image}
@@ -215,7 +215,7 @@ export function CategoryBestsellersShowcase() {
                             )}
                             <div className="absolute inset-0 bg-gradient-to-r from-black/95 via-black/80 to-transparent" />
 
-                            <div className="relative px-6 py-10 sm:px-10 sm:py-14 max-w-2xl space-y-2">
+                            <div className="relative px-6 py-14 sm:px-12 sm:py-20 max-w-2xl space-y-3">
                               <div className="flex items-center gap-2">
                                 <span className="eyebrow text-gold font-bold uppercase tracking-[0.2em] text-xs">
                                   {activeCategory?.name} Collection

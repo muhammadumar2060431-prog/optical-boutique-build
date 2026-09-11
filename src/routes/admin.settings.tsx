@@ -60,6 +60,8 @@ function AdminSettings() {
           optional
           value={form.logo}
           onChange={(logo) => setForm({ ...form, logo })}
+          hint="400×120 px • Max 80 KB • PNG transparent background recommended"
+          aspectHint="Wide logo"
         />
 
         <Button

@@ -183,20 +183,20 @@ export function CategoryView({ category }: { category: Category }) {
                     (() => {
                       const hasText = Boolean(col.banner.heading?.trim() || col.banner.subtext?.trim());
                       return (
-                        <div className="relative isolate overflow-hidden rounded-2xl bg-jet shadow-md border border-stone group">
+                        <div className="relative isolate overflow-hidden rounded-2xl bg-jet shadow-md border border-stone group min-h-[240px] sm:min-h-[320px] flex items-center">
                           <img
                             src={col.banner.image}
                             alt={col.name}
                             loading="lazy"
                             className={cn(
                               "w-full object-cover transition-all duration-700 group-hover:scale-105",
-                              hasText ? "absolute inset-0 h-full opacity-50" : "h-auto max-h-[340px] opacity-100 block"
+                              hasText ? "absolute inset-0 h-full opacity-50" : "h-auto max-h-[460px] min-h-[260px] sm:min-h-[340px] opacity-100 block"
                             )}
                           />
                           {hasText && (
                             <>
                               <div className="absolute inset-0 bg-gradient-to-r from-jet via-jet/80 to-transparent" />
-                              <div className="relative px-6 py-12 sm:px-10 sm:py-16 max-w-xl space-y-2.5">
+                              <div className="relative px-6 py-14 sm:px-12 sm:py-20 max-w-xl space-y-3">
                                 <span className="eyebrow text-gold font-bold uppercase tracking-widest">
                                   {category.name} Collection
                                 </span>

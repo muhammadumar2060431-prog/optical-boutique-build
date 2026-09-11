@@ -91,7 +91,7 @@ function AdminContent() {
 function BrandsPanel() {
   const { brands, saveBrand, deleteBrand, moveBrand } = useStore();
   const [newName, setNewName] = useState("");
-  const [newLogo, setNewLogo] = useState("");
+  const [newLogo, setNewLogo] = useState<string | null>(null);
 
   const handleAdd = () => {
     const name = newName.trim();
@@ -102,11 +102,11 @@ function BrandsPanel() {
     saveBrand({
       id: "",
       name,
-      logo: newLogo.trim() || null,
+      logo: newLogo || null,
       enabled: true,
     });
     setNewName("");
-    setNewLogo("");
+    setNewLogo(null);
     toast.success(`"${name}" brands bar mein add ho gaya!`);
   };
 
@@ -115,40 +115,31 @@ function BrandsPanel() {
       {/* Add new brand */}
       <div className="rounded-xl border border-stone bg-card p-6 space-y-4">
         <h2 className="font-display text-xl">Naya Brand Add Karein</h2>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-2">
-            <Label htmlFor="brand-name">Brand Name</Label>
-            <Input
-              id="brand-name"
-              value={newName}
-              onChange={(e) => setNewName(e.target.value)}
-              placeholder="e.g. Ray-Ban"
-              className="min-h-11"
-              onKeyDown={(e) => e.key === "Enter" && handleAdd()}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="brand-logo">Logo URL (optional)</Label>
-            <Input
-              id="brand-logo"
-              value={newLogo}
-              onChange={(e) => setNewLogo(e.target.value)}
-              placeholder="https://... ya khaali chhod dein"
-              className="min-h-11"
-            />
-          </div>
+        <div className="space-y-2">
+          <Label htmlFor="brand-name">Brand Name</Label>
+          <Input
+            id="brand-name"
+            value={newName}
+            onChange={(e) => setNewName(e.target.value)}
+            placeholder="e.g. Ray-Ban"
+            className="min-h-11"
+            onKeyDown={(e) => e.key === "Enter" && handleAdd()}
+          />
         </div>
-        {newLogo && (
-          <div className="flex items-center gap-3">
-            <span className="text-sm text-ink-muted">Preview:</span>
-            <img src={newLogo} alt="logo preview" className="h-8 object-contain" />
-          </div>
-        )}
+        <ImageUpload
+          label="Brand Logo"
+          optional
+          value={newLogo}
+          onChange={setNewLogo}
+          hint="PNG transparent background • 320×80 px • Max 5 MB"
+          aspectHint="Wide logo"
+        />
         <Button className="min-h-11 rounded-full" onClick={handleAdd}>
           <Plus className="h-4 w-4 mr-2" />
           Brand Add Karein
         </Button>
       </div>
+
 
       {/* Existing brands list */}
       {brands.length === 0 ? (
@@ -232,16 +223,22 @@ function BrandsPanel() {
             }}
           >
             <div className="marquee-track py-2">
-              {[...brands.filter((b) => b.enabled), ...brands.filter((b) => b.enabled)].map(
-                (b, i) => (
+              {(() => {
+                const enabledBrands = brands.filter((b) => b.enabled);
+                if (enabledBrands.length === 0) return null;
+                let singleBlock = [...enabledBrands];
+                while (singleBlock.length < 16) {
+                  singleBlock = [...singleBlock, ...enabledBrands];
+                }
+                return [...singleBlock, ...singleBlock].map((b, i) => (
                   <span
                     key={`prev-${b.id}-${i}`}
-                    className="px-8 font-display text-base uppercase tracking-widest opacity-60"
+                    className="px-8 font-display text-base uppercase tracking-widest opacity-60 flex-shrink-0"
                   >
                     {b.name}
                   </span>
-                ),
-              )}
+                ));
+              })()}
             </div>
           </div>
         </div>
@@ -309,11 +306,19 @@ function AnnouncementPanel() {
           style={{ backgroundColor: announcement.background, color: announcement.textColor }}
         >
           <div className="marquee-track whitespace-nowrap">
-            {[...announcement.messages, ...announcement.messages].map((m, i) => (
-              <span key={`${m}-${i}`} className="px-6">
-                {m} •
-              </span>
-            ))}
+            {(() => {
+              const activeMsgs = announcement.messages.filter((m) => m.trim().length > 0);
+              if (activeMsgs.length === 0) return null;
+              let singleBlock = [...activeMsgs];
+              while (singleBlock.length < 16) {
+                singleBlock = [...singleBlock, ...activeMsgs];
+              }
+              return [...singleBlock, ...singleBlock].map((m, i) => (
+                <span key={`${m}-${i}`} className="px-6 flex-shrink-0">
+                  {m} •
+                </span>
+              ));
+            })()}
           </div>
         </div>
       </div>
@@ -360,6 +365,8 @@ function HeroPanel() {
             label="Slide image"
             value={slide.image}
             onChange={(img) => updateHeroSlide(slide.id, { image: img ?? slide.image })}
+            hint="1440×720 px • Max 300 KB • JPG/WebP landscape recommended"
+            aspectHint="16:9 landscape"
           />
 
           <p className="text-xs text-ink-muted">
@@ -454,11 +461,15 @@ function BannerPanel() {
                 label="Category Icon / Avatar (Circle shown on Homepage)"
                 value={c.image || null}
                 onChange={(img) => saveCategory({ ...c, image: img })}
+                hint="400×400 px square • Max 100 KB • JPG/WebP"
+                aspectHint="1:1 square"
               />
               <ImageUpload
                 label="Category Banner Image"
                 value={banner.image || null}
                 onChange={(img) => patch({ image: img ?? "" })}
+                hint="1200×600 px • Max 250 KB • JPG/WebP wide"
+                aspectHint="2:1 wide"
               />
             </div>
             <p className="text-xs text-ink-muted">
@@ -1016,6 +1027,8 @@ function SocialReelsPanel() {
                     label="Reel Vertical Thumbnail Image *"
                     value={draft.thumbnail || null}
                     onChange={(img) => setDraft({ ...draft, thumbnail: img ?? "" })}
+                    hint="480×854 px vertical • Max 150 KB • JPG/WebP (9:16)"
+                    aspectHint="9:16 vertical"
                   />
                   <p className="text-[11px] text-ink-muted">
                     This vertical image will be displayed on the homepage scrollable reels track.

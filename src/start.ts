@@ -18,15 +18,15 @@ const errorMiddleware = createMiddleware().server(async ({ next }) => {
 });
 
 const securityHeadersMiddleware = createMiddleware().server(async ({ next }) => {
-  const response = await next();
-  if (response && response.headers) {
-    response.headers.set("X-Frame-Options", "SAMEORIGIN");
-    response.headers.set("X-Content-Type-Options", "nosniff");
-    response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
-    response.headers.set("X-XSS-Protection", "1; mode=block");
-    response.headers.set("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+  const result = await next();
+  if (result && result.response && result.response.headers) {
+    result.response.headers.set("X-Frame-Options", "SAMEORIGIN");
+    result.response.headers.set("X-Content-Type-Options", "nosniff");
+    result.response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
+    result.response.headers.set("X-XSS-Protection", "1; mode=block");
+    result.response.headers.set("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
   }
-  return response;
+  return result;
 });
 
 // Start installs this automatically when src/start.ts is absent; defining the

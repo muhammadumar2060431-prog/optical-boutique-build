@@ -116,22 +116,20 @@ function ProductPage() {
     [product, variantId],
   );
 
-  // Product social reels (matching reels tagged with this product, fallback to active reels)
+  // Product social reels — ONLY show reels tagged to this specific product
+  // All reels are shown on the homepage; here we show only product-specific ones
   const productReels = useMemo(() => {
     if (!product) return [];
-    const active = socialReels.filter((r) => r.enabled);
-    const tagged = active.filter((r) => r.productId === product.id);
-    return tagged.length > 0 ? tagged : active;
+    return socialReels.filter((r) => r.enabled && r.productId === product.id);
   }, [socialReels, product]);
 
-  // Product reviews
+  // Product reviews — ONLY show reviews linked to this specific product
+  // General "site" testimonials (no productId) are only shown on the homepage
   const productReviews = useMemo(() => {
     if (!product) return [];
-    const matched = testimonials.filter(
+    return testimonials.filter(
       (t) => t.productId === product.id || t.productName === product.name,
     );
-    // If no direct product reviews, show site reviews as sample context
-    return matched.length > 0 ? matched : testimonials;
   }, [testimonials, product]);
 
   const sortedReviews = useMemo(() => {
@@ -187,9 +185,16 @@ function ProductPage() {
     ...(product.subImages || []),
     ...product.variants.map((v) => v.image).filter(Boolean),
   ];
-  const gallery = Array.from(new Set(allImages.filter(Boolean)));
+  const gallery = Array.from(
+    new Set(
+      allImages.filter((img): img is string => typeof img === "string" && img.trim().length > 0),
+    ),
+  );
 
-  const mainImage = activeImage ?? variant?.image ?? product.image;
+  const mainImage =
+    (activeImage && activeImage.trim().length > 0 ? activeImage : null) ??
+    (variant?.image && variant.image.trim().length > 0 ? variant.image : null) ??
+    (product.image && product.image.trim().length > 0 ? product.image : "/brand-logo.png");
   const currentPrice = variant?.price ?? product.salePrice ?? product.price;
   const isDiscounted = !!product.salePrice && !variant?.price;
   const stock = variant ? variant.stock : productStock(product);
@@ -519,119 +524,40 @@ function ProductPage() {
           </div>
         </div>
 
-        {/* ── Image 2 Style Tabs: Description / Additional Information / Review ── */}
+        {/* ── Customer Reviews Section ── */}
         <div className="mt-16 sm:mt-24 border-t border-stone/60 pt-10">
-          <Tabs defaultValue="review" className="w-full">
-            <TabsList className="w-full justify-center border-b border-stone/40 bg-transparent h-auto p-0 gap-8 sm:gap-12">
-              <TabsTrigger
-                value="description"
-                className="rounded-none border-b-2 border-transparent px-2 py-3 text-base sm:text-lg font-medium text-ink-muted data-[state=active]:border-gold data-[state=active]:text-foreground bg-transparent shadow-none"
-              >
-                Description
-              </TabsTrigger>
-              <TabsTrigger
-                value="additional"
-                className="rounded-none border-b-2 border-transparent px-2 py-3 text-base sm:text-lg font-medium text-ink-muted data-[state=active]:border-gold data-[state=active]:text-foreground bg-transparent shadow-none"
-              >
-                Additional Information
-              </TabsTrigger>
-              <TabsTrigger
-                value="review"
-                className="rounded-none border-b-2 border-transparent px-2 py-3 text-base sm:text-lg font-medium text-ink-muted data-[state=active]:border-gold data-[state=active]:text-foreground bg-transparent shadow-none"
-              >
-                Review ({totalReviewsCount})
-              </TabsTrigger>
-            </TabsList>
-
-            {/* Description Tab Content */}
-            <TabsContent
-              value="description"
-              className="py-8 max-w-3xl mx-auto space-y-4 leading-relaxed text-ink-muted text-base"
-            >
-              <p>{product.description}</p>
-              <p>
-                {product.details?.material ||
-                  "Handcrafted with precision optical materials designed for structural integrity and high optical clarity."}
-              </p>
-            </TabsContent>
-
-            {/* Additional Information Tab Content */}
-            <TabsContent value="additional" className="py-8 max-w-3xl mx-auto space-y-4">
-              <div className="rounded-xl border border-stone bg-card divide-y divide-stone text-sm">
-                {product.details?.frameMaterial && (
-                  <div className="grid grid-cols-2 p-3.5">
-                    <span className="font-semibold text-ink-muted">Frame Material</span>
-                    <span className="text-foreground font-medium">
-                      {product.details.frameMaterial}
-                    </span>
-                  </div>
-                )}
-                {product.details?.lensMaterial && (
-                  <div className="grid grid-cols-2 p-3.5">
-                    <span className="font-semibold text-ink-muted">Lens Material</span>
-                    <span className="text-foreground font-medium">
-                      {product.details.lensMaterial}
-                    </span>
-                  </div>
-                )}
-                {product.details?.uvProtection && (
-                  <div className="grid grid-cols-2 p-3.5">
-                    <span className="font-semibold text-ink-muted">UV Protection</span>
-                    <span className="text-gold font-semibold">{product.details.uvProtection}</span>
-                  </div>
-                )}
-                {product.details?.warranty && (
-                  <div className="grid grid-cols-2 p-3.5">
-                    <span className="font-semibold text-ink-muted">Warranty</span>
-                    <span className="text-foreground font-medium flex items-center gap-1.5">
-                      <ShieldCheck className="h-4 w-4 text-gold" />
-                      {product.details.warranty}
-                    </span>
-                  </div>
-                )}
-                {product.details?.care && (
-                  <div className="grid grid-cols-2 p-3.5">
-                    <span className="font-semibold text-ink-muted">Care Instructions</span>
-                    <span className="text-foreground">{product.details.care}</span>
-                  </div>
-                )}
-              </div>
-            </TabsContent>
-
-            {/* ── Review Tab Content (Image 2 Design) ── */}
-            <TabsContent value="review" className="py-8 space-y-12">
-              {/* 1. Overall Rating Breakdown Box (Matching Image 2 layout) */}
-              <div className="grid gap-8 md:grid-cols-[280px_1fr] items-center rounded-2xl border border-stone-400 bg-[#666666] text-white p-6 sm:p-8">
-                {/* Big Score Box */}
-                <div className="flex flex-col items-center justify-center border-b border-stone-400/60 pb-6 md:border-b-0 md:border-r md:pr-8 md:pb-0 text-center">
-                  <div className="font-display text-5xl sm:text-6xl font-bold text-white">
-                    {avgRating}{" "}
-                    <span className="text-lg font-sans text-stone-200 font-normal">out of 5</span>
-                  </div>
-                  <div className="flex text-amber-400 my-2">
-                    {Array.from({ length: 5 }).map((_, i) => (
-                      <Star
-                        key={i}
-                        className={cn(
-                          "h-5 w-5",
-                          i < Math.round(avgRating)
-                            ? "fill-amber-400 text-amber-400"
-                            : "text-stone-400",
-                        )}
-                      />
-                    ))}
-                  </div>
-                  <p className="text-xs text-stone-200">({totalReviewsCount} Verified Reviews)</p>
-
-                  <Button
-                    type="button"
-                    onClick={() => setReviewFormOpen((prev) => !prev)}
-                    className="mt-4 rounded-full min-h-10 px-5 text-xs font-bold bg-white text-stone-900 hover:bg-stone-100 shadow-md border-0"
-                  >
-                    <Plus className="mr-1.5 h-4 w-4 text-stone-900" />{" "}
-                    {reviewFormOpen ? "Close Review Form" : "Write a Review"}
-                  </Button>
+            {/* 1. Overall Rating Breakdown Box (Matching Image 2 layout) */}
+            <div className="grid gap-8 md:grid-cols-[280px_1fr] items-center rounded-2xl border border-stone-400 bg-[#666666] text-white p-6 sm:p-8">
+              {/* Big Score Box */}
+              <div className="flex flex-col items-center justify-center border-b border-stone-400/60 pb-6 md:border-b-0 md:border-r md:pr-8 md:pb-0 text-center">
+                <div className="font-display text-5xl sm:text-6xl font-bold text-white">
+                  {avgRating}{" "}
+                  <span className="text-lg font-sans text-stone-200 font-normal">out of 5</span>
                 </div>
+                <div className="flex text-amber-400 my-2">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <Star
+                      key={i}
+                      className={cn(
+                        "h-5 w-5",
+                        i < Math.round(avgRating)
+                          ? "fill-amber-400 text-amber-400"
+                          : "text-stone-400",
+                      )}
+                    />
+                  ))}
+                </div>
+                <p className="text-xs text-stone-200">({totalReviewsCount} Verified Reviews)</p>
+
+                <Button
+                  type="button"
+                  onClick={() => setReviewFormOpen((prev) => !prev)}
+                  className="mt-4 rounded-full min-h-10 px-5 text-xs font-bold bg-white text-stone-900 hover:bg-stone-100 shadow-md border-0"
+                >
+                  <Plus className="mr-1.5 h-4 w-4 text-stone-900" />{" "}
+                  {reviewFormOpen ? "Close Review Form" : "Write a Review"}
+                </Button>
+              </div>
 
                 {/* 5-Star to 1-Star Progress Bars */}
                 <div className="space-y-2.5">
@@ -886,97 +812,97 @@ function ProductPage() {
                   </div>
                 )}
               </div>
-            </TabsContent>
-          </Tabs>
         </div>
 
-        {/* ── 1. Product Social Proof Video Reels Section (Matching Image 2) ── */}
-        <section className="mt-20 border-t border-stone/60 pt-14">
-          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
-            <div>
-              <p className="eyebrow text-gold font-bold tracking-[0.2em] uppercase text-xs sm:text-sm flex items-center gap-2">
-                <Sparkles className="h-3.5 w-3.5" />
-                <span>VIDEO REELS & CREATOR REVIEWS</span>
-              </p>
-              <h2 className="mt-1.5 font-display text-3xl sm:text-4xl text-foreground font-semibold">
-                Seen on Creators & Real Wearers
-              </h2>
-              <p className="text-xs sm:text-sm text-ink-muted mt-1">
-                Watch real unboxings, style breakdowns, and optical fitting reviews for{" "}
-                {product.name}.
-              </p>
+        {/* ── 1. Product Social Proof Video Reels Section — only shown when reels are tagged ── */}
+        {productReels.length > 0 && (
+          <section className="mt-20 border-t border-stone/60 pt-14">
+            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
+              <div>
+                <p className="eyebrow text-gold font-bold tracking-[0.2em] uppercase text-xs sm:text-sm flex items-center gap-2">
+                  <Sparkles className="h-3.5 w-3.5" />
+                  <span>VIDEO REELS &amp; CREATOR REVIEWS</span>
+                </p>
+                <h2 className="mt-1.5 font-display text-3xl sm:text-4xl text-foreground font-semibold">
+                  Seen on Creators &amp; Real Wearers
+                </h2>
+                <p className="text-xs sm:text-sm text-ink-muted mt-1">
+                  Watch real unboxings, style breakdowns, and optical fitting reviews for{" "}
+                  {product.name}.
+                </p>
+              </div>
             </div>
-          </div>
 
-          {/* Video Cards Grid / Carousel */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 sm:gap-6">
-            {productReels.map((reel, idx) => (
-              <div
-                key={reel.id}
-                onClick={() => setSelectedVideoUrl(reel.videoUrl)}
-                className="group relative aspect-[9/16] rounded-2xl overflow-hidden cursor-pointer border border-stone/80 bg-jet shadow-lg transition-all duration-300 hover:-translate-y-1.5 hover:shadow-2xl hover:border-gold/60"
-              >
-                {/* Thumbnail Image */}
-                <img
-                  src={reel.thumbnail}
-                  alt={reel.title}
-                  loading="lazy"
-                  className="w-full h-full object-cover object-center transition-transform duration-700 group-hover:scale-105"
-                />
+            {/* Video Cards Grid / Carousel */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 sm:gap-6">
+              {productReels.map((reel, idx) => (
+                <div
+                  key={reel.id}
+                  onClick={() => setSelectedVideoUrl(reel.videoUrl)}
+                  className="group relative aspect-[9/16] rounded-2xl overflow-hidden cursor-pointer border border-stone/80 bg-jet shadow-lg transition-all duration-300 hover:-translate-y-1.5 hover:shadow-2xl hover:border-gold/60"
+                >
+                  {/* Thumbnail Image */}
+                  <img
+                    src={reel.thumbnail}
+                    alt={reel.title}
+                    loading="lazy"
+                    className="w-full h-full object-cover object-center transition-transform duration-700 group-hover:scale-105"
+                  />
 
-                {/* Dark Gradient Overlay */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-black/40 group-hover:from-black/95 transition-colors" />
+                  {/* Dark Gradient Overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-black/40 group-hover:from-black/95 transition-colors" />
 
-                {/* Platform Tag & Tagged Badge (Image 2 style) */}
-                <div className="absolute top-3 left-3 right-3 flex items-center justify-between z-10">
-                  <span
-                    className={cn(
-                      "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white shadow-sm",
-                      reel.platform === "instagram" &&
-                        "bg-gradient-to-r from-[#833ab4] via-[#fd1d1d] to-[#fcb045]",
-                      reel.platform === "tiktok" && "bg-black/90 border border-white/20",
-                      reel.platform === "youtube" && "bg-[#ff0000]",
-                      reel.platform === "facebook" && "bg-[#1877f2]",
-                      !["instagram", "tiktok", "youtube", "facebook"].includes(reel.platform) &&
-                        "bg-black/70 border border-white/20",
+                  {/* Platform Tag & Tagged Badge (Image 2 style) */}
+                  <div className="absolute top-3 left-3 right-3 flex items-center justify-between z-10">
+                    <span
+                      className={cn(
+                        "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white shadow-sm",
+                        reel.platform === "instagram" &&
+                          "bg-gradient-to-r from-[#833ab4] via-[#fd1d1d] to-[#fcb045]",
+                        reel.platform === "tiktok" && "bg-black/90 border border-white/20",
+                        reel.platform === "youtube" && "bg-[#ff0000]",
+                        reel.platform === "facebook" && "bg-[#1877f2]",
+                        !["instagram", "tiktok", "youtube", "facebook"].includes(reel.platform) &&
+                          "bg-black/70 border border-white/20",
+                      )}
+                    >
+                      {reel.platform === "instagram"
+                        ? "Insta"
+                        : reel.platform === "tiktok"
+                          ? "TikTok"
+                          : reel.platform === "youtube"
+                            ? "Shorts"
+                            : reel.platform}
+                    </span>
+                    <span className="flex items-center gap-1 text-[10px] bg-black/60 backdrop-blur-md text-cream/90 px-2 py-0.5 rounded-full border border-white/10 font-medium">
+                      <ShoppingBag className="h-2.5 w-2.5 text-gold" />
+                      <span>Tagged</span>
+                    </span>
+                  </div>
+
+                  {/* Center Play Button (Matching Image 2) */}
+                  <div className="absolute inset-0 flex items-center justify-center z-10">
+                    <div className="h-12 w-12 sm:h-14 sm:w-14 rounded-full border-2 border-white/80 bg-black/40 backdrop-blur-sm flex items-center justify-center text-white transition-all duration-300 group-hover:scale-110 group-hover:bg-gold group-hover:border-gold group-hover:text-jet shadow-xl">
+                      <Play className="h-5 w-5 sm:h-6 sm:w-6 fill-current ml-0.5" />
+                    </div>
+                  </div>
+
+                  {/* Bottom Details */}
+                  <div className="absolute inset-x-0 bottom-0 p-3.5 space-y-1 z-10">
+                    {reel.creatorHandle && (
+                      <p className="text-[11px] font-semibold text-gold truncate">
+                        {reel.creatorHandle}
+                      </p>
                     )}
-                  >
-                    {reel.platform === "instagram"
-                      ? "Insta"
-                      : reel.platform === "tiktok"
-                        ? "TikTok"
-                        : reel.platform === "youtube"
-                          ? "Shorts"
-                          : reel.platform}
-                  </span>
-                  <span className="flex items-center gap-1 text-[10px] bg-black/60 backdrop-blur-md text-cream/90 px-2 py-0.5 rounded-full border border-white/10 font-medium">
-                    <ShoppingBag className="h-2.5 w-2.5 text-gold" />
-                    <span>Tagged</span>
-                  </span>
-                </div>
-
-                {/* Center Play Button (Matching Image 2) */}
-                <div className="absolute inset-0 flex items-center justify-center z-10">
-                  <div className="h-12 w-12 sm:h-14 sm:w-14 rounded-full border-2 border-white/80 bg-black/40 backdrop-blur-sm flex items-center justify-center text-white transition-all duration-300 group-hover:scale-110 group-hover:bg-gold group-hover:border-gold group-hover:text-jet shadow-xl">
-                    <Play className="h-5 w-5 sm:h-6 sm:w-6 fill-current ml-0.5" />
+                    <p className="text-xs font-semibold text-white line-clamp-2 leading-snug drop-shadow-sm">
+                      {reel.title}
+                    </p>
                   </div>
                 </div>
-
-                {/* Bottom Details */}
-                <div className="absolute inset-x-0 bottom-0 p-3.5 space-y-1 z-10">
-                  {reel.creatorHandle && (
-                    <p className="text-[11px] font-semibold text-gold truncate">
-                      {reel.creatorHandle}
-                    </p>
-                  )}
-                  <p className="text-xs font-semibold text-white line-clamp-2 leading-snug drop-shadow-sm">
-                    {reel.title}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* ── 2. Product Verified Testimonial Cards Section (Matching Image 3) ── */}
         <section className="mt-16 sm:mt-20 border-t border-stone/60 pt-14">

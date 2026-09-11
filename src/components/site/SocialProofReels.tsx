@@ -62,8 +62,12 @@ export function SocialProofReels() {
 
   if (activeReels.length === 0) return null;
 
-  // Duplicate reels 4 times for seamless infinite loop (matching customer reviews pattern)
-  const items = [...activeReels, ...activeReels, ...activeReels, ...activeReels];
+  // Build a single block with enough items to span wide viewports
+  let singleBlock = [...activeReels];
+  while (singleBlock.length < 10) {
+    singleBlock = [...singleBlock, ...activeReels];
+  }
+  const items = [...singleBlock, ...singleBlock];
 
   const taggedProduct = selectedReel?.productId
     ? products.find((p) => p.id === selectedReel.productId)

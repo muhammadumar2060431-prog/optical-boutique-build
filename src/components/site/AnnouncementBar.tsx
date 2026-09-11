@@ -6,7 +6,13 @@ export function AnnouncementBar() {
 
   const items = announcement.messages.filter((m) => typeof m === "string" && m.trim().length > 0);
   if (!items.length) return null;
-  const sequence = [...items, ...items, ...items, ...items];
+
+  // Build a single block with enough items to span wide viewports
+  let singleBlock: string[] = [];
+  while (singleBlock.length < 16) {
+    singleBlock = [...singleBlock, ...items];
+  }
+  const sequence = [...singleBlock, ...singleBlock];
 
   return (
     <div

@@ -124,14 +124,19 @@ CREATE TABLE IF NOT EXISTS public.social_reels (
 -- 10. Testimonials
 CREATE TABLE IF NOT EXISTS public.testimonials (
   id TEXT PRIMARY KEY,
-  author TEXT NOT NULL,
-  role TEXT DEFAULT '',
-  text TEXT NOT NULL,
+  name TEXT NOT NULL DEFAULT '',
+  review TEXT NOT NULL DEFAULT '',
   rating INTEGER DEFAULT 5,
   avatar TEXT,
   verified BOOLEAN DEFAULT true,
   enabled BOOLEAN DEFAULT true,
-  sort_order INTEGER DEFAULT 0
+  sort_order INTEGER DEFAULT 0,
+  -- Product association fields for per-product filtering
+  email TEXT,
+  product_id TEXT,
+  product_name TEXT,
+  title TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- 11. FAQs

@@ -31,8 +31,13 @@ export function mapStoreProductToDb(product: Product): any {
     category_id: product.categoryId || null,
     collection_ids: product.collectionId ? [product.collectionId] : [],
     images: images.length > 0 ? images : ["/placeholder.svg"],
+    hover_image: product.hoverImage || null,
+    new_arrival_image: (product as any).newArrivalImage || null,
+    is_new_arrival: !!(product as any).isNewArrival,
+    is_bestseller: !!(product as any).isBestseller,
     description: product.description || "",
     frame_fit: product.details?.material || product.details?.frameMaterial || null,
+    details: product.details || null,
     variants: Array.isArray(product.variants) ? product.variants : [],
     stock: Math.max(0, Math.round(product.stock) || 0),
     enabled: product.status !== "Draft",
@@ -48,6 +53,13 @@ export function mapDbProductToStore(raw: any): Product {
       : raw.image
         ? [raw.image]
         : [];
+
+  // Primary image is images[0]; hover may be stored separately in hover_image column
+  const primaryImage = images[0] || "/placeholder.svg";
+  const hoverFromDb = raw.hover_image || null;
+  // subImages = all images after the first (excluding the dedicated hover_image if same)
+  const subImages = images.slice(1).filter((img: string) => img !== hoverFromDb);
+
   return {
     id: raw.id,
     name: raw.name || "Product",
@@ -57,9 +69,9 @@ export function mapDbProductToStore(raw: any): Product {
     categoryId: raw.category_id || raw.categoryId || "cat-glasses",
     collectionId:
       (Array.isArray(raw.collection_ids) && raw.collection_ids[0]) || raw.collectionId || null,
-    image: images[0] || "/placeholder.svg",
-    hoverImage: images[1] || null,
-    subImages: images.slice(1) || [],
+    image: primaryImage,
+    hoverImage: hoverFromDb || (images[1] || null),
+    subImages,
     description: raw.description || "",
     stock: Number(raw.stock) || 0,
     variants: Array.isArray(raw.variants) ? raw.variants : [],
@@ -68,10 +80,14 @@ export function mapDbProductToStore(raw: any): Product {
       lensInfo: "UV400 Polarized",
       care: "Clean with microfiber cloth provided",
     },
-    featured: Boolean(raw.featured),
+    // Extended fields stored in DB
+    ...(raw.new_arrival_image != null ? { newArrivalImage: raw.new_arrival_image } : {}),
+    ...(raw.is_new_arrival != null ? { isNewArrival: Boolean(raw.is_new_arrival) } : {}),
+    ...(raw.is_bestseller != null ? { isBestseller: Boolean(raw.is_bestseller) } : {}),
+    featured: Boolean(raw.featured || raw.is_bestseller),
     status: raw.enabled === false ? "Draft" : raw.status || "Published",
     createdAt: raw.created_at || raw.createdAt || new Date().toISOString(),
-  };
+  } as Product;
 }
 
 export function mapStoreCollectionToDb(collection: Collection): any {
@@ -101,22 +117,30 @@ export function mapDbCollectionToStore(raw: any): Collection {
 export function mapStoreHeroSlideToDb(slide: HeroSlide): any {
   return {
     id: slide.id,
+    // DB columns: headline, subtext (matching schema)
+    headline: slide.headline || "",
+    subtext: slide.subtext || "",
+    // Also write legacy column names as fallback
     title: slide.headline || "",
     subtitle: slide.subtext || "",
     image: slide.image || "",
+    cta_text: slide.ctaText || "",
+    cta_link: slide.ctaLink || "",
     button_text: slide.ctaText || "",
     link: slide.ctaLink || "",
+    eyebrow: slide.eyebrow || "",
+    enabled: slide.enabled ?? true,
   };
 }
 
 export function mapDbHeroSlideToStore(raw: any): HeroSlide {
   return {
     id: raw.id,
-    headline: raw.title || raw.headline || "",
-    subtext: raw.subtitle || raw.subtext || "",
+    headline: raw.headline || raw.title || "",
+    subtext: raw.subtext || raw.subtitle || "",
     image: raw.image || "",
-    ctaText: raw.button_text || raw.ctaText || "",
-    ctaLink: raw.link || raw.ctaLink || "",
+    ctaText: raw.cta_text || raw.button_text || raw.ctaText || "",
+    ctaLink: raw.cta_link || raw.link || raw.ctaLink || "",
     eyebrow: raw.eyebrow || "",
     enabled: raw.enabled ?? true,
   };
@@ -145,6 +169,13 @@ export function mapStoreSocialReelToDb(reel: SocialReel): any {
     title: reel.title || "Reel",
     video_url: reel.videoUrl || "",
     platform: reel.platform || "instagram",
+    // All fields needed for product page filtering and display
+    thumbnail: reel.thumbnail || "",
+    creator_name: reel.creatorName || "",
+    creator_handle: reel.creatorHandle || "",
+    duration: reel.duration || "00:30",
+    product_id: reel.productId || null,
+    enabled: reel.enabled ?? true,
   };
 }
 
@@ -155,10 +186,11 @@ export function mapDbSocialReelToStore(raw: any): SocialReel {
     videoUrl: raw.video_url || raw.videoUrl || "",
     platform: raw.platform || "instagram",
     thumbnail: raw.thumbnail || "",
-    creatorName: raw.creatorName || "",
-    creatorHandle: raw.creatorHandle || "",
+    creatorName: raw.creator_name || raw.creatorName || "",
+    creatorHandle: raw.creator_handle || raw.creatorHandle || "",
     duration: raw.duration || "00:30",
-    productId: raw.productId || null,
+    // Support both snake_case (from DB) and camelCase (from seed/local)
+    productId: raw.product_id || raw.productId || null,
     enabled: raw.enabled ?? true,
   };
 }
@@ -172,6 +204,12 @@ export function mapStoreTestimonialToDb(t: Testimonial): any {
     rating: t.rating || 5,
     avatar: img,
     verified: t.verified ?? true,
+    // Product association fields — saved so product pages filter correctly
+    email: t.email || null,
+    product_id: t.productId || null,
+    product_name: t.productName || null,
+    title: t.title || null,
+    created_at: t.createdAt || new Date().toISOString(),
   };
 }
 
@@ -179,15 +217,18 @@ export function mapDbTestimonialToStore(raw: any): Testimonial {
   const img = raw.review_image || raw.reviewImage || raw.avatar || raw.photo || null;
   return {
     id: raw.id,
-    name: raw.name,
-    quote: raw.review || raw.quote || "",
+    // Support both 'name' and legacy 'author' column names
+    name: raw.name || raw.author || "Customer",
+    // Support both 'review'/'text' and 'quote' column names
+    quote: raw.review || raw.text || raw.quote || "",
     rating: raw.rating || 5,
     photo: img,
     reviewImage: img,
     verified: raw.verified ?? true,
     email: raw.email || null,
-    productId: raw.productId || null,
-    productName: raw.productName || null,
+    // Support both snake_case (from DB) and camelCase (from seed)
+    productId: raw.product_id || raw.productId || null,
+    productName: raw.product_name || raw.productName || null,
     title: raw.title || null,
     createdAt: raw.created_at || raw.createdAt || new Date().toISOString(),
   };
@@ -279,39 +320,47 @@ export async function fetchInitialSupabaseData() {
     const settingsRaw = settingsRes.status === "fulfilled" ? (settingsRes.value.data as any) : null;
     const settings: StoreSettings | null = settingsRaw
       ? {
-          storeName: settingsRaw.store_name || settingsRaw.storeName || "OPTIQUE",
-          whatsapp: settingsRaw.whatsapp || "",
-          phone: settingsRaw.phone || "",
-          email: settingsRaw.email || "",
-          address: settingsRaw.address || "",
-          hours: settingsRaw.hours || "",
-          logo: settingsRaw.logo || null,
-          lowStockThreshold: settingsRaw.low_stock_threshold || settingsRaw.lowStockThreshold || 3,
-          adminEmail: settingsRaw.adminEmail || import.meta.env.VITE_ADMIN_EMAIL || "",
-          adminPassword: settingsRaw.adminPassword || import.meta.env.VITE_ADMIN_PASSWORD || "",
-          aboutHeadline: settingsRaw.aboutHeadline || "",
-          aboutBody: settingsRaw.aboutBody || "",
-        }
+        storeName: settingsRaw.store_name || settingsRaw.storeName || "OPTIQUE",
+        whatsapp: settingsRaw.whatsapp || "",
+        phone: settingsRaw.phone || "",
+        email: settingsRaw.email || "",
+        address: settingsRaw.address || "",
+        hours: settingsRaw.hours || "",
+        logo: settingsRaw.logo || null,
+        lowStockThreshold: settingsRaw.low_stock_threshold || settingsRaw.lowStockThreshold || 3,
+        adminEmail: settingsRaw.adminEmail || import.meta.env.VITE_ADMIN_EMAIL || "",
+        adminPassword: settingsRaw.adminPassword || import.meta.env.VITE_ADMIN_PASSWORD || "",
+        aboutHeadline: settingsRaw.aboutHeadline || "",
+        aboutBody: settingsRaw.aboutBody || "",
+      }
       : null;
 
     const announcementRaw = announcementRes.status === "fulfilled" ? (announcementRes.value.data as any) : null;
     const announcement: AnnouncementSettings | null = announcementRaw
       ? {
-          enabled: announcementRaw.active ?? announcementRaw.enabled ?? true,
-          messages: announcementRaw.text ? [announcementRaw.text] : announcementRaw.messages || ["Complimentary delivery"],
-          background: announcementRaw.background || "#000000",
-          textColor: announcementRaw.textColor || "#ffffff",
-        }
+        enabled: announcementRaw.enabled ?? announcementRaw.active ?? true,
+        // Support both old single-text and new messages-array column
+        messages:
+          Array.isArray(announcementRaw.messages) && announcementRaw.messages.length > 0
+            ? announcementRaw.messages
+            : announcementRaw.text
+              ? [announcementRaw.text]
+              : announcementRaw.message
+                ? [announcementRaw.message]
+                : ["Complimentary delivery"],
+        background: announcementRaw.background || announcementRaw.bg_color || "#000000",
+        textColor: announcementRaw.text_color || announcementRaw.textColor || "#ffffff",
+      }
       : null;
 
     const videoRaw = videoRes.status === "fulfilled" ? (videoRes.value.data as any) : null;
     const video: VideoSettings | null = videoRaw
       ? {
-          lockedChannel: videoRaw.lockedChannel || "",
-          videoUrl: videoRaw.video_url || videoRaw.videoUrl || "",
-          videoId: videoRaw.videoId || null,
-          caption: videoRaw.title || videoRaw.caption || "",
-        }
+        lockedChannel: videoRaw.lockedChannel || videoRaw.locked_channel || "",
+        videoUrl: videoRaw.video_url || videoRaw.url || videoRaw.videoUrl || "",
+        videoId: videoRaw.videoId || videoRaw.video_id || null,
+        caption: videoRaw.caption || videoRaw.title || "",
+      }
       : null;
 
     const heroSlides: HeroSlide[] | null =
@@ -346,38 +395,38 @@ export async function fetchInitialSupabaseData() {
     const orders: Order[] | null =
       ordersRes.status === "fulfilled" && ordersRes.value.data
         ? allOrdersRaw
-            .filter((o) => {
-              // source can be at top-level OR inside items array
-              const src = o.source || o.items?.[0]?.source || "";
-              return src !== "form";
-            })
-            .map((o) => ({
-              id: o.id,
-              reference:
-                o.reference ||
-                o.items?.[0]?.reference ||
-                (o.id ? `OPT-${String(o.id).slice(0, 6).toUpperCase()}` : "OPT-ORDER"),
-              createdAt: o.createdAt || o.created_at || new Date().toISOString(),
-              customerName: o.customerName || o.customer_name || "Customer",
-              contact: o.contact || o.phone || "",
-              productId: o.productId || o.items?.[0]?.productId || null,
-              productName: o.productName || o.items?.[0]?.productName || "Glasses",
-              variantId: o.variantId || o.items?.[0]?.variantId || null,
-              variantLabel: o.variantLabel || o.items?.[0]?.variantLabel || null,
-              message: o.message || o.address || "",
-              // read source from top-level first, then items array, fallback to productName check or cart
-              source: ((o.source ||
-                o.items?.[0]?.source ||
-                ((o.productName || o.items?.[0]?.productName || "")
-                  .toLowerCase()
-                  .includes("whatsapp")
-                  ? "whatsapp"
-                  : "cart")) as OrderSource),
-              status: (o.status
-                ? o.status.charAt(0).toUpperCase() + o.status.slice(1).toLowerCase()
-                : "New") as OrderStatus,
-              stockDeducted: o.stockDeducted ?? true,
-            }))
+          .filter((o) => {
+            // source can be at top-level OR inside items array
+            const src = o.source || o.items?.[0]?.source || "";
+            return src !== "form";
+          })
+          .map((o) => ({
+            id: o.id,
+            reference:
+              o.reference ||
+              o.items?.[0]?.reference ||
+              (o.id ? `OPT-${String(o.id).slice(0, 6).toUpperCase()}` : "OPT-ORDER"),
+            createdAt: o.createdAt || o.created_at || new Date().toISOString(),
+            customerName: o.customerName || o.customer_name || "Customer",
+            contact: o.contact || o.phone || "",
+            productId: o.productId || o.items?.[0]?.productId || null,
+            productName: o.productName || o.items?.[0]?.productName || "Glasses",
+            variantId: o.variantId || o.items?.[0]?.variantId || null,
+            variantLabel: o.variantLabel || o.items?.[0]?.variantLabel || null,
+            message: o.message || o.address || "",
+            // read source from top-level first, then items array, fallback to productName check or cart
+            source: ((o.source ||
+              o.items?.[0]?.source ||
+              ((o.productName || o.items?.[0]?.productName || "")
+                .toLowerCase()
+                .includes("whatsapp")
+                ? "whatsapp"
+                : "cart")) as OrderSource),
+            status: (o.status
+              ? o.status.charAt(0).toUpperCase() + o.status.slice(1).toLowerCase()
+              : "New") as OrderStatus,
+            stockDeducted: o.stockDeducted ?? true,
+          }))
         : null;
 
     // Collect queries from dedicated table AND form-source orders table entries
@@ -776,8 +825,14 @@ export async function dbUpsertAnnouncement(announcement: AnnouncementSettings) {
   try {
     const payload: any = {
       id: "default",
+      // Save both the full messages array and a single-text fallback
+      messages: announcement.messages || [],
       text: announcement.messages?.[0] || "",
+      enabled: announcement.enabled ?? true,
       active: announcement.enabled ?? true,
+      background: announcement.background || "#000000",
+      text_color: announcement.textColor || "#ffffff",
+      textColor: announcement.textColor || "#ffffff",
       updated_at: new Date().toISOString(),
     };
     await supabase.from("announcements").upsert(payload);
@@ -791,8 +846,11 @@ export async function dbUpsertVideo(video: VideoSettings) {
     const payload: any = {
       id: "default",
       video_url: video.videoUrl || "",
+      url: video.videoUrl || "",
+      caption: video.caption || "Crafted With Precision",
       title: video.caption || "Crafted With Precision",
       active: true,
+      enabled: true,
       updated_at: new Date().toISOString(),
     };
     await supabase.from("video_settings").upsert(payload);

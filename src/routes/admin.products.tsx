@@ -534,6 +534,8 @@ function ProductDialog({
                   label="Primary Base Image *"
                   value={value.image || null}
                   onChange={(img) => setForm({ ...value, image: img ?? "" })}
+                  hint="800×800 px square • Max 200 KB • JPG/WebP recommended"
+                  aspectHint="1:1 square"
                 />
 
                 <ImageUpload
@@ -541,18 +543,21 @@ function ProductDialog({
                   optional
                   value={value.hoverImage ?? null}
                   onChange={(img) => setForm({ ...value, hoverImage: img ?? null })}
+                  hint="800×800 px square • Max 200 KB • Same ratio as main image"
+                  aspectHint="1:1 square"
                 />
 
                 <div>
                   <Label className="text-xs uppercase tracking-wider text-ink-muted">
                     Sub-Images / Gallery (Up to 3 optional angles)
                   </Label>
-                  <div className="grid gap-4 sm:grid-cols-3 mt-2">
+                  <div className="grid gap-3 sm:grid-cols-3 mt-2">
                     {[0, 1, 2].map((i) => (
                       <ImageUpload
                         key={i}
                         label={`Angle ${i + 1}`}
                         optional
+                        compact
                         value={value.subImages?.[i] ?? null}
                         onChange={(img) => {
                           const next = [...(value.subImages || [])];
@@ -560,6 +565,8 @@ function ProductDialog({
                           else next.splice(i, 1);
                           setForm({ ...value, subImages: next.filter(Boolean) });
                         }}
+                        hint="800×800 px • PNG/WebP/AVIF (Transparent BG supported)"
+                        aspectHint="1:1 square"
                       />
                     ))}
                   </div>
@@ -716,6 +723,8 @@ function ProductDialog({
                           optional
                           value={v.image || null}
                           onChange={(img) => setVariant({ ...v, image: img ?? "" })}
+                          hint="600×600 px square • Max 120 KB • JPG/WebP"
+                          aspectHint="1:1 square"
                         />
                       </li>
                     ))}
@@ -766,6 +775,8 @@ function ProductDialog({
                           optional
                           value={value.newArrivalImage || null}
                           onChange={(img) => setForm({ ...value, newArrivalImage: img })}
+                          hint="800×800 px • PNG/WebP/AVIF (Background removal transparent image supported)"
+                          aspectHint="1:1 square"
                         />
                       </div>
                     )}
@@ -1029,6 +1040,8 @@ function CategoriesTab() {
                           : null,
                       })
                     }
+                    hint="1200×500 px wide • Max 250 KB • JPG/WebP"
+                    aspectHint="2.4:1 wide"
                   />
 
                   {collectionDraft.banner && (
@@ -1261,6 +1274,8 @@ function CategoriesTab() {
                     label="Category Circular Icon / Avatar Image"
                     value={categoryDraft.image || null}
                     onChange={(img) => setCategoryDraft({ ...categoryDraft, image: img })}
+                    hint="400×400 px square • Max 100 KB • JPG/PNG/WebP"
+                    aspectHint="1:1 square"
                   />
                   <p className="text-[11px] text-ink-muted">
                     This image will appear in the "Shop by Category" circular icons row on the
