@@ -12,6 +12,7 @@ import {
   dbDeleteCollection,
   dbInsertOrder,
   dbUpdateOrderStatus,
+  dbUpdateOrderCourier,
   dbUpsertHeroSlides,
   dbUpsertHeroSlide,
   dbUpsertBrand,
@@ -138,6 +139,12 @@ interface StoreApi extends StoreState {
   /** Customer-facing lookup: every order sharing one reference code. */
   getOrdersByReference: (reference: string) => Order[];
   setOrderStatus: (orderId: string, status: OrderStatus) => void;
+  updateOrderCourier: (
+    orderId: string,
+    courierName: string | null,
+    trackingNumber: string | null,
+    status?: OrderStatus,
+  ) => void;
   addQuery: (data: Omit<ContactQuery, "id" | "createdAt" | "status">) => ContactQuery;
   setQueryStatus: (id: string, status: "New" | "Responded" | "Archived") => void;
   deleteQuery: (id: string) => void;
@@ -258,6 +265,9 @@ function parseOrderRecord(raw: any, existing?: Order): Order {
       ? raw.status.charAt(0).toUpperCase() + raw.status.slice(1).toLowerCase()
       : existing?.status || "New") as OrderStatus,
     stockDeducted: raw?.stockDeducted ?? existing?.stockDeducted ?? true,
+    courierName: raw?.courierName || raw?.courier_name || existing?.courierName || null,
+    trackingNumber: raw?.trackingNumber || raw?.tracking_number || existing?.trackingNumber || null,
+    dispatchedAt: raw?.dispatchedAt || raw?.dispatched_at || existing?.dispatchedAt || null,
   };
 }
 
@@ -695,6 +705,26 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     [applyStockDelta],
   );
 
+  const updateOrderCourier = useCallback<StoreApi["updateOrderCourier"]>(
+    (orderId, courierName, trackingNumber, status = "Dispatched") => {
+      const dispatchedAt = nowIso();
+      setOrders((prev) =>
+        prev.map((o) => {
+          if (o.id !== orderId) return o;
+          return {
+            ...o,
+            status,
+            courierName,
+            trackingNumber,
+            dispatchedAt: o.dispatchedAt || dispatchedAt,
+          };
+        }),
+      );
+      dbUpdateOrderCourier(orderId, courierName, trackingNumber, status, dispatchedAt);
+    },
+    [],
+  );
+
   const addQuery = useCallback<StoreApi["addQuery"]>((data) => {
     const query: ContactQuery = {
       ...data,
@@ -1130,6 +1160,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       addOrder,
       getOrdersByReference,
       setOrderStatus,
+      updateOrderCourier,
       addQuery,
       setQueryStatus,
       deleteQuery,
@@ -1200,6 +1231,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       addOrder,
       getOrdersByReference,
       setOrderStatus,
+      updateOrderCourier,
       addQuery,
       setQueryStatus,
       deleteQuery,

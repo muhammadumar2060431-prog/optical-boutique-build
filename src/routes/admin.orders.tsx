@@ -15,8 +15,10 @@ import {
   Package,
   Phone,
   Receipt,
+  Send,
   ShoppingCart,
   Sparkles,
+  Truck,
   User,
   XCircle,
 } from "lucide-react";
@@ -33,6 +35,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { WhatsAppIcon } from "@/components/site/WhatsAppIcon";
+import { SUPPORTED_COURIERS, getCourierById, getCourierTrackingUrl } from "@/lib/couriers";
 import { useStore } from "@/lib/store";
 import type { Order, OrderStatus } from "@/lib/types";
 
@@ -40,7 +43,7 @@ export const Route = createFileRoute("/admin/orders")({
   component: AdminOrders,
 });
 
-const statuses: OrderStatus[] = ["New", "Contacted", "Completed", "Cancelled"];
+const statuses: OrderStatus[] = ["New", "Contacted", "Dispatched", "Completed", "Cancelled"];
 
 const statusConfig: Record<
   OrderStatus,
@@ -57,6 +60,12 @@ const statusConfig: Record<
     badgeClass: "bg-amber-50 text-amber-700 border-amber-200",
     activeClass: "bg-amber-600 text-white border-amber-600 shadow-sm",
     dotClass: "bg-amber-500",
+  },
+  Dispatched: {
+    label: "Dispatched",
+    badgeClass: "bg-indigo-50 text-indigo-700 border-indigo-200",
+    activeClass: "bg-indigo-600 text-white border-indigo-600 shadow-sm",
+    dotClass: "bg-indigo-500",
   },
   Completed: {
     label: "Sold",
@@ -134,8 +143,10 @@ function OrderDetailsModal({
   storeName: string;
   onStatusChange: (status: OrderStatus) => void;
 }) {
-  const { products } = useStore();
+  const { products, updateOrderCourier } = useStore();
   const [copied, setCopied] = useState(false);
+  const [courierName, setCourierName] = useState(order.courierName || "TCS Express");
+  const [trackingNumber, setTrackingNumber] = useState(order.trackingNumber || "");
   const info = useMemo(() => parseOrderInfo(order), [order]);
 
   const matchedProduct = useMemo(() => {
@@ -175,6 +186,23 @@ function OrderDetailsModal({
     toast.success("Order reference copied to clipboard");
     setTimeout(() => setCopied(false), 2000);
   };
+
+  const handleSaveCourier = (markAsDispatched: boolean) => {
+    if (markAsDispatched && !trackingNumber.trim() && courierName !== "Direct Rider / In-City Delivery") {
+      toast.error("Please enter a tracking number before marking as dispatched.");
+      return;
+    }
+    const nextStatus = markAsDispatched ? "Dispatched" : order.status;
+    updateOrderCourier(order.id, courierName, trackingNumber.trim() || null, nextStatus);
+    toast.success(markAsDispatched ? "Order marked as Dispatched with tracking!" : "Courier details saved!");
+  };
+
+  const trackingPortalUrl = getCourierTrackingUrl(courierName, trackingNumber);
+
+  const dispatchWaMessage = encodeURIComponent(
+    `Assalam-o-Alaikum ${order.customerName}! Aapka ${storeName} order (${order.reference}) dispatch ho chuka hai via ${courierName}.${trackingNumber ? ` Tracking Number: ${trackingNumber}.` : ""}\n\nAap apna parcel yahan track kar sakte hain: ${trackingPortalUrl || `https://optical-boutique-build.lovable.app/order-status?ref=${order.reference}`}\n\nShukriya!`,
+  );
+  const dispatchWaUrl = info.waNumber ? `https://wa.me/${info.waNumber}?text=${dispatchWaMessage}` : null;
 
   const waMessage = encodeURIComponent(
     `Hello ${order.customerName}, this is ${storeName} regarding your order ${order.reference}. Could we confirm your order details?`,
@@ -356,6 +384,100 @@ function OrderDetailsModal({
           )}
         </div>
 
+        {/* Courier & Dispatch Tracking Card */}
+        <div className="rounded-xl border border-indigo-100 bg-indigo-50/40 p-4 shadow-sm space-y-3.5">
+          <div className="flex items-center justify-between border-b border-indigo-100/80 pb-2.5">
+            <div className="flex items-center gap-2 text-indigo-950">
+              <Truck className="h-4 w-4 text-indigo-600 shrink-0" />
+              <h3 className="text-xs font-bold uppercase tracking-wider text-indigo-950">
+                Courier & Dispatch Tracking
+              </h3>
+            </div>
+            {order.dispatchedAt && (
+              <span className="text-[11px] font-medium text-indigo-700 bg-indigo-100 px-2 py-0.5 rounded-full">
+                Dispatched {new Date(order.dispatchedAt).toLocaleDateString()}
+              </span>
+            )}
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-zinc-700">Courier Service</label>
+              <Select value={courierName} onValueChange={setCourierName}>
+                <SelectTrigger className="h-10 bg-white border-zinc-300 text-xs">
+                  <SelectValue placeholder="Select Courier" />
+                </SelectTrigger>
+                <SelectContent>
+                  {SUPPORTED_COURIERS.map((c) => (
+                    <SelectItem key={c.id} value={c.name} className="text-xs">
+                      {c.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-zinc-700">Tracking Number / CN</label>
+              <Input
+                placeholder="e.g. 1234567890"
+                value={trackingNumber}
+                onChange={(e) => setTrackingNumber(e.target.value)}
+                className="h-10 bg-white border-zinc-300 text-xs font-mono"
+              />
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-indigo-100/60">
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => handleSaveCourier(false)}
+                className="h-8 rounded-lg text-xs border-zinc-300 bg-white hover:bg-zinc-50"
+              >
+                Save Details Only
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                onClick={() => handleSaveCourier(true)}
+                className="h-8 rounded-lg text-xs bg-indigo-600 hover:bg-indigo-700 text-white font-bold"
+              >
+                <Truck className="mr-1.5 h-3.5 w-3.5" />
+                Save & Mark Dispatched
+              </Button>
+            </div>
+
+            {/* Quick Actions if tracking exists */}
+            <div className="flex items-center gap-2">
+              {trackingPortalUrl && (
+                <a
+                  href={trackingPortalUrl}
+                  target="_blank"
+                  rel="noreferrer noopener"
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-indigo-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-indigo-700 hover:bg-indigo-50 transition-colors"
+                >
+                  <ExternalLink className="h-3.5 w-3.5" />
+                  Live Portal
+                </a>
+              )}
+              {dispatchWaUrl && (
+                <a
+                  href={dispatchWaUrl}
+                  target="_blank"
+                  rel="noreferrer noopener"
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-[#25D366] px-3 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-[#20ba5a] transition-all"
+                >
+                  <WhatsAppIcon className="h-3.5 w-3.5 text-white" />
+                  Send WhatsApp Alert
+                </a>
+              )}
+            </div>
+          </div>
+        </div>
+
         {/* Delivery Address Card */}
         {info.address && (
           <div className="rounded-xl border border-blue-100 bg-blue-50/50 p-4 shadow-sm">
@@ -413,7 +535,7 @@ function OrderDetailsModal({
           </span>
         </div>
 
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
           {statuses.map((s) => {
             const isCurrent = order.status === s;
             const cfg = statusConfig[s];
@@ -422,7 +544,7 @@ function OrderDetailsModal({
                 key={s}
                 type="button"
                 onClick={() => onStatusChange(s)}
-                className={`flex items-center justify-center gap-1.5 rounded-xl px-3 py-2.5 text-xs font-bold transition-all duration-200 border ${
+                className={`flex items-center justify-center gap-1.5 rounded-xl px-2.5 py-2.5 text-xs font-bold transition-all duration-200 border ${
                   isCurrent
                     ? cfg.activeClass
                     : "bg-white text-zinc-700 border-zinc-200 hover:bg-zinc-100 hover:border-zinc-300"
@@ -597,19 +719,30 @@ function AdminOrders() {
                     </span>
                   </td>
                   <td className="px-4 py-3">
-                    <Badge
-                      className={`text-xs font-semibold px-2.5 py-0.5 rounded-full border ${
-                        o.status === "New"
-                          ? "bg-blue-50 text-blue-700 border-blue-200"
-                          : o.status === "Contacted"
-                            ? "bg-amber-50 text-amber-700 border-amber-200"
-                            : o.status === "Completed"
-                              ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                              : "bg-rose-50 text-rose-700 border-rose-200"
-                      }`}
-                    >
-                      {o.status === "Completed" ? "Sold" : o.status}
-                    </Badge>
+                    <div className="flex flex-col gap-1 items-start">
+                      <Badge
+                        className={`text-xs font-semibold px-2.5 py-0.5 rounded-full border ${
+                          o.status === "New"
+                            ? "bg-blue-50 text-blue-700 border-blue-200"
+                            : o.status === "Contacted"
+                              ? "bg-amber-50 text-amber-700 border-amber-200"
+                              : o.status === "Dispatched"
+                                ? "bg-indigo-50 text-indigo-700 border-indigo-200"
+                                : o.status === "Completed"
+                                  ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                  : "bg-rose-50 text-rose-700 border-rose-200"
+                        }`}
+                      >
+                        {o.status === "Completed" ? "Sold" : o.status}
+                      </Badge>
+                      {o.courierName && (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-mono text-zinc-600 bg-zinc-100 px-1.5 py-0.5 rounded border border-zinc-200">
+                          <Truck className="h-2.5 w-2.5 text-zinc-500" />
+                          {o.courierName.split(" ")[0]}
+                          {o.trackingNumber ? ` · ${o.trackingNumber}` : ""}
+                        </span>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}

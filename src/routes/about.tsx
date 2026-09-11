@@ -7,16 +7,16 @@ import { VideoSection } from "@/components/site/VideoSection";
 export const Route = createFileRoute("/about")({
   head: () => ({
     meta: [
-      { title: "About OPTIQUE — Optics Made Deliberately Slow" },
+      { title: "About OPTIQUE — Handcrafted Eyewear & Precision Optics" },
       {
         name: "description",
         content:
-          "How OPTIQUE cuts, polishes and fits every frame in-house, and why our opticians measure each eye individually.",
+          "Discover OPTIQUE's heritage: over three decades of optical craftsmanship, precision lens fitting, and custom Italian acetate frames.",
       },
-      { property: "og:title", content: "About OPTIQUE — Optics Made Deliberately Slow" },
+      { property: "og:title", content: "About OPTIQUE — Handcrafted Eyewear & Precision Optics" },
       {
         property: "og:description",
-        content: "A small optical house with a workshop, not a warehouse.",
+        content: "Discover our heritage of optical craftsmanship and precision lens fitting.",
       },
       { property: "og:type", content: "website" },
       { property: "og:url", content: "https://optical-boutique-build.lovable.app/about" },
@@ -48,13 +48,10 @@ function AboutPage() {
                   About Us
                 </p>
                 <h1 className="font-display text-3xl font-bold leading-tight text-zinc-900 sm:text-4xl lg:text-5xl">
-                  We've been in the business of designing and manufacturing high-quality,
-                  beautifully designed frames for over three decades.
+                  Designing and crafting high-precision, beautifully finished frames for over three decades.
                 </h1>
                 <p className="mt-6 text-[15px] leading-relaxed text-zinc-500">
-                  Having our frames all over major optical chain stores all over Europe, Canada,
-                  Israel and South Africa, we encapsulate the ideal blend of experience and
-                  expertise when it comes to perfecting eyewear.
+                  With our frames featured across leading optical boutiques worldwide, we combine traditional optical craftsmanship with modern precision to deliver eyewear of unmatched comfort and enduring style.
                 </p>
 
                 {/* Floating black glasses image inside text column for small screens */}
@@ -105,7 +102,7 @@ function AboutPage() {
           <div className="relative mx-auto max-w-4xl px-6 text-center sm:px-10">
             <p className="mb-6 text-5xl leading-none text-zinc-300 sm:text-7xl">"</p>
             <blockquote className="font-display text-2xl font-bold uppercase leading-snug tracking-wide text-zinc-800 sm:text-3xl lg:text-4xl">
-              High-quality, beautifully designed frames at an affordable pricing
+              High-quality, beautifully designed frames at accessible pricing
             </blockquote>
             <p className="mt-8 text-5xl leading-none text-zinc-300 sm:text-7xl">"</p>
           </div>
@@ -141,15 +138,13 @@ function AboutPage() {
                   Our legacy
                 </p>
                 <h2 className="font-display text-3xl font-bold uppercase leading-tight text-zinc-900 sm:text-4xl lg:text-5xl">
-                  Three decades of expertise in crafting eyewear using the best quality materials
+                  Three decades of expertise in crafting eyewear with premium materials
                 </h2>
                 <p className="mt-6 text-[15px] leading-relaxed text-zinc-500">
-                  We have had the privilege of honing our craft while making frames for every facial
-                  shape and bone structure in the world.
+                  We have dedicated years to perfecting our craft, tailoring frames to harmonize with diverse facial profiles and personal styles.
                 </p>
                 <p className="mt-4 text-[15px] leading-relaxed text-zinc-500">
-                  This includes refining our designs, operating efficient manufacturing lines and
-                  sourcing the best quality materials.
+                  From ergonomic temple contouring to hand-polished acetate and Japanese titanium hardware, every pair reflects our commitment to optical excellence.
                 </p>
                 {/* Tortoise glasses floating */}
                 <div className="mt-10">
@@ -197,13 +192,10 @@ function AboutPage() {
                   Quality eyewear, accessible to everyone.
                 </h2>
                 <p className="mt-6 text-[15px] leading-relaxed text-zinc-500">
-                  Despite regular at-least two pairs of well-fitted glasses, regardless of age or
-                  prescription, for any eyewear that need with exquisite frames at affordable
-                  prices.
+                  Everyone deserves well-fitted, durable eyewear. Regardless of your prescription complexity or style preference, we deliver precision lenses paired with exquisite frames at honest, transparent prices.
                 </p>
                 <p className="mt-4 text-[15px] leading-relaxed text-zinc-500">
-                  We truly believe that high quality eyewear and access to proper eyecare should be
-                  readily available to everyone who needs them.
+                  We believe that premium craftsmanship and clear, comfortable vision should be accessible to all.
                 </p>
               </div>
             </Reveal>
@@ -230,7 +222,7 @@ function AboutPage() {
         </Reveal>
       </section>
 
-      {/* ── VIDEO SECTION (unchanged) ── */}
+      {/* ── VIDEO SECTION ── */}
       <VideoSection heading="Inside our workshop" />
     </SiteLayout>
   );

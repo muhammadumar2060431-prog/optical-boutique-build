@@ -513,13 +513,20 @@ function ProductPage() {
                   </Button>
                 </>
               )}
-              <Link
-                to="/contact"
-                search={{ product: product.name }}
-                className="min-h-11 border-b border-stone pb-1 text-xs tracking-[0.18em] uppercase text-ink transition-colors hover:border-gold hover:text-gold"
+              <button
+                type="button"
+                onClick={() =>
+                  openWhatsAppModal({
+                    productName: product.name,
+                    productId: product.id,
+                    variantId: variant?.id ?? null,
+                    variantLabel: variant?.label ?? null,
+                  })
+                }
+                className="min-h-11 border-b border-stone pb-1 text-xs tracking-[0.18em] uppercase text-ink transition-colors hover:border-gold hover:text-gold cursor-pointer bg-transparent border-0"
               >
                 Enquire via form
-              </Link>
+              </button>
             </div>
           </div>
         </div>

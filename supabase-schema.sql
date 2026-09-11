@@ -81,8 +81,16 @@ CREATE TABLE IF NOT EXISTS public.orders (
   items JSONB NOT NULL DEFAULT '[]',
   total INTEGER NOT NULL DEFAULT 0,
   status TEXT NOT NULL DEFAULT 'New',
+  courier_name TEXT,
+  tracking_number TEXT,
+  dispatched_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Migration for existing tables:
+ALTER TABLE IF EXISTS public.orders ADD COLUMN IF NOT EXISTS courier_name TEXT;
+ALTER TABLE IF EXISTS public.orders ADD COLUMN IF NOT EXISTS tracking_number TEXT;
+ALTER TABLE IF EXISTS public.orders ADD COLUMN IF NOT EXISTS dispatched_at TIMESTAMPTZ;
 
 -- 7. Hero Slides
 CREATE TABLE IF NOT EXISTS public.hero_slides (

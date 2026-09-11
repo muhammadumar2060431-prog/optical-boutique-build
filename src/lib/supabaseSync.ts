@@ -426,6 +426,9 @@ export async function fetchInitialSupabaseData() {
               ? o.status.charAt(0).toUpperCase() + o.status.slice(1).toLowerCase()
               : "New") as OrderStatus,
             stockDeducted: o.stockDeducted ?? true,
+            courierName: o.courier_name || o.courierName || o.items?.[0]?.courierName || null,
+            trackingNumber: o.tracking_number || o.trackingNumber || o.items?.[0]?.trackingNumber || null,
+            dispatchedAt: o.dispatched_at || o.dispatchedAt || null,
           }))
         : null;
 
@@ -668,6 +671,9 @@ export async function dbInsertOrder(order: Order) {
       address: order.message || "N/A",
       city: "N/A",
       source: order.source || "cart",
+      courier_name: order.courierName || null,
+      tracking_number: order.trackingNumber || null,
+      dispatched_at: order.dispatchedAt || null,
       items: [
         {
           reference: order.reference,
@@ -676,6 +682,8 @@ export async function dbInsertOrder(order: Order) {
           variantId: order.variantId,
           variantLabel: order.variantLabel,
           source: order.source || "cart",
+          courierName: order.courierName || null,
+          trackingNumber: order.trackingNumber || null,
         },
       ],
       total: 0,
@@ -688,11 +696,43 @@ export async function dbInsertOrder(order: Order) {
   }
 }
 
-export async function dbUpdateOrderStatus(orderId: string, status: string, stockDeducted: boolean) {
+export async function dbUpdateOrderStatus(
+  orderId: string,
+  status: string,
+  stockDeducted: boolean,
+  extra?: { courierName?: string | null; trackingNumber?: string | null; dispatchedAt?: string | null },
+) {
   try {
-    await supabase.from("orders").update({ status }).eq("id", orderId);
+    const updatePayload: any = { status };
+    if (extra?.courierName !== undefined) updatePayload.courier_name = extra.courierName;
+    if (extra?.trackingNumber !== undefined) updatePayload.tracking_number = extra.trackingNumber;
+    if (extra?.dispatchedAt !== undefined) updatePayload.dispatched_at = extra.dispatchedAt;
+
+    await supabase.from("orders").update(updatePayload).eq("id", orderId);
   } catch (e) {
     console.error("Failed to update order status in Supabase:", e);
+  }
+}
+
+export async function dbUpdateOrderCourier(
+  orderId: string,
+  courierName: string | null,
+  trackingNumber: string | null,
+  status: string = "Dispatched",
+  dispatchedAt: string = new Date().toISOString(),
+) {
+  try {
+    await supabase
+      .from("orders")
+      .update({
+        status,
+        courier_name: courierName,
+        tracking_number: trackingNumber,
+        dispatched_at: dispatchedAt,
+      })
+      .eq("id", orderId);
+  } catch (e) {
+    console.error("Failed to update order courier in Supabase:", e);
   }
 }
 

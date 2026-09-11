@@ -13,16 +13,16 @@ import { VideoSection } from "@/components/site/VideoSection";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "OPTIQUE — Premium Eyeglasses & Contact Lenses" },
+      { title: "OPTIQUE — Designer Eyeglasses, Sunglasses & Contact Lenses" },
       {
         name: "description",
         content:
-          "Hand-finished acetate and titanium frames plus optician-approved contact lenses, fitted in store and delivered nationwide.",
+          "Shop handcrafted acetate & titanium frames, designer sunglasses, and prescription contact lenses. Enjoy free shipping and expert optician support.",
       },
-      { property: "og:title", content: "OPTIQUE — Premium Eyeglasses & Contact Lenses" },
+      { property: "og:title", content: "OPTIQUE — Designer Eyeglasses, Sunglasses & Contact Lenses" },
       {
         property: "og:description",
-        content: "A short, considered range of frames and lenses, fitted by opticians.",
+        content: "Shop handcrafted acetate & titanium frames, designer sunglasses, and prescription contact lenses.",
       },
       { property: "og:type", content: "website" },
       { property: "og:url", content: "https://optical-boutique-build.lovable.app/" },

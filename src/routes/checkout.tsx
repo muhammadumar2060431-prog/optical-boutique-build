@@ -14,16 +14,16 @@ import { saveOrderReceipt } from "@/lib/last-order";
 export const Route = createFileRoute("/checkout")({
   head: () => ({
     meta: [
-      { title: "Checkout — OPTIQUE Eyewear" },
+      { title: "Checkout — OPTIQUE Boutique Eyewear" },
       {
         name: "description",
         content:
-          "Confirm your details and place your OPTIQUE order — our opticians confirm every order personally.",
+          "Complete your eyewear order. Our optical team reviews every prescription and order detail for precision delivery.",
       },
-      { property: "og:title", content: "Checkout — OPTIQUE Eyewear" },
+      { property: "og:title", content: "Checkout — OPTIQUE Boutique Eyewear" },
       {
         property: "og:description",
-        content: "Confirm your details and place your eyewear order.",
+        content: "Confirm your delivery details and place your order.",
       },
       { property: "og:type", content: "website" },
       { property: "og:url", content: "https://optical-boutique-build.lovable.app/checkout" },

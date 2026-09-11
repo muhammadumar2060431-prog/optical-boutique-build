@@ -112,7 +112,7 @@ export function Hero() {
                               href="/about"
                               className="min-h-11 border-b border-cream/40 pb-1 text-xs tracking-[0.18em] uppercase text-cream/80 transition-colors hover:border-gold hover:text-gold-soft"
                             >
-                              Our story
+                              Our Story
                             </a>
                           )}
                         </div>

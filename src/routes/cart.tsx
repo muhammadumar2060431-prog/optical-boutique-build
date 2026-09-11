@@ -9,12 +9,12 @@ import { formatPrice, useStore } from "@/lib/store";
 export const Route = createFileRoute("/cart")({
   head: () => ({
     meta: [
-      { title: "Your bag — OPTIQUE Eyewear" },
+      { title: "Shopping Bag — OPTIQUE Eyewear" },
       {
         name: "description",
-        content: "Review the frames and lenses in your bag before placing your OPTIQUE order.",
+        content: "Review your selected frames, prescription sunglasses, and contact lenses before checkout.",
       },
-      { property: "og:title", content: "Your bag — OPTIQUE Eyewear" },
+      { property: "og:title", content: "Shopping Bag — OPTIQUE Eyewear" },
       {
         property: "og:description",
         content: "Review your selected frames and lenses before checkout.",
@@ -46,19 +46,19 @@ function CartPage() {
     <SiteLayout>
       <div className="mx-auto max-w-5xl px-4 py-12 sm:px-6 sm:py-16">
         <p className="eyebrow text-gold">Your selection</p>
-        <h1 className="mt-2 font-display text-4xl sm:text-5xl">Shopping bag</h1>
+        <h1 className="mt-2 font-display text-4xl sm:text-5xl">Shopping Bag</h1>
 
         {items.length === 0 ? (
           <div className="mt-10 rounded-xl border border-dashed border-stone bg-card px-6 py-20 text-center">
             <ShoppingBag className="mx-auto h-8 w-8 text-ink-muted" />
             <p className="mt-4 text-sm text-ink-muted">
-              Your bag is empty — explore the collection and add a frame or lens to begin.
+              Your shopping bag is empty. Explore our collection to select your ideal frames or lenses.
             </p>
             <Link
               to="/glasses"
               className="mt-6 inline-flex min-h-11 items-center rounded-full bg-gold px-6 text-xs tracking-[0.18em] uppercase text-primary-foreground"
             >
-              Browse glasses
+              Explore Collection
             </Link>
           </div>
         ) : (

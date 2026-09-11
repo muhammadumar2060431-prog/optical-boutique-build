@@ -7,16 +7,16 @@ import { useStore } from "@/lib/store";
 export const Route = createFileRoute("/glasses")({
   head: () => ({
     meta: [
-      { title: "Glasses — Hand-finished Frames | OPTIQUE" },
+      { title: "Designer Eyeglasses & Frames — Handcrafted Optics | OPTIQUE" },
       {
         name: "description",
         content:
-          "Acetate, titanium and rimless eyeglass frames, cut and polished in-house and fitted by registered opticians.",
+          "Explore handcrafted acetate, titanium, and minimalist eyeglass frames. Precision-cut and fitted with premium prescription lenses.",
       },
-      { property: "og:title", content: "Glasses — Hand-finished Frames | OPTIQUE" },
+      { property: "og:title", content: "Designer Eyeglasses & Frames | OPTIQUE" },
       {
         property: "og:description",
-        content: "Browse the OPTIQUE frame collection: acetate, titanium and rimless.",
+        content: "Explore handcrafted acetate, titanium, and minimalist eyeglass frames.",
       },
       { property: "og:type", content: "website" },
       { property: "og:url", content: "https://optical-boutique-build.lovable.app/glasses" },
@@ -36,9 +36,9 @@ function GlassesPage() {
         <CategoryView category={category} />
       ) : (
         <div className="mx-auto max-w-3xl px-4 py-28 text-center">
-          <h1 className="font-display text-3xl">This collection has moved</h1>
+          <h1 className="font-display text-3xl">Collection Unavailable</h1>
           <p className="mt-2 text-sm text-ink-muted">
-            The Glasses category isn't available right now — please check back soon.
+            The Eyeglasses collection is currently updating. Please explore our other collections or check back shortly.
           </p>
         </div>
       )}

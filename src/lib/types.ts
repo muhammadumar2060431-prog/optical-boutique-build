@@ -76,7 +76,7 @@ export interface Category {
 }
 
 export type OrderSource = "whatsapp" | "form" | "cart";
-export type OrderStatus = "New" | "Contacted" | "Completed" | "Cancelled";
+export type OrderStatus = "New" | "Contacted" | "Dispatched" | "Completed" | "Cancelled";
 
 export interface Order {
   id: ID;
@@ -93,6 +93,9 @@ export interface Order {
   source: OrderSource;
   status: OrderStatus;
   stockDeducted: boolean;
+  courierName?: string | null;
+  trackingNumber?: string | null;
+  dispatchedAt?: string | null;
 }
 
 export interface HeroSlide {

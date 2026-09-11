@@ -17,8 +17,7 @@ export function Footer() {
             />
           </div>
           <p className="max-w-sm text-sm leading-relaxed">
-            A small optical house making a short, considered range of frames and lenses — cut,
-            polished and fitted by hand.
+            Bespoke optical boutique curating precision-crafted frames, designer sunglasses, and premium lenses — fitted to perfection.
           </p>
         </div>
 
@@ -79,7 +78,7 @@ export function Footer() {
           <p>
             © {new Date().getFullYear()} {settings.storeName}. All rights reserved.
           </p>
-          <p>Prescriptions dispensed by registered nigah.</p>
+          <p>Prescriptions dispensed and verified by certified optical professionals.</p>
         </div>
       </div>
     </footer>

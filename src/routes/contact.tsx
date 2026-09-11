@@ -4,6 +4,7 @@ import { CheckCircle2, Clock, Mail, MapPin, Phone } from "lucide-react";
 
 import { SiteLayout } from "@/components/site/SiteLayout";
 import { WhatsAppIcon } from "@/components/site/WhatsAppIcon";
+import { useWhatsAppModal } from "@/components/site/WhatsAppModal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,16 +18,16 @@ export const Route = createFileRoute("/contact")({
   }),
   head: () => ({
     meta: [
-      { title: "Contact OPTIQUE — Book a Fitting or Ask an Optician" },
+      { title: "Contact OPTIQUE — Expert Optician Support & Inquiries" },
       {
         name: "description",
         content:
-          "Message us on WhatsApp or send an enquiry. Showroom address, opening hours and direct contact details.",
+          "Connect with OPTIQUE optical specialists via WhatsApp, email, or inquiry form for personalized frame fittings, lens advice, and order assistance.",
       },
-      { property: "og:title", content: "Contact OPTIQUE — Book a Fitting" },
+      { property: "og:title", content: "Contact OPTIQUE — Expert Optician Support & Inquiries" },
       {
         property: "og:description",
-        content: "Reach our opticians on WhatsApp, by phone or through the enquiry form.",
+        content: "Connect with our optical specialists for personalized frame fittings and lens advice.",
       },
       { property: "og:type", content: "website" },
       { property: "og:url", content: "https://optical-boutique-build.lovable.app/contact" },
@@ -45,6 +46,7 @@ interface Errors {
 function ContactPage() {
   const search = useSearch({ from: "/contact" });
   const { settings, addQuery, products } = useStore();
+  const { openWhatsAppModal } = useWhatsAppModal();
   const [name, setName] = useState("");
   const [contact, setContact] = useState("");
   const [productRef, setProductRef] = useState(search.product ?? "");
@@ -166,11 +168,14 @@ function ContactPage() {
           </div>
 
           <aside className="space-y-6">
-            <a
-              href={wa}
-              target="_blank"
-              rel="noreferrer"
-              className="flex items-center gap-4 rounded-xl bg-jet p-6 text-cream transition-transform duration-200 hover:scale-[1.01]"
+            <button
+              type="button"
+              onClick={() =>
+                openWhatsAppModal({
+                  productName: productRef ? `Inquiry: ${productRef}` : "General Contact Inquiry",
+                })
+              }
+              className="flex w-full items-center gap-4 rounded-xl bg-jet p-6 text-cream transition-transform duration-200 hover:scale-[1.01] text-left cursor-pointer border-0"
             >
               <span className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-[#25D366] text-white shadow-md">
                 <WhatsAppIcon className="h-6 w-6 text-white" />
@@ -179,7 +184,7 @@ function ContactPage() {
                 <span className="block font-display text-xl">Chat on WhatsApp</span>
                 <span className="block truncate text-xs text-cream/60">{settings.whatsapp}</span>
               </span>
-            </a>
+            </button>
 
             <div className="space-y-4 rounded-xl border border-stone bg-mist p-6 text-sm">
               <p className="eyebrow text-gold">Showroom</p>

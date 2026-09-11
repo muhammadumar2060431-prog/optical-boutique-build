@@ -7,16 +7,16 @@ import { useStore } from "@/lib/store";
 export const Route = createFileRoute("/lenses")({
   head: () => ({
     meta: [
-      { title: "Contact Lenses — Daily, Toric & Colour | OPTIQUE" },
+      { title: "Precision Contact Lenses — Daily, Monthly & Toric | OPTIQUE" },
       {
         name: "description",
         content:
-          "Breathable daily disposables, toric lenses for astigmatism and natural colour tones — all checked by our opticians.",
+          "Shop premium daily disposables, monthly lenses, toric options for astigmatism, and cosmetic color contacts. Optician-approved for superior comfort.",
       },
-      { property: "og:title", content: "Contact Lenses — Daily, Toric & Colour | OPTIQUE" },
+      { property: "og:title", content: "Precision Contact Lenses | OPTIQUE" },
       {
         property: "og:description",
-        content: "Optician-approved contact lenses with honest fitting advice.",
+        content: "Shop premium daily disposables, toric lenses, and cosmetic color contacts.",
       },
       { property: "og:type", content: "website" },
       { property: "og:url", content: "https://optical-boutique-build.lovable.app/lenses" },
@@ -36,9 +36,9 @@ function LensesPage() {
         <CategoryView category={category} />
       ) : (
         <div className="mx-auto max-w-3xl px-4 py-28 text-center">
-          <h1 className="font-display text-3xl">This collection has moved</h1>
+          <h1 className="font-display text-3xl">Collection Unavailable</h1>
           <p className="mt-2 text-sm text-ink-muted">
-            The Lenses category isn't available right now — please check back soon.
+            The Contact Lenses collection is currently updating. Please explore our other collections or check back shortly.
           </p>
         </div>
       )}
