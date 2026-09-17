@@ -26,6 +26,7 @@ export function ImageUpload({
   label,
   value,
   onChange,
+  onUploadingChange,
   optional = false,
   hint,
   aspectHint,
@@ -36,7 +37,9 @@ export function ImageUpload({
 }: {
   label?: string;
   value: string | null;
-  onChange: (dataUrl: string | null) => void;
+  onChange: (url: string | null) => void;
+  /** Called with true when upload starts, false when done — lets parent disable Save */
+  onUploadingChange?: (uploading: boolean) => void;
   optional?: boolean;
   /** Short tip shown below the uploader e.g. "9:16 vertical recommended" */
   hint?: string;
@@ -67,18 +70,20 @@ export function ImageUpload({
     }
 
     setIsProcessing(true);
+    onUploadingChange?.(true);
 
     const reader = new FileReader();
     reader.onload = () => {
       const rawResult = reader.result;
       if (typeof rawResult !== "string") {
         setIsProcessing(false);
+        onUploadingChange?.(false);
         return;
       }
 
-      // Auto-compress images using canvas while preserving transparency for PNG/WebP/AVIF (background removal)
+      // Auto-compress using canvas, preserve transparency for PNG/WebP/AVIF
       const img = new Image();
-      img.onload = () => {
+      img.onload = async () => {
         try {
           const canvas = document.createElement("canvas");
           let { width, height } = img;
@@ -98,7 +103,7 @@ export function ImageUpload({
             ctx.imageSmoothingQuality = "high";
             ctx.drawImage(img, 0, 0, width, height);
 
-            // Preserve alpha transparency for background removed images (PNG / WebP / AVIF)
+            // Preserve alpha transparency for PNG / WebP / AVIF
             const isTransparentFormat =
               file.type.includes("png") ||
               file.type.includes("webp") ||
@@ -109,34 +114,52 @@ export function ImageUpload({
 
             const outputMime = isTransparentFormat ? "image/webp" : "image/jpeg";
             const compressed = canvas.toDataURL(outputMime, outputQuality);
-            // Instant UI feedback with compressed base64
+
+            // Show preview immediately (base64 for instant feedback)
             onChange(compressed);
 
-            // Upload to Supabase Storage asynchronously and swap to public CDN URL
-            uploadImageToStorage(compressed, "uploads").then((storageUrl) => {
+            // ── CRITICAL: Upload to Supabase Storage and WAIT for URL ──
+            // Do NOT let parent save until this resolves!
+            try {
+              const storageUrl = await uploadImageToStorage(compressed, "uploads");
               if (storageUrl) {
+                // Swap base64 preview with permanent CDN URL
                 onChange(storageUrl);
               }
-            });
+              // If upload fails, keep base64 as fallback (still works visually)
+            } catch {
+              // Storage upload failed — keep base64
+            }
           } else {
-            onChange(rawResult);
+            // Canvas not available — try direct upload
+            try {
+              const storageUrl = await uploadImageToStorage(rawResult, "uploads");
+              onChange(storageUrl ?? rawResult);
+            } catch {
+              onChange(rawResult);
+            }
           }
         } catch {
           onChange(rawResult);
         } finally {
           setIsProcessing(false);
+          onUploadingChange?.(false);
         }
       };
 
       img.onerror = () => {
         onChange(rawResult);
         setIsProcessing(false);
+        onUploadingChange?.(false);
       };
 
       img.src = rawResult;
     };
 
-    reader.onerror = () => setIsProcessing(false);
+    reader.onerror = () => {
+      setIsProcessing(false);
+      onUploadingChange?.(false);
+    };
     reader.readAsDataURL(file);
   };
 
@@ -184,7 +207,7 @@ export function ImageUpload({
           {isProcessing && (
             <div className="absolute inset-0 bg-black/75 flex flex-col items-center justify-center gap-1">
               <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              <span className="text-[8px] text-white font-medium">Saving</span>
+              <span className="text-[8px] text-white font-medium">Uploading…</span>
             </div>
           )}
         </div>
