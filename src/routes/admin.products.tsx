@@ -1,7 +1,9 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import {
+  ArrowDown,
   ArrowLeft,
+  ArrowUp,
   ChevronRight,
   FolderTree,
   Layers,
@@ -103,7 +105,7 @@ function AdminProducts() {
 }
 
 function ProductsTab() {
-  const { products, categories, collections, saveProduct, deleteProduct, productStock } =
+  const { products, categories, collections, saveProduct, deleteProduct, moveProduct, productStock } =
     useStore();
   const [query, setQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
@@ -183,6 +185,7 @@ function ProductsTab() {
         <Button
           className="min-h-11 rounded-full bg-[#666666] text-white hover:bg-[#555555] border-0"
           disabled={categories.length === 0}
+          title={categories.length === 0 ? "You must add a category first" : undefined}
           onClick={() => {
             const catId = categories[0]?.id ?? "";
             const colId = collections.find((c) => c.categoryId === catId)?.id;
@@ -194,9 +197,19 @@ function ProductsTab() {
       </div>
 
       {list.length === 0 ? (
-        <p className="rounded-xl border border-dashed border-[#666666] bg-[#f9f9f9] px-6 py-16 text-center text-sm text-ink-muted">
-          No products found matching the criteria. Add your first piece to see it on the storefront.
-        </p>
+        <div className="rounded-xl border border-dashed border-[#666666] bg-[#f9f9f9] px-6 py-16 text-center">
+          <p className="text-sm font-semibold mb-2">No products found</p>
+          {categories.length === 0 ? (
+            <p className="text-sm text-ink-muted">
+              You must create at least one category before adding products. <br/>
+              Click the <strong>"Categories & Collections"</strong> tab above to create your first category.
+            </p>
+          ) : (
+            <p className="text-sm text-ink-muted">
+              Add your first piece to see it on the storefront.
+            </p>
+          )}
+        </div>
       ) : (
         <div className="overflow-x-auto rounded-xl border border-[#666666] bg-[#f9f9f9] shadow-sm">
           <table className="w-full min-w-[760px] text-sm">
@@ -211,7 +224,7 @@ function ProductsTab() {
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-300 bg-[#f9f9f9]">
-              {list.map((p) => {
+              {list.map((p, i) => {
                 const cat = categories.find((c) => c.id === p.categoryId);
                 const col = collections.find((c) => c.id === p.collectionId);
                 return (
@@ -282,6 +295,24 @@ function ProductsTab() {
                         <Button
                           size="icon"
                           variant="ghost"
+                          aria-label="Move product up"
+                          disabled={i === 0}
+                          onClick={() => moveProduct(p.id, -1)}
+                        >
+                          <ArrowUp className="h-4 w-4" aria-hidden="true" />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          aria-label="Move product down"
+                          disabled={i === list.length - 1}
+                          onClick={() => moveProduct(p.id, 1)}
+                        >
+                          <ArrowDown className="h-4 w-4" aria-hidden="true" />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
                           aria-label="Edit product"
                           onClick={() => setDraft(p)}
                         >
@@ -313,10 +344,10 @@ function ProductsTab() {
       <ProductDialog
         draft={draft}
         onClose={() => setDraft(null)}
-        onSave={(p) => {
-          saveProduct(p);
+        onSave={async (p) => {
+          await saveProduct(p);
           setDraft(null);
-          toast.success("Product saved successfully.");
+          toast.success("Product and angle images saved successfully.");
         }}
       />
     </div>
@@ -330,16 +361,48 @@ function ProductDialog({
 }: {
   draft: Product | null;
   onClose: () => void;
-  onSave: (product: Product) => void;
+  onSave: (product: Product) => Promise<void> | void;
 }) {
   const { categories, collections } = useStore();
   const [form, setForm] = useState<Product | null>(draft);
+  const [isSaving, setIsSaving] = useState(false);
+  const lastDraftIdRef = useRef<string | null>(null);
 
-  if (draft && (!form || form.id !== draft.id || form.name !== draft.name)) {
-    if (!form || form.id !== draft.id) setForm(draft);
-  }
+  // Initialize form ONLY when a new draft product is opened, NEVER on subsequent re-renders
+  useEffect(() => {
+    if (!draft) {
+      setForm(null);
+      lastDraftIdRef.current = null;
+      return;
+    }
+    const currentId = draft.id || `new-${draft.categoryId}-${draft.sku}`;
+    if (lastDraftIdRef.current !== currentId) {
+      lastDraftIdRef.current = currentId;
+      const rawList =
+        Array.isArray(draft.subImages) && draft.subImages.length > 0
+          ? draft.subImages
+          : Array.isArray((draft.details as any)?.subImages) &&
+              (draft.details as any).subImages.length > 0
+            ? (draft.details as any).subImages
+            : Array.isArray((draft as any).images) && (draft as any).images.length > 1
+              ? (draft as any).images.slice(1)
+              : [];
+      const subImages = rawList.filter(
+        (s: any): s is string => typeof s === "string" && s.trim().length > 0,
+      );
 
-  const value = form && draft && form.id === draft.id ? form : draft;
+      setForm({
+        ...draft,
+        subImages,
+        details: {
+          ...(draft.details || {}),
+          subImages,
+        },
+      });
+    }
+  }, [draft]);
+
+  const value = form ?? draft;
 
   const filteredCollections = useMemo(() => {
     if (!value?.categoryId) return [];
@@ -552,23 +615,49 @@ function ProductDialog({
                     Sub-Images / Gallery (Up to 3 optional angles)
                   </Label>
                   <div className="grid gap-3 sm:grid-cols-3 mt-2">
-                    {[0, 1, 2].map((i) => (
-                      <ImageUpload
-                        key={i}
-                        label={`Angle ${i + 1}`}
-                        optional
-                        compact
-                        value={value.subImages?.[i] ?? null}
-                        onChange={(img) => {
-                          const next = [...(value.subImages || [])];
-                          if (img) next[i] = img;
-                          else next.splice(i, 1);
-                          setForm({ ...value, subImages: next.filter(Boolean) });
-                        }}
-                        hint="800×800 px • PNG/WebP/AVIF (Transparent BG supported)"
-                        aspectHint="1:1 square"
-                      />
-                    ))}
+                    {[0, 1, 2].map((i) => {
+                      const angleValue =
+                        value.subImages?.[i] ||
+                        (Array.isArray(value.details?.subImages) ? value.details.subImages[i] : null) ||
+                        null;
+                      return (
+                        <ImageUpload
+                          key={i}
+                          label={`Angle ${i + 1}`}
+                          optional
+                          compact
+                          maxWidth={500}
+                          maxHeight={500}
+                          outputQuality={0.6}
+                          value={angleValue}
+                          onChange={(img) => {
+                            setForm((prev) => {
+                              const current = prev ?? draft;
+                              if (!current) return current;
+                              const baseList = [
+                                ...(Array.isArray(current.subImages) && current.subImages.length > 0
+                                  ? current.subImages
+                                  : Array.isArray(current.details?.subImages)
+                                    ? current.details.subImages
+                                    : []),
+                              ];
+                              while (baseList.length <= i) baseList.push("");
+                              baseList[i] = img || "";
+                              return {
+                                ...current,
+                                subImages: baseList,
+                                details: {
+                                  ...(current.details || {}),
+                                  subImages: baseList,
+                                },
+                              };
+                            });
+                          }}
+                          hint="500×500 px • PNG/WebP/AVIF (Transparent BG supported)"
+                          aspectHint="1:1 square"
+                        />
+                      );
+                    })}
                   </div>
                 </div>
               </div>
@@ -810,7 +899,8 @@ function ProductDialog({
 
               <Button
                 className="min-h-12 w-full rounded-full text-base font-semibold"
-                onClick={() => {
+                disabled={isSaving}
+                onClick={async () => {
                   if (!value.name.trim()) {
                     toast.error("A product name is required.");
                     return;
@@ -819,17 +909,34 @@ function ProductDialog({
                     toast.error("A primary base image is required.");
                     return;
                   }
-                  if (!window.confirm("Aap is product ke changes save karna chahte hain? (Are you sure you want to save this product?)")) {
-                    return;
+                  const cleanSubImages = (
+                    Array.isArray(value.subImages) && value.subImages.length > 0
+                      ? value.subImages
+                      : Array.isArray(value.details?.subImages)
+                        ? value.details.subImages
+                        : []
+                  )
+                    .filter((s): s is string => typeof s === "string" && s.trim().length > 0)
+                    .slice(0, 3);
+
+                  setIsSaving(true);
+                  try {
+                    await onSave({
+                      ...value,
+                      id: value.id || newId("prd"),
+                      slug: value.slug || slugify(value.name),
+                      subImages: cleanSubImages,
+                      details: {
+                        ...(value.details || {}),
+                        subImages: cleanSubImages,
+                      },
+                    });
+                  } finally {
+                    setIsSaving(false);
                   }
-                  onSave({
-                    ...value,
-                    id: value.id || newId("prd"),
-                    slug: value.slug || slugify(value.name),
-                  });
                 }}
               >
-                Save Product & Changes
+                {isSaving ? "Saving Product..." : "Save Product & Changes"}
               </Button>
             </div>
           </>
@@ -846,6 +953,7 @@ function CategoriesTab() {
     products,
     saveCategory,
     deleteCategory,
+    moveCategory,
     saveCollection,
     deleteCollection,
   } = useStore();
@@ -1117,6 +1225,10 @@ function CategoriesTab() {
     );
   }
 
+  const sortedCategories = useMemo(() => {
+    return [...categories].sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+  }, [categories]);
+
   // Level 1: Categories View
   return (
     <div className="space-y-4">
@@ -1151,7 +1263,7 @@ function CategoriesTab() {
             </tr>
           </thead>
           <tbody className="divide-y divide-stone">
-            {categories.map((c) => {
+            {sortedCategories.map((c, i) => {
               const catCols = collections.filter((col) => col.categoryId === c.id);
               const count = products.filter((p) => p.categoryId === c.id).length;
               return (
@@ -1202,6 +1314,24 @@ function CategoriesTab() {
                   <td className="px-4 py-3">{count} items</td>
                   <td className="px-4 py-3">
                     <div className="flex justify-end gap-1">
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        aria-label="Move category up"
+                        disabled={i === 0}
+                        onClick={() => moveCategory(c.id, -1)}
+                      >
+                        <ArrowUp className="h-4 w-4" aria-hidden="true" />
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        aria-label="Move category down"
+                        disabled={i === categories.length - 1}
+                        onClick={() => moveCategory(c.id, 1)}
+                      >
+                        <ArrowDown className="h-4 w-4" aria-hidden="true" />
+                      </Button>
                       <Button
                         size="icon"
                         variant="ghost"

@@ -3,6 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { CategoryView } from "@/components/site/CategoryView";
 import { SiteLayout } from "@/components/site/SiteLayout";
 import { useStore } from "@/lib/store";
+import { getSiteUrl } from "@/lib/utils";
 
 export const Route = createFileRoute("/glasses")({
   head: () => ({
@@ -19,9 +20,9 @@ export const Route = createFileRoute("/glasses")({
         content: "Explore handcrafted acetate, titanium, and minimalist eyeglass frames.",
       },
       { property: "og:type", content: "website" },
-      { property: "og:url", content: "https://optical-boutique-build.lovable.app/glasses" },
+      { property: "og:url", content: getSiteUrl("/glasses") },
     ],
-    links: [{ rel: "canonical", href: "https://optical-boutique-build.lovable.app/glasses" }],
+    links: [{ rel: "canonical", href: getSiteUrl("/glasses") }],
   }),
   component: GlassesPage,
 });

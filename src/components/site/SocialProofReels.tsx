@@ -54,6 +54,56 @@ function PlatformBadge({ platform }: { platform: SocialPlatform }) {
   }
 }
 
+
+type PlaybackSource =
+  | { kind: "iframe"; src: string }
+  | { kind: "video"; src: string }
+  | { kind: "external"; src: string };
+
+function getInstagramEmbedUrl(url: string) {
+  const match = url.match(/instagram\.com\/(?:reel|reels|p|tv)\/([A-Za-z0-9_-]+)/i);
+  return match?.[1] ? `https://www.instagram.com/reel/${match[1]}/embed` : "";
+}
+
+function getTikTokEmbedUrl(url: string) {
+  const match = url.match(/tiktok\.com\/@[^/]+\/video\/(\d+)/i);
+  return match?.[1] ? `https://www.tiktok.com/embed/v2/${match[1]}` : "";
+}
+
+function getYouTubeEmbedUrl(url: string) {
+  const match = url.match(
+    /(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([A-Za-z0-9_-]{6,})/i,
+  );
+  return match?.[1]
+    ? `https://www.youtube-nocookie.com/embed/${match[1]}?autoplay=1&rel=0&modestbranding=1&playsinline=1`
+    : "";
+}
+
+function getFacebookEmbedUrl(url: string) {
+  return /(?:facebook\.com|fb\.watch)/i.test(url)
+    ? `https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(url)}&show_text=false&autoplay=true`
+    : "";
+}
+
+function getPlaybackSource(url: string, platform: SocialPlatform): PlaybackSource {
+  const clean = sanitizeHref(url, "");
+  if (!clean) return { kind: "external", src: "" };
+
+  if (/\.(mp4|webm|mov|ogg)(\?.*)?$/i.test(clean)) {
+    return { kind: "video", src: clean };
+  }
+
+  const embedUrl =
+    getYouTubeEmbedUrl(clean) ||
+    (platform === "instagram" ? getInstagramEmbedUrl(clean) : "") ||
+    (platform === "tiktok" ? getTikTokEmbedUrl(clean) : "") ||
+    (platform === "facebook" ? getFacebookEmbedUrl(clean) : "") ||
+    getInstagramEmbedUrl(clean) ||
+    getTikTokEmbedUrl(clean) ||
+    getFacebookEmbedUrl(clean);
+
+  return embedUrl ? { kind: "iframe", src: embedUrl } : { kind: "external", src: clean };
+}
 export function SocialProofReels() {
   const { socialReels, products } = useStore();
   const [selectedReel, setSelectedReel] = useState<SocialReel | null>(null);
@@ -73,18 +123,10 @@ export function SocialProofReels() {
     ? products.find((p) => p.id === selectedReel.productId)
     : null;
 
-  // Convert video URL to embeddable URL if YouTube/etc
-  const getEmbedUrl = (url: string) => {
-    if (!url) return "";
-    const clean = sanitizeHref(url, "");
-    const ytMatch = clean.match(
-      /(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([A-Za-z0-9_-]{6,})/,
-    );
-    if (ytMatch?.[1]) {
-      return `https://www.youtube-nocookie.com/embed/${ytMatch[1]}?autoplay=1&rel=0&modestbranding=1`;
-    }
-    return clean;
-  };
+
+  const selectedPlayback = selectedReel
+    ? getPlaybackSource(selectedReel.videoUrl, selectedReel.platform)
+    : null;
 
   const currentIndex = selectedReel ? activeReels.findIndex((r) => r.id === selectedReel.id) : -1;
 
@@ -124,12 +166,16 @@ export function SocialProofReels() {
                 className="group relative flex-shrink-0 w-[240px] sm:w-[280px] aspect-[9/16] rounded-2xl overflow-hidden cursor-pointer border border-stone/80 bg-jet shadow-lg transition-all duration-300 hover:-translate-y-1.5 hover:shadow-2xl hover:border-gold/60"
               >
                 {/* Thumbnail Image */}
-                <img
-                  src={reel.thumbnail}
-                  alt={reel.title}
-                  loading="lazy"
-                  className="w-full h-full object-cover object-center transition-transform duration-700 group-hover:scale-105"
-                />
+                {reel.thumbnail ? (
+                  <img
+                    src={reel.thumbnail}
+                    alt={reel.title}
+                    loading="lazy"
+                    className="w-full h-full object-cover object-center transition-transform duration-700 group-hover:scale-105"
+                  />
+                ) : (
+                  <div className="h-full w-full bg-[radial-gradient(circle_at_50%_30%,rgba(212,175,55,0.22),transparent_34%),linear-gradient(160deg,#191919_0%,#050505_62%,#2f2f2f_100%)]" />
+                )}
 
                 {/* Dark Gradient Overlay */}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-black/40 group-hover:from-black/95 transition-colors" />
@@ -207,9 +253,15 @@ export function SocialProofReels() {
 
       {/* ── Reel Video Modal Player ── */}
       <Dialog open={selectedReel !== null} onOpenChange={(open) => !open && setSelectedReel(null)}>
-        <DialogContent className="max-w-md sm:max-w-lg p-0 bg-jet border-stone overflow-hidden rounded-2xl text-white">
+        <DialogContent
+          className="w-auto max-w-none gap-0 p-0 bg-jet border-stone overflow-hidden rounded-2xl text-white [&>button]:hidden"
+          style={{
+            width: "min(92vw, calc((100vh - 32px) * 9 / 16), 430px)",
+            height: "min(92vh, calc((100vw - 32px) * 16 / 9), 760px)",
+          }}
+        >
           {selectedReel && (
-            <div className="relative flex flex-col h-[80vh] max-h-[750px]">
+            <div className="relative flex h-full min-h-0 flex-col">
               {/* Modal Top Bar */}
               <div className="absolute top-0 inset-x-0 p-4 bg-gradient-to-b from-black/80 to-transparent z-20 flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -237,22 +289,22 @@ export function SocialProofReels() {
               </div>
 
               {/* Video Player Frame */}
-              <div className="flex-1 w-full bg-black flex items-center justify-center relative overflow-hidden">
-                {selectedReel.videoUrl.includes("youtube") ||
-                  selectedReel.videoUrl.includes("youtu.be") ? (
+              <div className="relative flex min-h-0 w-full flex-1 items-center justify-center overflow-hidden bg-black">
+                {selectedPlayback?.kind === "iframe" ? (
                   <iframe
-                    src={getEmbedUrl(selectedReel.videoUrl)}
+                    src={selectedPlayback.src}
                     title={selectedReel.title}
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                     allowFullScreen
-                    className="w-full h-full border-0"
+                    scrolling="no"
+                    className="w-full h-full border-0 bg-black"
                   />
-                ) : selectedReel.videoUrl.endsWith(".mp4") ||
-                  selectedReel.videoUrl.endsWith(".webm") ? (
+                ) : selectedPlayback?.kind === "video" ? (
                   <video
-                    src={selectedReel.videoUrl}
+                    src={selectedPlayback.src}
                     controls
                     autoPlay
+                    playsInline
                     loop
                     className="w-full h-full object-contain"
                   />
@@ -269,7 +321,7 @@ export function SocialProofReels() {
                       </div>
                       <p className="text-sm font-semibold">{selectedReel.title}</p>
                       <a
-                        href={sanitizeHref(selectedReel.videoUrl)}
+                        href={selectedPlayback?.src || sanitizeHref(selectedReel.videoUrl)}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="inline-flex items-center gap-2 rounded-full bg-gold px-5 py-2.5 text-xs font-bold uppercase tracking-wider text-jet hover:bg-gold/90"
@@ -283,7 +335,7 @@ export function SocialProofReels() {
               </div>
 
               {/* Modal Bottom: Tagged Product & Navigation */}
-              <div className="p-4 bg-black/90 border-t border-stone/40 space-y-3 z-20">
+              <div className="shrink-0 p-3 sm:p-4 bg-black/90 border-t border-stone/40 space-y-2.5 sm:space-y-3 z-20">
                 <p className="text-xs text-white/90 line-clamp-2">{selectedReel.title}</p>
 
                 {taggedProduct && (

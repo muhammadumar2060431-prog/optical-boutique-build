@@ -12,6 +12,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { useStore } from "@/lib/store";
 import { whatsappLink } from "@/lib/whatsapp";
 
+import { getSiteUrl } from "@/lib/utils";
+
 export const Route = createFileRoute("/contact")({
   validateSearch: (search: Record<string, unknown>) => ({
     product: typeof search["product"] === "string" ? (search["product"] as string) : undefined,
@@ -30,9 +32,9 @@ export const Route = createFileRoute("/contact")({
         content: "Connect with our optical specialists for personalized frame fittings and lens advice.",
       },
       { property: "og:type", content: "website" },
-      { property: "og:url", content: "https://optical-boutique-build.lovable.app/contact" },
+      { property: "og:url", content: getSiteUrl("/contact") },
     ],
-    links: [{ rel: "canonical", href: "https://optical-boutique-build.lovable.app/contact" }],
+    links: [{ rel: "canonical", href: getSiteUrl("/contact") }],
   }),
   component: ContactPage,
 });

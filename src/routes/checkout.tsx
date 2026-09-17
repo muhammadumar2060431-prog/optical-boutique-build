@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useCart } from "@/lib/cart";
 import { formatPrice, newOrderReference, useStore } from "@/lib/store";
 import { saveOrderReceipt } from "@/lib/last-order";
+import { getSiteUrl } from "@/lib/utils";
 
 export const Route = createFileRoute("/checkout")({
   head: () => ({
@@ -26,7 +27,7 @@ export const Route = createFileRoute("/checkout")({
         content: "Confirm your delivery details and place your order.",
       },
       { property: "og:type", content: "website" },
-      { property: "og:url", content: "https://optical-boutique-build.lovable.app/checkout" },
+      { property: "og:url", content: getSiteUrl("/checkout") },
       { name: "robots", content: "noindex" },
     ],
   }),

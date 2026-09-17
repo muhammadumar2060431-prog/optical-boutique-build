@@ -9,14 +9,19 @@ import { cn } from "@/lib/utils";
 
 export function CategoryBestsellersShowcase() {
   const { categories, collections, products } = useStore();
+
+  const sortedCategories = useMemo(() => {
+    return [...categories].sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+  }, [categories]);
+
   const [selectedCatId, setSelectedCatId] = useState<string>(
-    () => categories[0]?.id ?? "cat-glasses",
+    () => sortedCategories[0]?.id ?? "cat-glasses",
   );
 
   // Keep selected category valid if categories change
   const activeCategory = useMemo(() => {
-    return categories.find((c) => c.id === selectedCatId) || categories[0];
-  }, [categories, selectedCatId]);
+    return sortedCategories.find((c) => c.id === selectedCatId) || sortedCategories[0];
+  }, [sortedCategories, selectedCatId]);
 
   // Collections belonging to this category
   const activeCategoryCollections = useMemo(() => {
@@ -26,46 +31,29 @@ export function CategoryBestsellersShowcase() {
       .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
   }, [collections, activeCategory]);
 
-  // Group products by collection for the active category
-  const collectionSections = useMemo(() => {
+  // Only published products for active category that are marked as featured OR bestseller
+  const catProducts = useMemo(() => {
     if (!activeCategory) return [];
-
-    const catProducts = products.filter(
-      (p) => p.categoryId === activeCategory.id && p.status === "Published",
-    );
-
-    // Group for each known collection
-    const sections = activeCategoryCollections.map((col) => {
-      const colProducts = catProducts
-        .filter((p) => p.collectionId === col.id)
-        .sort((a, b) => {
-          const aScore = (a.isBestseller ? 2 : 0) + (a.featured ? 1 : 0);
-          const bScore = (b.isBestseller ? 2 : 0) + (b.featured ? 1 : 0);
-          return bScore - aScore;
-        });
-
-      return {
-        collection: col,
-        products: colProducts,
-      };
-    });
-
-    // Also collect products that don't match any specific collection in this category
-    const knownColIds = new Set(activeCategoryCollections.map((c) => c.id));
-    const unassignedProducts = catProducts
-      .filter((p) => !p.collectionId || !knownColIds.has(p.collectionId))
+    return products
+      .filter(
+        (p) =>
+          p.categoryId === activeCategory.id &&
+          p.status === "Published" &&
+          Boolean(p.featured || p.isBestseller),
+      )
       .sort((a, b) => {
         const aScore = (a.isBestseller ? 2 : 0) + (a.featured ? 1 : 0);
         const bScore = (b.isBestseller ? 2 : 0) + (b.featured ? 1 : 0);
         return bScore - aScore;
       });
+  }, [activeCategory, products]);
 
-    return {
-      collectionsWithProducts: sections.filter((s) => s.products.length > 0),
-      unassignedProducts,
-      totalCount: catProducts.length,
-    };
-  }, [activeCategory, activeCategoryCollections, products]);
+  // Featured collection banner for the active category (if any)
+  const categoryBannerCollection = useMemo(() => {
+    return activeCategoryCollections.find(
+      (c) => c.banner && (c.banner.image || c.banner.heading),
+    );
+  }, [activeCategoryCollections]);
 
   if (!categories || categories.length === 0) return null;
 
@@ -91,10 +79,13 @@ export function CategoryBestsellersShowcase() {
         {/* ── Category Circular Avatars Bar (Glasses & Lenses) ── */}
         <Reveal delay={100}>
           <div className="flex items-center justify-center gap-8 sm:gap-16 md:gap-20 flex-wrap pb-4">
-            {categories.map((cat) => {
+            {sortedCategories.map((cat) => {
               const isSelected = activeCategory?.id === cat.id;
               const productCount = products.filter(
-                (p) => p.categoryId === cat.id && p.status === "Published",
+                (p) =>
+                  p.categoryId === cat.id &&
+                  p.status === "Published" &&
+                  Boolean(p.featured || p.isBestseller),
               ).length;
 
               return (
@@ -156,7 +147,7 @@ export function CategoryBestsellersShowcase() {
                       {cat.name}
                     </span>
                     <p className="text-[11px] text-ink-muted uppercase tracking-wider mt-0.5">
-                      {productCount} {productCount === 1 ? "Product" : "Products"}
+                      {productCount} {productCount === 1 ? "Featured Piece" : "Featured Pieces"}
                     </p>
                   </div>
                 </button>
@@ -165,120 +156,95 @@ export function CategoryBestsellersShowcase() {
           </div>
         </Reveal>
 
-        {/* ── Dynamic Collection Banners + Best Selling Products (Scrollable Flow) ── */}
-        <div className="mt-14 sm:mt-20 pt-10 border-t border-stone/40 space-y-16 sm:space-y-20">
-          {Array.isArray(collectionSections) || collectionSections.totalCount === 0 ? (
+        {/* ── Dynamic Collection Banners + Best Selling Products Grid ── */}
+        <div className="mt-14 sm:mt-20 pt-10 border-t border-stone/40 space-y-12">
+          {catProducts.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-stone p-12 text-center bg-card/40">
               <p className="font-display text-lg text-foreground">
-                No products found in {activeCategory?.name} yet
+                No featured or best seller products in {activeCategory?.name} yet
               </p>
               <p className="mt-1 text-xs text-ink-muted">
-                Add products to this category from the Admin Panel to display them here.
+                Admin Panel me product edit karke <strong>"Homepage Bestsellers Grid"</strong> ya <strong>"Best Seller Badge"</strong> on karein taake woh yahan show ho sake.
               </p>
             </div>
           ) : (
             <>
-              {/* Render Each Collection with its Banner first, followed by its Best Selling Products */}
-              {!Array.isArray(collectionSections) && collectionSections.collectionsWithProducts.map(
-                ({ collection, products: colProducts }: { collection: import('@/lib/types').Collection; products: import('@/lib/types').Product[] }, colIdx: number) => (
-                  <div key={collection.id} className="space-y-8">
-                    <Reveal delay={colIdx * 100}>
-                      {/* ── Collection Banner (Matching Reference Image 2) ── */}
-                      {(() => {
-                        const hasImage = Boolean(collection.banner?.image);
-                        const hasText = Boolean(collection.banner?.heading?.trim() || collection.banner?.subtext?.trim());
+              {/* Optional Collection Banner if available */}
+              {categoryBannerCollection?.banner && (
+                <div>
+                  {(() => {
+                    const col = categoryBannerCollection;
+                    const hasImage = Boolean(col.banner?.image);
+                    const hasText = Boolean(
+                      col.banner?.heading?.trim() || col.banner?.subtext?.trim(),
+                    );
 
-                        if (hasImage && !hasText) {
-                          return (
-                            <div className="relative isolate overflow-hidden rounded-2xl bg-jet shadow-xl border border-stone/60 group">
-                              <img
-                                src={collection.banner!.image}
-                                alt={collection.name}
-                                loading="lazy"
-                                className="w-full h-auto max-h-[460px] min-h-[260px] sm:min-h-[340px] object-cover transition-transform duration-700 group-hover:scale-105 block"
-                              />
-                            </div>
-                          );
-                        }
+                    if (hasImage && !hasText) {
+                      return (
+                        <div className="relative isolate overflow-hidden rounded-2xl bg-transparent">
+                          <img
+                            src={col.banner!.image}
+                            alt={col.name}
+                            loading="lazy"
+                            className="w-full h-auto max-h-[460px] min-h-[260px] sm:min-h-[340px] object-cover block"
+                          />
+                        </div>
+                      );
+                    }
 
-                        return (
-                          <div className="relative isolate overflow-hidden rounded-2xl bg-jet shadow-xl border border-stone/60 group min-h-[240px] sm:min-h-[320px] flex items-center">
-                            {collection.banner?.image ? (
-                              <img
-                                src={collection.banner.image}
-                                alt={collection.name}
-                                loading="lazy"
-                                className="absolute inset-0 h-full w-full object-cover opacity-50 transition-transform duration-700 group-hover:scale-105"
-                              />
-                            ) : (
-                              <div className="absolute inset-0 bg-radial from-jet via-zinc-950 to-black" />
-                            )}
-                            <div className="absolute inset-0 bg-gradient-to-r from-black/95 via-black/80 to-transparent" />
+                    return (
+                      <div className="relative isolate overflow-hidden rounded-2xl bg-transparent min-h-[240px] sm:min-h-[320px] flex items-center">
+                        {col.banner?.image ? (
+                          <img
+                            src={col.banner.image}
+                            alt={col.name}
+                            loading="lazy"
+                            className="absolute inset-0 h-full w-full object-cover opacity-50"
+                          />
+                        ) : (
+                          <div className="absolute inset-0 bg-radial from-jet via-zinc-950 to-black" />
+                        )}
+                        <div className="absolute inset-0 bg-gradient-to-r from-black/95 via-black/80 to-transparent" />
 
-                            <div className="relative px-6 py-14 sm:px-12 sm:py-20 max-w-2xl space-y-3">
-                              <div className="flex items-center gap-2">
-                                <span className="eyebrow text-gold font-bold uppercase tracking-[0.2em] text-xs">
-                                  {activeCategory?.name} Collection
-                                </span>
-                                <span className="text-zinc-500">•</span>
-                                <span className="text-[11px] text-zinc-400 font-semibold uppercase tracking-wider">
-                                  {colProducts.length} {colProducts.length === 1 ? "Item" : "Items"}
-                                </span>
-                              </div>
-
-                              <h3 className="font-display text-2xl sm:text-4xl text-cream font-medium tracking-tight">
-                                {collection.banner?.heading || collection.name}
-                              </h3>
-
-                              {collection.banner?.subtext && (
-                                <p className="text-xs sm:text-sm text-cream/80 leading-relaxed font-light pt-0.5">
-                                  {collection.banner.subtext}
-                                </p>
-                              )}
-                            </div>
+                        <div className="relative px-6 py-14 sm:px-12 sm:py-20 max-w-2xl space-y-3">
+                          <div className="flex items-center gap-2">
+                            <span className="eyebrow text-gold font-bold uppercase tracking-[0.2em] text-xs">
+                              {activeCategory?.name} Collection
+                            </span>
+                            <span className="text-zinc-500">•</span>
+                            <span className="text-[11px] text-zinc-400 font-semibold uppercase tracking-wider">
+                              {catProducts.length} {catProducts.length === 1 ? "Item" : "Items"}
+                            </span>
                           </div>
-                        );
-                      })()}
-                    </Reveal>
 
-                    {/* ── Collection Products Grid (Placed Directly Below its Banner) ── */}
-                    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                      {colProducts.map((product, pIdx) => (
-                        <Reveal key={product.id} delay={pIdx * 80}>
-                          <ProductCard product={product} />
-                        </Reveal>
-                      ))}
-                    </div>
-                  </div>
-                ),
-              )}
+                          <h3 className="font-display text-2xl sm:text-4xl text-cream font-medium tracking-tight">
+                            {col.banner?.heading || col.name}
+                          </h3>
 
-              {/* Unassigned products if any */}
-              {!Array.isArray(collectionSections) && collectionSections.unassignedProducts.length > 0 && (
-                <div className="space-y-8 pt-4">
-                  <Reveal>
-                    <div className="border-l-4 border-gold pl-4 py-1">
-                      <p className="eyebrow text-gold font-bold uppercase tracking-[0.2em] text-xs">
-                        Featured Range
-                      </p>
-                      <h3 className="font-display text-2xl sm:text-3xl text-foreground mt-0.5">
-                        More {activeCategory?.name} Best Sellers
-                      </h3>
-                    </div>
-                  </Reveal>
-
-                  <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                    {!Array.isArray(collectionSections) && collectionSections.unassignedProducts.map((product: import('@/lib/types').Product, pIdx: number) => (
-                      <Reveal key={product.id} delay={pIdx * 80}>
-                        <ProductCard product={product} />
-                      </Reveal>
-                    ))}
-                  </div>
+                          {col.banner?.subtext && (
+                            <p className="text-xs sm:text-sm text-cream/80 leading-relaxed font-light pt-0.5">
+                              {col.banner.subtext}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
               )}
 
+
+              {/* 4-Column Grid for ALL Products */}
+              <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
+                {catProducts.map((product, pIdx) => (
+                  <Reveal key={product.id} delay={pIdx * 60}>
+                    <ProductCard product={product} />
+                  </Reveal>
+                ))}
+              </div>
+
               {/* Explore All Category Link */}
-              <div className="text-center pt-8">
+              <div className="text-center pt-6">
                 <Link
                   to={
                     activeCategory?.slug === "lenses"

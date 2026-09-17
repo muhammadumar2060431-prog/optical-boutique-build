@@ -8,15 +8,9 @@ import type { Product } from "@/lib/types";
 export function NewArrivalsShowcase() {
   const { products } = useStore();
 
-  // Pick new arrivals or fallback to featured/all products
+  // Pick ONLY products explicitly marked as isNewArrival by admin
   const items = useMemo(() => {
-    const list = products.filter((p) => p.isNewArrival);
-    if (list.length >= 3) return list;
-    // If fewer than 3 marked as new arrival, include bestsellers/featured to maintain the 3-item 3D stage
-    return Array.from(new Set([...list, ...products.filter((p) => p.featured), ...products])).slice(
-      0,
-      7,
-    );
+    return products.filter((p) => p.isNewArrival && p.status === "Published");
   }, [products]);
 
   const [currentIndex, setCurrentIndex] = useState(0);

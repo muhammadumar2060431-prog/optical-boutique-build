@@ -2,13 +2,17 @@ import { useCallback, useEffect, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 import { useStore } from "@/lib/store";
+import { sanitizeHref, sanitizeImageSrc } from "@/lib/security";
 import { cn } from "@/lib/utils";
+
+const FALLBACK_HERO_IMAGE = "/about-sunglasses.jpg";
 
 export function Hero() {
   const { heroSlides } = useStore();
   const slides = heroSlides.filter((s) => s.enabled);
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
+  const [failedImages, setFailedImages] = useState<Set<string>>(() => new Set());
 
   const go = useCallback(
     (dir: number) =>
@@ -44,13 +48,29 @@ export function Hero() {
             slide.ctaText?.trim(),
         );
 
+        const imageSrc = failedImages.has(slide.id)
+          ? FALLBACK_HERO_IMAGE
+          : sanitizeImageSrc(slide.image, FALLBACK_HERO_IMAGE);
+        const ctaLink = sanitizeHref(slide.ctaLink, "");
+
         const imageElement = (
           <img
-            src={slide.image}
+            src={imageSrc}
             alt={slide.headline || "Store banner"}
             width={1920}
             height={1080}
+            loading={i === 0 ? "eager" : "lazy"}
+            decoding="async"
+            fetchPriority={i === 0 ? "high" : "auto"}
             className="h-full w-full object-cover"
+            onError={() => {
+              setFailedImages((current) => {
+                if (current.has(slide.id)) return current;
+                const next = new Set(current);
+                next.add(slide.id);
+                return next;
+              });
+            }}
           />
         );
 
@@ -65,9 +85,9 @@ export function Hero() {
             inert={i !== index}
           >
             {/* If pure image banner with link, make the image clickable */}
-            {!hasText && slide.ctaLink ? (
+            {!hasText && ctaLink ? (
               <a
-                href={slide.ctaLink}
+                href={ctaLink}
                 className="block h-full w-full cursor-pointer"
                 aria-label={slide.headline || "View banner"}
               >
@@ -101,7 +121,7 @@ export function Hero() {
                         <div className="flex flex-wrap items-center gap-4 pt-2">
                           {slide.ctaText?.trim() && (
                             <a
-                              href={slide.ctaLink || "#"}
+                              href={ctaLink || "#"}
                               className="inline-flex min-h-11 items-center rounded-full bg-gold px-7 text-xs tracking-[0.18em] uppercase text-primary-foreground transition-transform duration-200 hover:scale-[1.02]"
                             >
                               {slide.ctaText}

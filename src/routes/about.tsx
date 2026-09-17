@@ -3,6 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Reveal } from "@/components/site/Reveal";
 import { SiteLayout } from "@/components/site/SiteLayout";
 import { VideoSection } from "@/components/site/VideoSection";
+import { getSiteUrl } from "@/lib/utils";
 
 export const Route = createFileRoute("/about")({
   head: () => ({
@@ -19,9 +20,9 @@ export const Route = createFileRoute("/about")({
         content: "Discover our heritage of optical craftsmanship and precision lens fitting.",
       },
       { property: "og:type", content: "website" },
-      { property: "og:url", content: "https://optical-boutique-build.lovable.app/about" },
+      { property: "og:url", content: getSiteUrl("/about") },
     ],
-    links: [{ rel: "canonical", href: "https://optical-boutique-build.lovable.app/about" }],
+    links: [{ rel: "canonical", href: getSiteUrl("/about") }],
   }),
   component: AboutPage,
 });

@@ -93,7 +93,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         content: "Discover handcrafted designer eyeglasses, premium sunglasses, and precision contact lenses.",
       },
       { property: "og:type", content: "website" },
+      { property: "og:image", content: "/brand-logo.png" },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:image", content: "/brand-logo.png" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },

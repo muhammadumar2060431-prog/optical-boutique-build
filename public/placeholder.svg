@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="800" viewBox="0 0 800 800" fill="none">
+  <rect width="800" height="800" fill="#F4F4F5"/>
+  <g transform="translate(250, 320)" stroke="#A1A1AA" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Glasses icon -->
+    <circle cx="60" cy="80" r="50" fill="none"/>
+    <circle cx="240" cy="80" r="50" fill="none"/>
+    <path d="M110 70 C130 55, 170 55, 190 70"/>
+    <path d="M10 80 L-10 70"/>
+    <path d="M290 80 L310 70"/>
+  </g>
+  <text x="400" y="470" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="20" font-weight="600" letter-spacing="4" fill="#71717A">OPTIQUE</text>
+  <text x="400" y="500" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="14" fill="#A1A1AA">Image not available</text>
+</svg>

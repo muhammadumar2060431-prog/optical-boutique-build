@@ -259,43 +259,30 @@
   flex-shrink: 0;
   align-items: center;
   gap: 80px;
-  /* 2 identical blocks — so -50% = 1 full set shift, seamless loop */
-  animation: brands-scroll 28s linear infinite;
   white-space: nowrap;
+  animation: brands-scroll 24s linear infinite;
   will-change: transform;
 }
 
-.brands-scroll-outer:hover .brands-track {
-  animation-play-state: paused;
-}
 
 .brand-item {
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 14px;
   flex-shrink: 0;
-  opacity: 0.75;
-  transition: opacity 0.3s ease;
+  opacity: 1;
   cursor: default;
 }
 
-.brand-item:hover {
-  opacity: 1;
-}
 
 .brand-logo-img {
-  height: 36px;
+  height: 46px;
   width: auto;
-  max-width: 120px;
+  max-width: 150px;
   object-fit: contain;
-  /* Make coloured logos appear monochrome / neutral */
-  filter: grayscale(1) contrast(0.9);
-  transition: filter 0.3s ease;
 }
 
-.brand-item:hover .brand-logo-img {
-  filter: grayscale(0) contrast(1);
-}
 
 .brand-logo-text {
   font-family: var(--font-sans);

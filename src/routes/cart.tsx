@@ -5,6 +5,7 @@ import { SiteLayout } from "@/components/site/SiteLayout";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/lib/cart";
 import { formatPrice, useStore } from "@/lib/store";
+import { getSiteUrl } from "@/lib/utils";
 
 export const Route = createFileRoute("/cart")({
   head: () => ({
@@ -20,7 +21,7 @@ export const Route = createFileRoute("/cart")({
         content: "Review your selected frames and lenses before checkout.",
       },
       { property: "og:type", content: "website" },
-      { property: "og:url", content: "https://optical-boutique-build.lovable.app/cart" },
+      { property: "og:url", content: getSiteUrl("/cart") },
       { name: "robots", content: "noindex" },
     ],
   }),

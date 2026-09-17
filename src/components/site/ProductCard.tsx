@@ -10,23 +10,47 @@ export function ProductCard({ product }: { product: Product }) {
   const stock = productStock(product);
   const status = stockStatus(stock);
 
+  const subImagesList: string[] = (
+    Array.isArray(product.subImages) && product.subImages.length > 0
+      ? product.subImages
+      : Array.isArray((product.details as any)?.subImages) && (product.details as any).subImages.length > 0
+        ? (product.details as any).subImages
+        : Array.isArray((product as any).images) && (product as any).images.length > 0
+          ? (product as any).images
+          : []
+  ).filter((img: any): img is string => typeof img === "string" && img.trim().length > 0);
+
+  const displayImage =
+    (product.image && product.image !== "/placeholder.svg" && product.image.trim().length > 0 ? product.image : null) ??
+    (subImagesList.find((img) => img !== "/placeholder.svg") || null) ??
+    (Array.isArray(product.variants) ? product.variants.find((v) => v.image && v.image.trim().length > 0)?.image : null) ??
+    (product.image && product.image.trim().length > 0 ? product.image : null);
+
+  const hoverImg =
+    product.hoverImage && product.hoverImage.trim()
+      ? product.hoverImage
+      : subImagesList.length > 1 && subImagesList[1] !== displayImage
+        ? subImagesList[1]
+        : null;
+
   return (
     <Link
       to="/product/$slug"
       params={{ slug: product.slug }}
       className="group flex flex-col overflow-hidden rounded-xl border border-stone bg-card transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[var(--shadow-lens)]"
     >
-      <div className="lens-ring relative aspect-square overflow-hidden bg-jet">
+      <div className="relative aspect-square overflow-hidden bg-jet">
         {/* Primary Image */}
-        {product.image && product.image.trim() ? (
+        {displayImage ? (
           <img
-            src={product.image}
+            src={displayImage}
             alt={product.name}
             loading="lazy"
+            decoding="async"
             width={1024}
             height={1024}
             className={`h-full w-full object-cover transition-all duration-500 group-hover:scale-[1.03] ${
-              product.hoverImage && product.hoverImage.trim() ? "group-hover:opacity-0" : ""
+              hoverImg ? "group-hover:opacity-0" : ""
             }`}
           />
         ) : (
@@ -36,11 +60,12 @@ export function ProductCard({ product }: { product: Product }) {
         )}
 
         {/* Hover Image — crossfade on hover/touch */}
-        {product.hoverImage && product.hoverImage.trim() ? (
+        {hoverImg ? (
           <img
-            src={product.hoverImage}
+            src={hoverImg}
             alt={`${product.name} – alternate view`}
             loading="lazy"
+            decoding="async"
             width={1024}
             height={1024}
             className="absolute inset-0 h-full w-full object-cover opacity-0 transition-all duration-500 group-hover:opacity-100 group-hover:scale-[1.03]"

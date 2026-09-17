@@ -146,8 +146,8 @@ function AdminLogin() {
   const LS_LOCKED_KEY   = "optique_admin_locked_until";
 
   // Read persisted state from localStorage
-  const getStoredAttempts = () => parseInt(localStorage.getItem(LS_ATTEMPTS_KEY) || "0", 10);
-  const getStoredLockedUntil = () => parseInt(localStorage.getItem(LS_LOCKED_KEY) || "0", 10);
+  const getStoredAttempts = () => (typeof window === "undefined" ? 0 : parseInt(localStorage.getItem(LS_ATTEMPTS_KEY) || "0", 10));
+  const getStoredLockedUntil = () => (typeof window === "undefined" ? 0 : parseInt(localStorage.getItem(LS_LOCKED_KEY) || "0", 10));
 
   const [attempts, setAttempts] = useState<number>(() => getStoredAttempts());
   const [lockedUntil, setLockedUntil] = useState<number>(() => getStoredLockedUntil());
@@ -157,16 +157,20 @@ function AdminLogin() {
   // Persist whenever state changes
   const applyLockout = (newAttempts: number, lockSecs: number) => {
     const until = Date.now() + lockSecs * 1000;
-    localStorage.setItem(LS_ATTEMPTS_KEY, String(newAttempts));
-    localStorage.setItem(LS_LOCKED_KEY, String(until));
+    if (typeof window !== "undefined") {
+      localStorage.setItem(LS_ATTEMPTS_KEY, String(newAttempts));
+      localStorage.setItem(LS_LOCKED_KEY, String(until));
+    }
     setAttempts(newAttempts);
     setLockedUntil(until);
     setRemaining(lockSecs);
   };
 
   const clearLockout = () => {
-    localStorage.setItem(LS_ATTEMPTS_KEY, "0");
-    localStorage.setItem(LS_LOCKED_KEY, "0");
+    if (typeof window !== "undefined") {
+      localStorage.setItem(LS_ATTEMPTS_KEY, "0");
+      localStorage.setItem(LS_LOCKED_KEY, "0");
+    }
     setAttempts(0);
     setLockedUntil(0);
     setRemaining(0);
@@ -207,17 +211,20 @@ function AdminLogin() {
     return () => clearInterval(interval);
   }, [isLocked, lockedUntil]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isLocked) return;
 
-    const ok = login(email, password);
+    const res = await login(email.trim(), password.trim());
+    const ok = typeof res === "boolean" ? res : res.success;
     if (ok) {
       setError("");
       clearLockout();
     } else {
       const newAttempts = attempts + 1;
-      localStorage.setItem(LS_ATTEMPTS_KEY, String(newAttempts));
+      if (typeof window !== "undefined") {
+        localStorage.setItem(LS_ATTEMPTS_KEY, String(newAttempts));
+      }
       setAttempts(newAttempts);
 
       const lockSecs = getLockoutSeconds(newAttempts);
@@ -230,10 +237,12 @@ function AdminLogin() {
         // Not yet locked — warn with attempts remaining until next tier
         const nextTier = LOCKOUT_TIERS.find((t) => t.minAttempts > newAttempts);
         const attemptsUntilLock = nextTier ? nextTier.minAttempts - newAttempts : 1;
+        const customError = typeof res === "object" && res.error ? res.error : null;
         setError(
-          `Galt email ya password. ${attemptsUntilLock} galat koshish aur — phr ${
-            nextTier ? formatTime(nextTier.lockSeconds) : "block"
-          } ke liye lock ho jaega.`
+          customError ||
+            `Galt email ya password. ${attemptsUntilLock} galat koshish aur — phr ${
+              nextTier ? formatTime(nextTier.lockSeconds) : "block"
+            } ke liye lock ho jaega.`
         );
       }
     }
@@ -349,3 +358,5 @@ function AdminLogin() {
     </div>
   );
 }
+
+

@@ -1,6 +1,8 @@
 import { useRef, useState } from "react";
 import { Trash2, Upload, Eye, ImagePlus } from "lucide-react";
 
+import { uploadImageToStorage } from "@/lib/supabaseSync";
+
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
@@ -28,6 +30,9 @@ export function ImageUpload({
   hint,
   aspectHint,
   compact = false,
+  maxWidth = 600,
+  maxHeight = 600,
+  outputQuality = 0.65,
 }: {
   label?: string;
   value: string | null;
@@ -39,6 +44,12 @@ export function ImageUpload({
   aspectHint?: string;
   /** Compact UI mode for tight spaces (like sub-images/gallery grids) */
   compact?: boolean;
+  /** Maximum exported image width in pixels. */
+  maxWidth?: number;
+  /** Maximum exported image height in pixels. */
+  maxHeight?: number;
+  /** Canvas export quality for compressed JPG/WebP output. */
+  outputQuality?: number;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -71,16 +82,11 @@ export function ImageUpload({
         try {
           const canvas = document.createElement("canvas");
           let { width, height } = img;
-          const maxDim = 1400;
+          const scale = Math.min(1, maxWidth / width, maxHeight / height);
 
-          if (width > maxDim || height > maxDim) {
-            if (width > height) {
-              height = Math.round((height * maxDim) / width);
-              width = maxDim;
-            } else {
-              width = Math.round((width * maxDim) / height);
-              height = maxDim;
-            }
+          if (scale < 1) {
+            width = Math.max(1, Math.round(width * scale));
+            height = Math.max(1, Math.round(height * scale));
           }
 
           canvas.width = width;
@@ -102,8 +108,16 @@ export function ImageUpload({
               file.name.toLowerCase().endsWith(".avif");
 
             const outputMime = isTransparentFormat ? "image/webp" : "image/jpeg";
-            const compressed = canvas.toDataURL(outputMime, 0.90);
+            const compressed = canvas.toDataURL(outputMime, outputQuality);
+            // Instant UI feedback with compressed base64
             onChange(compressed);
+
+            // Upload to Supabase Storage asynchronously and swap to public CDN URL
+            uploadImageToStorage(compressed, "uploads").then((storageUrl) => {
+              if (storageUrl) {
+                onChange(storageUrl);
+              }
+            });
           } else {
             onChange(rawResult);
           }

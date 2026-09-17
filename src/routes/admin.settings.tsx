@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useStore } from "@/lib/store";
+import { supabase } from "@/lib/supabase";
 
 export const Route = createFileRoute("/admin/settings")({
   component: AdminSettings,
@@ -104,20 +105,37 @@ function AdminSettings() {
         <Button
           variant="outline"
           className="min-h-11 rounded-full"
-          onClick={() => {
+          onClick={async () => {
             if (newPassword && newPassword.length < 6) {
-              toast.error("Use at least 6 characters.");
+              toast.error("Password kam az kam 6 characters ka hona chahiye.");
               return;
             }
             if (!window.confirm("Aap admin credentials update karna chahte hain? (Are you sure you want to update credentials?)")) {
               return;
             }
-            updateSettings({
-              adminEmail: form.adminEmail,
-              ...(newPassword ? { adminPassword: newPassword } : {}),
-            });
-            setNewPassword("");
-            toast.success("Admin credentials updated.");
+            try {
+              if (newPassword) {
+                const { error } = await supabase.auth.updateUser({ password: newPassword });
+                if (error) {
+                  toast.error("Password update failed: " + error.message);
+                  return;
+                }
+              }
+              if (form.adminEmail && form.adminEmail !== settings.adminEmail) {
+                const { error: emailErr } = await supabase.auth.updateUser({ email: form.adminEmail });
+                if (emailErr) {
+                  toast.error("Email update failed: " + emailErr.message);
+                  return;
+                }
+                updateSettings({
+                  adminEmail: form.adminEmail,
+                });
+              }
+              setNewPassword("");
+              toast.success("Admin credentials Supabase Auth par securely update ho gaye.");
+            } catch (err: any) {
+              toast.error("Error: " + err.message);
+            }
           }}
         >
           Update credentials

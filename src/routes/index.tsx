@@ -9,6 +9,7 @@ import { SiteLayout } from "@/components/site/SiteLayout";
 import { SocialProofReels } from "@/components/site/SocialProofReels";
 import { Testimonials } from "@/components/site/Testimonials";
 import { VideoSection } from "@/components/site/VideoSection";
+import { getSiteUrl } from "@/lib/utils";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -25,9 +26,9 @@ export const Route = createFileRoute("/")({
         content: "Shop handcrafted acetate & titanium frames, designer sunglasses, and prescription contact lenses.",
       },
       { property: "og:type", content: "website" },
-      { property: "og:url", content: "https://optical-boutique-build.lovable.app/" },
+      { property: "og:url", content: getSiteUrl("/") },
     ],
-    links: [{ rel: "canonical", href: "https://optical-boutique-build.lovable.app/" }],
+    links: [{ rel: "canonical", href: getSiteUrl("/") }],
   }),
   component: HomePage,
 });

@@ -19,15 +19,17 @@ export function BrandsScrollBar() {
   return (
     <div className="brands-scroll-outer" aria-label="Our brands">
       <div className="brands-track">
-        {items.map((brand, i) => (
-          <div key={`${brand.id}-${i}`} className="brand-item">
-            {brand.logo && brand.logo.trim() ? (
-              <img src={brand.logo} alt={brand.name} className="brand-logo-img" draggable={false} />
-            ) : (
-              <span className="brand-logo-text">{brand.name}</span>
-            )}
-          </div>
-        ))}
+        {items.map((brand, i) => {
+          const name = brand.name?.trim() || "";
+          const logo = brand.logo?.trim() || "";
+
+          return (
+            <div key={`${brand.id}-${i}`} className="brand-item">
+              {logo && <img src={logo} alt={name || "Brand logo"} className="brand-logo-img" draggable={false} />}
+              {name && <span className="brand-logo-text">{name}</span>}
+            </div>
+          );
+        })}
       </div>
     </div>
   );

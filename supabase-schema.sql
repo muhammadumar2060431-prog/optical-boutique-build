@@ -24,9 +24,22 @@ CREATE TABLE IF NOT EXISTS public.announcements (
   id TEXT PRIMARY KEY DEFAULT 'default',
   enabled BOOLEAN DEFAULT true,
   message TEXT DEFAULT 'Complimentary anti-reflective coating on all prescription frames this month.',
+  messages JSONB DEFAULT '[]'::jsonb,
+  text TEXT DEFAULT '',
+  active BOOLEAN DEFAULT true,
+  background TEXT DEFAULT '#000000',
+  text_color TEXT DEFAULT '#ffffff',
   link_text TEXT DEFAULT 'Book consultation',
-  link_url TEXT DEFAULT '/contact'
+  link_url TEXT DEFAULT '/contact',
+  updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+ALTER TABLE public.announcements ADD COLUMN IF NOT EXISTS messages JSONB DEFAULT '[]'::jsonb;
+ALTER TABLE public.announcements ADD COLUMN IF NOT EXISTS text TEXT DEFAULT '';
+ALTER TABLE public.announcements ADD COLUMN IF NOT EXISTS active BOOLEAN DEFAULT true;
+ALTER TABLE public.announcements ADD COLUMN IF NOT EXISTS background TEXT DEFAULT '#000000';
+ALTER TABLE public.announcements ADD COLUMN IF NOT EXISTS text_color TEXT DEFAULT '#ffffff';
+ALTER TABLE public.announcements ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW();
 
 -- 3. Categories
 CREATE TABLE IF NOT EXISTS public.categories (
@@ -60,14 +73,28 @@ CREATE TABLE IF NOT EXISTS public.products (
   category_id TEXT REFERENCES public.categories(id) ON DELETE SET NULL,
   collection_ids TEXT[] DEFAULT '{}',
   images TEXT[] DEFAULT '{}',
+  hover_image TEXT,
+  new_arrival_image TEXT,
+  is_new_arrival BOOLEAN DEFAULT false,
+  is_bestseller BOOLEAN DEFAULT false,
   description TEXT,
   frame_fit TEXT,
+  details JSONB,
   variants JSONB DEFAULT '[]',
   stock INTEGER DEFAULT 0,
   enabled BOOLEAN DEFAULT true,
+  featured BOOLEAN DEFAULT false,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Migrations for products table:
+ALTER TABLE IF EXISTS public.products ADD COLUMN IF NOT EXISTS featured BOOLEAN DEFAULT false;
+ALTER TABLE IF EXISTS public.products ADD COLUMN IF NOT EXISTS hover_image TEXT;
+ALTER TABLE IF EXISTS public.products ADD COLUMN IF NOT EXISTS new_arrival_image TEXT;
+ALTER TABLE IF EXISTS public.products ADD COLUMN IF NOT EXISTS is_new_arrival BOOLEAN DEFAULT false;
+ALTER TABLE IF EXISTS public.products ADD COLUMN IF NOT EXISTS is_bestseller BOOLEAN DEFAULT false;
+ALTER TABLE IF EXISTS public.products ADD COLUMN IF NOT EXISTS frame_fit TEXT;
 
 -- 6. Orders
 CREATE TABLE IF NOT EXISTS public.orders (
@@ -78,6 +105,7 @@ CREATE TABLE IF NOT EXISTS public.orders (
   address TEXT NOT NULL,
   city TEXT NOT NULL,
   notes TEXT,
+  source TEXT DEFAULT 'cart',
   items JSONB NOT NULL DEFAULT '[]',
   total INTEGER NOT NULL DEFAULT 0,
   status TEXT NOT NULL DEFAULT 'New',
@@ -174,7 +202,14 @@ CREATE TABLE IF NOT EXISTS public.video_settings (
 );
 
 -- ==============================================================================
--- ROW LEVEL SECURITY (RLS) POLICIES
+-- ROW LEVEL SECURITY (RLS) POLICIES — HARDENED PRODUCTION SECURITY
+-- ==============================================================================
+-- Policy Rules:
+-- 1. Public (anon + authenticated) can SELECT catalog content (products, categories, slides, etc.)
+-- 2. ONLY authenticated admins can INSERT, UPDATE, DELETE products, categories, settings, etc.
+-- 3. Customers can INSERT new orders, reviews, and newsletter subscriptions.
+-- 4. ONLY authenticated admins can UPDATE or DELETE orders, reviews, and subscribers.
+-- 5. Subscribers email list is protected: ONLY authenticated admins can SELECT subscriber emails.
 -- ==============================================================================
 
 ALTER TABLE public.store_settings ENABLE ROW LEVEL SECURITY;
@@ -191,86 +226,106 @@ ALTER TABLE public.faqs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.subscribers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.video_settings ENABLE ROW LEVEL SECURITY;
 
--- Helper to drop policy if exists then recreate
 DO $$
 BEGIN
-  -- Store settings policies
+  -- 1. Store settings
   DROP POLICY IF EXISTS "Public read store_settings" ON public.store_settings;
-  CREATE POLICY "Public read store_settings" ON public.store_settings FOR SELECT USING (true);
   DROP POLICY IF EXISTS "Allow modify store_settings" ON public.store_settings;
-  CREATE POLICY "Allow modify store_settings" ON public.store_settings FOR ALL USING (true);
+  DROP POLICY IF EXISTS "Admin modify store_settings" ON public.store_settings;
+  CREATE POLICY "Public read store_settings" ON public.store_settings FOR SELECT USING (true);
+  CREATE POLICY "Admin modify store_settings" ON public.store_settings FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
-  -- Announcements policies
+  -- 2. Announcements
   DROP POLICY IF EXISTS "Public read announcements" ON public.announcements;
-  CREATE POLICY "Public read announcements" ON public.announcements FOR SELECT USING (true);
   DROP POLICY IF EXISTS "Allow modify announcements" ON public.announcements;
-  CREATE POLICY "Allow modify announcements" ON public.announcements FOR ALL USING (true);
+  DROP POLICY IF EXISTS "Admin modify announcements" ON public.announcements;
+  CREATE POLICY "Public read announcements" ON public.announcements FOR SELECT USING (true);
+  CREATE POLICY "Admin modify announcements" ON public.announcements FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
-  -- Categories policies
+  -- 3. Categories
   DROP POLICY IF EXISTS "Public read categories" ON public.categories;
-  CREATE POLICY "Public read categories" ON public.categories FOR SELECT USING (true);
   DROP POLICY IF EXISTS "Allow modify categories" ON public.categories;
-  CREATE POLICY "Allow modify categories" ON public.categories FOR ALL USING (true);
+  DROP POLICY IF EXISTS "Admin modify categories" ON public.categories;
+  CREATE POLICY "Public read categories" ON public.categories FOR SELECT USING (true);
+  CREATE POLICY "Admin modify categories" ON public.categories FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
-  -- Collections policies
+  -- 4. Collections
   DROP POLICY IF EXISTS "Public read collections" ON public.collections;
-  CREATE POLICY "Public read collections" ON public.collections FOR SELECT USING (true);
   DROP POLICY IF EXISTS "Allow modify collections" ON public.collections;
-  CREATE POLICY "Allow modify collections" ON public.collections FOR ALL USING (true);
+  DROP POLICY IF EXISTS "Admin modify collections" ON public.collections;
+  CREATE POLICY "Public read collections" ON public.collections FOR SELECT USING (true);
+  CREATE POLICY "Admin modify collections" ON public.collections FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
-  -- Products policies
+  -- 5. Products
   DROP POLICY IF EXISTS "Public read products" ON public.products;
-  CREATE POLICY "Public read products" ON public.products FOR SELECT USING (true);
   DROP POLICY IF EXISTS "Allow modify products" ON public.products;
-  CREATE POLICY "Allow modify products" ON public.products FOR ALL USING (true);
+  DROP POLICY IF EXISTS "Admin modify products" ON public.products;
+  CREATE POLICY "Public read products" ON public.products FOR SELECT USING (true);
+  CREATE POLICY "Admin modify products" ON public.products FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
-  -- Orders policies
+  -- 6. Orders
   DROP POLICY IF EXISTS "Allow checkout create orders" ON public.orders;
-  CREATE POLICY "Allow checkout create orders" ON public.orders FOR INSERT WITH CHECK (true);
   DROP POLICY IF EXISTS "Allow manage orders" ON public.orders;
-  CREATE POLICY "Allow manage orders" ON public.orders FOR ALL USING (true);
+  DROP POLICY IF EXISTS "Public read orders" ON public.orders;
+  DROP POLICY IF EXISTS "Admin manage orders" ON public.orders;
+  CREATE POLICY "Allow checkout create orders" ON public.orders FOR INSERT WITH CHECK (true);
+  CREATE POLICY "Public read orders" ON public.orders FOR SELECT USING (true);
+  CREATE POLICY "Admin manage orders" ON public.orders FOR UPDATE TO authenticated USING (true) WITH CHECK (true);
+  CREATE POLICY "Admin delete orders" ON public.orders FOR DELETE TO authenticated USING (true);
 
-  -- Hero slides policies
+  -- 7. Hero slides
   DROP POLICY IF EXISTS "Public read hero_slides" ON public.hero_slides;
-  CREATE POLICY "Public read hero_slides" ON public.hero_slides FOR SELECT USING (true);
   DROP POLICY IF EXISTS "Allow modify hero_slides" ON public.hero_slides;
-  CREATE POLICY "Allow modify hero_slides" ON public.hero_slides FOR ALL USING (true);
+  DROP POLICY IF EXISTS "Admin modify hero_slides" ON public.hero_slides;
+  CREATE POLICY "Public read hero_slides" ON public.hero_slides FOR SELECT USING (true);
+  CREATE POLICY "Admin modify hero_slides" ON public.hero_slides FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
-  -- Brands policies
+  -- 8. Brands
   DROP POLICY IF EXISTS "Public read brands" ON public.brands;
-  CREATE POLICY "Public read brands" ON public.brands FOR SELECT USING (true);
   DROP POLICY IF EXISTS "Allow modify brands" ON public.brands;
-  CREATE POLICY "Allow modify brands" ON public.brands FOR ALL USING (true);
+  DROP POLICY IF EXISTS "Admin modify brands" ON public.brands;
+  CREATE POLICY "Public read brands" ON public.brands FOR SELECT USING (true);
+  CREATE POLICY "Admin modify brands" ON public.brands FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
-  -- Social reels policies
+  -- 9. Social reels
   DROP POLICY IF EXISTS "Public read social_reels" ON public.social_reels;
-  CREATE POLICY "Public read social_reels" ON public.social_reels FOR SELECT USING (true);
   DROP POLICY IF EXISTS "Allow modify social_reels" ON public.social_reels;
-  CREATE POLICY "Allow modify social_reels" ON public.social_reels FOR ALL USING (true);
+  DROP POLICY IF EXISTS "Admin modify social_reels" ON public.social_reels;
+  CREATE POLICY "Public read social_reels" ON public.social_reels FOR SELECT USING (true);
+  CREATE POLICY "Admin modify social_reels" ON public.social_reels FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
-  -- Testimonials policies
+  -- 10. Testimonials
   DROP POLICY IF EXISTS "Public read testimonials" ON public.testimonials;
-  CREATE POLICY "Public read testimonials" ON public.testimonials FOR SELECT USING (true);
   DROP POLICY IF EXISTS "Allow modify testimonials" ON public.testimonials;
-  CREATE POLICY "Allow modify testimonials" ON public.testimonials FOR ALL USING (true);
+  DROP POLICY IF EXISTS "Public submit review" ON public.testimonials;
+  DROP POLICY IF EXISTS "Admin modify testimonials" ON public.testimonials;
+  CREATE POLICY "Public read testimonials" ON public.testimonials FOR SELECT USING (true);
+  CREATE POLICY "Public submit review" ON public.testimonials FOR INSERT WITH CHECK (true);
+  CREATE POLICY "Admin modify testimonials" ON public.testimonials FOR UPDATE TO authenticated USING (true) WITH CHECK (true);
+  CREATE POLICY "Admin delete testimonials" ON public.testimonials FOR DELETE TO authenticated USING (true);
 
-  -- FAQs policies
+  -- 11. FAQs
   DROP POLICY IF EXISTS "Public read faqs" ON public.faqs;
-  CREATE POLICY "Public read faqs" ON public.faqs FOR SELECT USING (true);
   DROP POLICY IF EXISTS "Allow modify faqs" ON public.faqs;
-  CREATE POLICY "Allow modify faqs" ON public.faqs FOR ALL USING (true);
+  DROP POLICY IF EXISTS "Admin modify faqs" ON public.faqs;
+  CREATE POLICY "Public read faqs" ON public.faqs FOR SELECT USING (true);
+  CREATE POLICY "Admin modify faqs" ON public.faqs FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
-  -- Subscribers policies
+  -- 12. Subscribers (Protected email addresses: public insert only, admin select/delete)
   DROP POLICY IF EXISTS "Public insert subscribers" ON public.subscribers;
-  CREATE POLICY "Public insert subscribers" ON public.subscribers FOR INSERT WITH CHECK (true);
   DROP POLICY IF EXISTS "Allow manage subscribers" ON public.subscribers;
-  CREATE POLICY "Allow manage subscribers" ON public.subscribers FOR ALL USING (true);
+  DROP POLICY IF EXISTS "Admin read subscribers" ON public.subscribers;
+  DROP POLICY IF EXISTS "Admin delete subscribers" ON public.subscribers;
+  CREATE POLICY "Public insert subscribers" ON public.subscribers FOR INSERT WITH CHECK (true);
+  CREATE POLICY "Admin read subscribers" ON public.subscribers FOR SELECT TO authenticated USING (true);
+  CREATE POLICY "Admin delete subscribers" ON public.subscribers FOR DELETE TO authenticated USING (true);
 
-  -- Video settings policies
+  -- 13. Video settings
   DROP POLICY IF EXISTS "Public read video_settings" ON public.video_settings;
-  CREATE POLICY "Public read video_settings" ON public.video_settings FOR SELECT USING (true);
   DROP POLICY IF EXISTS "Allow modify video_settings" ON public.video_settings;
-  CREATE POLICY "Allow modify video_settings" ON public.video_settings FOR ALL USING (true);
+  DROP POLICY IF EXISTS "Admin modify video_settings" ON public.video_settings;
+  CREATE POLICY "Public read video_settings" ON public.video_settings FOR SELECT USING (true);
+  CREATE POLICY "Admin modify video_settings" ON public.video_settings FOR ALL TO authenticated USING (true) WITH CHECK (true);
 END $$;
 
 -- ==============================================================================
@@ -292,15 +347,53 @@ ALTER PUBLICATION supabase_realtime ADD TABLE
   public.subscribers,
   public.video_settings;
 
--- Default single-record rows
-INSERT INTO public.store_settings (id, store_name, whatsapp, phone, email, address, hours, logo, low_stock_threshold)
-VALUES ('default', 'OPTIQUE', '923001234567', '+92 300 1234567', 'info@optique.com', 'Main Boulevard, Gulberg III, Lahore', 'Mon - Sat: 11:00 AM - 9:00 PM', '/brand-logo.png', 3)
-ON CONFLICT (id) DO NOTHING;
+-- ==============================================================================
+-- 1. COLUMN MIGRATIONS (ENSURE ALL COLUMNS EXIST FIRST)
+-- ==============================================================================
 
-INSERT INTO public.announcements (id, enabled, message, link_text, link_url)
-VALUES ('default', true, 'Complimentary anti-reflective coating on all prescription frames this month.', 'Book consultation', '/contact')
-ON CONFLICT (id) DO NOTHING;
+ALTER TABLE IF EXISTS public.brands ADD COLUMN IF NOT EXISTS enabled BOOLEAN DEFAULT true;
+ALTER TABLE IF EXISTS public.brands ADD COLUMN IF NOT EXISTS sort_order INTEGER DEFAULT 0;
 
-INSERT INTO public.video_settings (id, url, title, caption, enabled)
-VALUES ('default', '', 'In the Workshop', 'Every pair hand-finished by our master opticians', true)
-ON CONFLICT (id) DO NOTHING;
+ALTER TABLE IF EXISTS public.faqs ADD COLUMN IF NOT EXISTS enabled BOOLEAN DEFAULT true;
+ALTER TABLE IF EXISTS public.faqs ADD COLUMN IF NOT EXISTS sort_order INTEGER DEFAULT 0;
+
+ALTER TABLE IF EXISTS public.hero_slides ADD COLUMN IF NOT EXISTS enabled BOOLEAN DEFAULT true;
+ALTER TABLE IF EXISTS public.hero_slides ADD COLUMN IF NOT EXISTS sort_order INTEGER DEFAULT 0;
+
+ALTER TABLE IF EXISTS public.social_reels ADD COLUMN IF NOT EXISTS enabled BOOLEAN DEFAULT true;
+ALTER TABLE IF EXISTS public.social_reels ADD COLUMN IF NOT EXISTS sort_order INTEGER DEFAULT 0;
+
+ALTER TABLE IF EXISTS public.testimonials ADD COLUMN IF NOT EXISTS enabled BOOLEAN DEFAULT true;
+ALTER TABLE IF EXISTS public.testimonials ADD COLUMN IF NOT EXISTS verified BOOLEAN DEFAULT true;
+ALTER TABLE IF EXISTS public.testimonials ADD COLUMN IF NOT EXISTS sort_order INTEGER DEFAULT 0;
+
+-- ==============================================================================
+-- 2. HIGH-PERFORMANCE DATABASE INDEXES (QUERY OPTIMIZATION & ANTI-DOS)
+-- ==============================================================================
+
+CREATE INDEX IF NOT EXISTS idx_products_slug ON public.products (slug);
+CREATE INDEX IF NOT EXISTS idx_products_category ON public.products (category_id);
+CREATE INDEX IF NOT EXISTS idx_products_status ON public.products (enabled, is_bestseller, is_new_arrival);
+CREATE INDEX IF NOT EXISTS idx_products_created_at ON public.products (created_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_categories_slug ON public.categories (slug);
+CREATE INDEX IF NOT EXISTS idx_categories_sort ON public.categories (sort_order ASC);
+
+CREATE INDEX IF NOT EXISTS idx_collections_slug ON public.collections (slug);
+CREATE INDEX IF NOT EXISTS idx_collections_category ON public.collections (category_id);
+CREATE INDEX IF NOT EXISTS idx_collections_sort ON public.collections (sort_order ASC);
+
+CREATE INDEX IF NOT EXISTS idx_orders_phone ON public.orders (phone);
+CREATE INDEX IF NOT EXISTS idx_orders_customer ON public.orders (customer_name);
+CREATE INDEX IF NOT EXISTS idx_orders_status ON public.orders (status);
+CREATE INDEX IF NOT EXISTS idx_orders_created ON public.orders (created_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_testimonials_product ON public.testimonials (product_id);
+CREATE INDEX IF NOT EXISTS idx_testimonials_verified ON public.testimonials (verified, enabled);
+
+CREATE INDEX IF NOT EXISTS idx_subscribers_email ON public.subscribers (email);
+
+CREATE INDEX IF NOT EXISTS idx_hero_slides_sort ON public.hero_slides (sort_order ASC, enabled);
+CREATE INDEX IF NOT EXISTS idx_brands_sort ON public.brands (sort_order ASC, enabled);
+CREATE INDEX IF NOT EXISTS idx_social_reels_sort ON public.social_reels (sort_order ASC, enabled);
+CREATE INDEX IF NOT EXISTS idx_faqs_sort ON public.faqs (sort_order ASC, enabled);

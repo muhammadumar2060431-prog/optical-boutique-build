@@ -29,19 +29,55 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { useCart } from "@/lib/cart";
-import { seedProducts } from "@/lib/seed";
+import { supabase } from "@/lib/supabase";
+import { mapDbProductToStore } from "@/lib/supabaseSync";
+import type { Product } from "@/lib/types";
 import { formatPrice, newId, useStore } from "@/lib/store";
-import { cn } from "@/lib/utils";
+import { cn, getSiteUrl } from "@/lib/utils";
 import { productEnquiryMessage, whatsappLink } from "@/lib/whatsapp";
 
 export const Route = createFileRoute("/product/$slug")({
-  head: ({ params }) => {
-    const product = seedProducts.find((p) => p.slug === params.slug);
-    const url = `https://optical-boutique-build.lovable.app/product/${params.slug}`;
+  loader: async ({ params }) => {
+    // 1. Fetch real product from Supabase by slug
+    try {
+      const { data, error } = await supabase
+        .from("products")
+        .select("*")
+        .eq("slug", params.slug)
+        .maybeSingle();
+
+      if (data && !error) {
+        return { product: mapDbProductToStore(data) };
+      }
+    } catch {}
+
+    // 2. Fallback to client localStorage if available
+    if (typeof window !== "undefined") {
+      try {
+        const raw = localStorage.getItem("optique_v1_products");
+        if (raw) {
+          const prods: Product[] = JSON.parse(raw);
+          const found = prods.find((p) => p.slug === params.slug);
+          if (found) return { product: found };
+        }
+      } catch {}
+    }
+
+    return { product: null };
+  },
+  head: ({ loaderData, params }) => {
+    const product = loaderData?.product;
+    const url = getSiteUrl(`/product/${params.slug}`);
     const title = product ? `${product.name} — OPTIQUE Eyewear` : "Product — OPTIQUE Eyewear";
-    const description = product
+    const description = product?.description
       ? product.description.slice(0, 155)
       : "Frame and lens details, colour options, stock and fitting information.";
+    const rawImage =
+      product?.image && product.image !== "/placeholder.svg"
+        ? product.image
+        : "/brand-logo.png";
+    const ogImageUrl = rawImage.startsWith("http") ? rawImage : getSiteUrl(rawImage);
+
     return {
       meta: [
         { title },
@@ -50,6 +86,13 @@ export const Route = createFileRoute("/product/$slug")({
         { property: "og:description", content: description },
         { property: "og:type", content: "product" },
         { property: "og:url", content: url },
+        { property: "og:image", content: ogImageUrl },
+        { property: "og:image:secure_url", content: ogImageUrl },
+        { property: "og:image:alt", content: title },
+        { name: "twitter:card", content: "summary_large_image" },
+        { name: "twitter:title", content: title },
+        { name: "twitter:description", content: description },
+        { name: "twitter:image", content: ogImageUrl },
       ],
       links: [{ rel: "canonical", href: url }],
       scripts: product
@@ -61,11 +104,16 @@ export const Route = createFileRoute("/product/$slug")({
                 "@type": "Product",
                 name: product.name,
                 description: product.description,
+                image: [ogImageUrl],
                 offers: {
                   "@type": "Offer",
                   price: product.salePrice ?? product.price,
                   priceCurrency: "PKR",
                   url,
+                  availability:
+                    product.stock > 0
+                      ? "https://schema.org/InStock"
+                      : "https://schema.org/OutOfStock",
                 },
               }),
             },
@@ -97,9 +145,10 @@ function ProductPage() {
   const navigate = useNavigate();
   const product = getProductBySlug(slug);
 
-  const [variantId, setVariantId] = useState<string | null>(product?.variants[0]?.id ?? null);
+  const [variantId, setVariantId] = useState<string | null>(null);
   const [activeImage, setActiveImage] = useState<string | null>(null);
   const [selectedVideoUrl, setSelectedVideoUrl] = useState<string | null>(null);
+  const [isDescExpanded, setIsDescExpanded] = useState(false);
 
   // Review Form state
   const [reviewFormOpen, setReviewFormOpen] = useState(false);
@@ -179,22 +228,37 @@ function ProductPage() {
   const category = getCategoryById(product.categoryId);
   const collection = product.collectionId ? getCollectionById(product.collectionId) : null;
 
-  // Build full gallery including variant images and sub images
-  const allImages = [
-    product.image,
-    ...(product.subImages || []),
-    ...product.variants.map((v) => v.image).filter(Boolean),
-  ];
-  const gallery = Array.from(
-    new Set(
-      allImages.filter((img): img is string => typeof img === "string" && img.trim().length > 0),
-    ),
-  );
+  // Build full gallery including primary image, sub images and variant images
+  const subImagesList: string[] = (
+    Array.isArray(product.subImages) && product.subImages.length > 0
+      ? product.subImages
+      : Array.isArray((product.details as any)?.subImages) && (product.details as any).subImages.length > 0
+        ? (product.details as any).subImages
+        : Array.isArray((product as any).images) && (product as any).images.length > 1
+          ? (product as any).images.slice(1)
+          : []
+  ).filter((img: any): img is string => typeof img === "string" && img.trim().length > 0);
+
+  const variantImagesList: string[] = Array.isArray(product.variants)
+    ? product.variants
+        .map((v) => v.image)
+        .filter((img): img is string => typeof img === "string" && img.trim().length > 0)
+    : [];
+
+  const galleryItems = [
+    { src: product.image, id: "main-0", label: "Primary View" },
+    ...subImagesList.map((img, i) => ({ src: img, id: `angle-${i}`, label: `Angle ${i + 1}` })),
+    ...variantImagesList.map((img, i) => ({ src: img, id: `variant-${i}`, label: `Option ${i + 1}` })),
+  ].filter((item): item is { src: string; id: string; label: string } => typeof item.src === "string" && item.src.trim().length > 0);
+
+  const gallery = galleryItems.map((g) => g.src);
 
   const mainImage =
     (activeImage && activeImage.trim().length > 0 ? activeImage : null) ??
     (variant?.image && variant.image.trim().length > 0 ? variant.image : null) ??
-    (product.image && product.image.trim().length > 0 ? product.image : "/brand-logo.png");
+    (product.image && product.image !== "/placeholder.svg" && product.image.trim().length > 0
+      ? product.image
+      : subImagesList[0] || product.image || "/placeholder.svg");
   const currentPrice = variant?.price ?? product.salePrice ?? product.price;
   const isDiscounted = !!product.salePrice && !variant?.price;
   const stock = variant ? variant.stock : productStock(product);
@@ -325,21 +389,29 @@ function ProductPage() {
               </div>
             </div>
 
-            {gallery.length > 1 && (
+            {galleryItems.length > 1 && (
               <div className="flex gap-3 overflow-x-auto pb-2">
-                {gallery.map((img) => (
+                {galleryItems.map((item, idx) => (
                   <button
-                    key={img}
+                    key={item.id}
                     type="button"
-                    onClick={() => setActiveImage(img)}
+                    onClick={() => {
+                      setActiveImage(item.src);
+                      if (item.src === product.image) setVariantId(null);
+                    }}
                     className={cn(
-                      "h-20 w-20 shrink-0 overflow-hidden rounded-xl border bg-jet transition-all duration-200",
-                      mainImage === img
+                      "h-20 w-20 shrink-0 overflow-hidden rounded-xl border bg-jet transition-all duration-200 cursor-pointer",
+                      mainImage === item.src || (!activeImage && idx === 0)
                         ? "border-gold ring-2 ring-gold/30 scale-95"
                         : "border-stone hover:border-gold/60 opacity-80 hover:opacity-100",
                     )}
                   >
-                    <img src={img} alt="" loading="lazy" className="h-full w-full object-cover" />
+                    <img
+                      src={item.src}
+                      alt={`${product.name} - ${item.label}`}
+                      loading="lazy"
+                      className="h-full w-full object-cover"
+                    />
                   </button>
                 ))}
               </div>
@@ -402,7 +474,31 @@ function ProductPage() {
               </div>
             </div>
 
-            <p className="text-[15px] leading-relaxed text-ink-muted">{product.description}</p>
+            {(() => {
+              const descLines = (product.description || "").split("\n");
+              const isLong = descLines.length > 12;
+              const displayText =
+                isLong && !isDescExpanded
+                  ? descLines.slice(0, 12).join("\n")
+                  : product.description;
+
+              return (
+                <div className="space-y-1">
+                  <p className="text-[15px] leading-relaxed text-black font-medium whitespace-pre-line">
+                    {displayText}
+                  </p>
+                  {isLong && (
+                    <button
+                      type="button"
+                      onClick={() => setIsDescExpanded(!isDescExpanded)}
+                      className="text-xs font-bold text-gold hover:underline cursor-pointer focus:outline-none inline-block pt-1"
+                    >
+                      {isDescExpanded ? "Show less" : "... Read more"}
+                    </button>
+                  )}
+                </div>
+              );
+            })()}
 
             {/* Interactive Colour Swatches */}
             {product.variants.length > 0 && (
@@ -431,7 +527,8 @@ function ProductPage() {
                         type="button"
                         title={v.label}
                         onClick={() => {
-                          setVariantId(v.id);
+                          const nextVariantId = isSelected ? null : v.id;
+                          setVariantId(nextVariantId);
                           setActiveImage(null);
                         }}
                         className="group relative flex flex-col items-center gap-1"
@@ -1013,7 +1110,7 @@ function ProductPage() {
         {related.length > 0 && (
           <section className="mt-20 border-t border-stone/60 pt-14">
             <h2 className="font-display text-3xl">You may also like</h2>
-            <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="mt-8 grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
               {related.map((p, i) => (
                 <Reveal key={p.id} delay={i * 60}>
                   <ProductCard product={p} />

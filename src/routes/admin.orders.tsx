@@ -199,8 +199,9 @@ function OrderDetailsModal({
 
   const trackingPortalUrl = getCourierTrackingUrl(courierName, trackingNumber);
 
+  const siteOrigin = typeof window !== "undefined" ? window.location.origin : "";
   const dispatchWaMessage = encodeURIComponent(
-    `Assalam-o-Alaikum ${order.customerName}! Aapka ${storeName} order (${order.reference}) dispatch ho chuka hai via ${courierName}.${trackingNumber ? ` Tracking Number: ${trackingNumber}.` : ""}\n\nAap apna parcel yahan track kar sakte hain: ${trackingPortalUrl || `https://optical-boutique-build.lovable.app/order-status?ref=${order.reference}`}\n\nShukriya!`,
+    `Assalam-o-Alaikum ${order.customerName}! Aapka ${storeName} order (${order.reference}) dispatch ho chuka hai via ${courierName}.${trackingNumber ? ` Tracking Number: ${trackingNumber}.` : ""}\n\nAap apna parcel yahan track kar sakte hain: ${trackingPortalUrl || `${siteOrigin}/order-status?ref=${order.reference}`}\n\nShukriya!`,
   );
   const dispatchWaUrl = info.waNumber ? `https://wa.me/${info.waNumber}?text=${dispatchWaMessage}` : null;
 

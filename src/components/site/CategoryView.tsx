@@ -54,9 +54,12 @@ export function CategoryView({ category }: { category: Category }) {
   return (
     <>
       {/* ── 1. Top-Level Category Banner ────────────────────────────── */}
-      {category.banner && category.banner.image && (
+      {category.banner &&
+        category.banner.image &&
         (() => {
-          const hasText = Boolean(category.banner.heading?.trim() || category.banner.subtext?.trim());
+          const hasText = Boolean(
+            category.banner.heading?.trim() || category.banner.subtext?.trim(),
+          );
           return (
             <section className="relative isolate overflow-hidden bg-jet">
               <img
@@ -65,7 +68,9 @@ export function CategoryView({ category }: { category: Category }) {
                 loading="lazy"
                 className={cn(
                   "w-full object-cover transition-all",
-                  hasText ? "absolute inset-0 h-full opacity-65" : "h-auto max-h-[440px] opacity-100 block"
+                  hasText
+                    ? "absolute inset-0 h-full opacity-65"
+                    : "h-auto max-h-[440px] opacity-100 block",
                 )}
               />
               {hasText && (
@@ -73,7 +78,9 @@ export function CategoryView({ category }: { category: Category }) {
                   <div className="absolute inset-0 bg-gradient-to-r from-jet via-jet/80 to-transparent" />
                   <div className="relative mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-24">
                     <div className="max-w-xl space-y-4">
-                      <span className="eyebrow text-gold font-bold tracking-widest">Official Category</span>
+                      <span className="eyebrow text-gold font-bold tracking-widest">
+                        Official Category
+                      </span>
                       <h1 className="font-display text-4xl text-cream sm:text-6xl font-normal">
                         {category.banner.heading}
                       </h1>
@@ -88,8 +95,7 @@ export function CategoryView({ category }: { category: Category }) {
               )}
             </section>
           );
-        })()
-      )}
+        })()}
 
       {/* ── 2. Filter & Sort Bar ──────────────────────────────────────── */}
       <section className="mx-auto max-w-7xl px-4 pt-8 sm:px-6">
@@ -169,97 +175,17 @@ export function CategoryView({ category }: { category: Category }) {
         </div>
       </section>
 
-      {/* ── 3. Sequential Collection Sections with Static 4-Col Grid ─── */}
-      <div className="mx-auto max-w-7xl px-4 pb-20 sm:px-6 space-y-16 mt-10">
-        {collections.length > 0
-          ? collections.map((col) => {
-              const colProducts = allCategoryProducts.filter((p) => p.collectionId === col.id);
-              if (colProducts.length === 0) return null;
-
-              return (
-                <section key={col.id} className="space-y-8 scroll-mt-20" id={col.slug}>
-                  {/* Collection Dedicated Banner */}
-                  {col.banner && col.banner.image && (
-                    (() => {
-                      const hasText = Boolean(col.banner.heading?.trim() || col.banner.subtext?.trim());
-                      return (
-                        <div className="relative isolate overflow-hidden rounded-2xl bg-jet shadow-md border border-stone group min-h-[240px] sm:min-h-[320px] flex items-center">
-                          <img
-                            src={col.banner.image}
-                            alt={col.name}
-                            loading="lazy"
-                            className={cn(
-                              "w-full object-cover transition-all duration-700 group-hover:scale-105",
-                              hasText ? "absolute inset-0 h-full opacity-50" : "h-auto max-h-[460px] min-h-[260px] sm:min-h-[340px] opacity-100 block"
-                            )}
-                          />
-                          {hasText && (
-                            <>
-                              <div className="absolute inset-0 bg-gradient-to-r from-jet via-jet/80 to-transparent" />
-                              <div className="relative px-6 py-14 sm:px-12 sm:py-20 max-w-xl space-y-3">
-                                <span className="eyebrow text-gold font-bold uppercase tracking-widest">
-                                  {category.name} Collection
-                                </span>
-                                {col.banner.heading?.trim() && (
-                                  <h3 className="font-display text-2xl text-cream sm:text-4xl font-normal">
-                                    {col.banner.heading}
-                                  </h3>
-                                )}
-                                {col.banner.subtext?.trim() && (
-                                  <p className="text-xs sm:text-sm text-cream/80 leading-relaxed">
-                                    {col.banner.subtext}
-                                  </p>
-                                )}
-                              </div>
-                            </>
-                          )}
-                        </div>
-                      );
-                    })()
-                  )}
-
-                  {/* If no banner, show clear heading */}
-                  {!col.banner && (
-                    <div className="border-l-2 border-gold pl-4">
-                      <h3 className="font-display text-2xl sm:text-3xl">{col.name}</h3>
-                      {col.description && (
-                        <p className="text-xs text-ink-muted">{col.description}</p>
-                      )}
-                    </div>
-                  )}
-
-                  {/* 4 Products per row static vertical grid */}
-                  <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                    {colProducts.map((p, i) => (
-                      <Reveal key={p.id} delay={i * 50}>
-                        <ProductCard product={p} />
-                      </Reveal>
-                    ))}
-                  </div>
-                </section>
-              );
-            })
-          : null}
-
-        {/* Fallback for products without an assigned collection */}
-        {allCategoryProducts.some((p) => !p.collectionId) && (
-          <section className="space-y-6 pt-6">
-            <div className="border-l-2 border-gold pl-4">
-              <h3 className="font-display text-2xl">Other {category.name} Pieces</h3>
-            </div>
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {allCategoryProducts
-                .filter((p) => !p.collectionId)
-                .map((p, i) => (
-                  <Reveal key={p.id} delay={i * 50}>
-                    <ProductCard product={p} />
-                  </Reveal>
-                ))}
-            </div>
-          </section>
-        )}
-
-        {allCategoryProducts.length === 0 && (
+      {/* ── 3. Unified 4-Column Product Grid ─── */}
+      <div className="mx-auto max-w-7xl px-4 pb-20 sm:px-6 mt-10">
+        {allCategoryProducts.length > 0 ? (
+          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
+            {allCategoryProducts.map((p, i) => (
+              <Reveal key={p.id} delay={i * 50}>
+                <ProductCard product={p} />
+              </Reveal>
+            ))}
+          </div>
+        ) : (
           <div className="rounded-xl border border-dashed border-stone bg-card px-6 py-20 text-center">
             <p className="font-display text-2xl">No products found</p>
             <p className="mt-2 text-sm text-ink-muted">

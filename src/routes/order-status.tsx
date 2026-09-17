@@ -12,8 +12,9 @@ import { getCourierTrackingUrl } from "@/lib/couriers";
 import { useStore } from "@/lib/store";
 import { whatsappLink } from "@/lib/whatsapp";
 import type { Order, OrderStatus } from "@/lib/types";
+import { getSiteUrl } from "@/lib/utils";
 
-const CANONICAL = "https://optical-boutique-build.lovable.app/order-status";
+const CANONICAL = getSiteUrl("/order-status");
 
 export const Route = createFileRoute("/order-status")({
   validateSearch: (search: Record<string, unknown>) => ({

@@ -20,6 +20,7 @@ export interface ProductSpecs {
   material: string;
   lensInfo: string;
   care: string;
+  subImages?: string[];
 }
 
 export interface Product {
@@ -73,6 +74,7 @@ export interface Category {
   name: string;
   image?: string | null;
   banner: CategoryBanner | null;
+  sortOrder?: number;
 }
 
 export type OrderSource = "whatsapp" | "form" | "cart";
@@ -107,6 +109,7 @@ export interface HeroSlide {
   ctaText: string;
   ctaLink: string;
   enabled: boolean;
+  sortOrder?: number;
 }
 
 export interface AnnouncementSettings {
@@ -129,6 +132,7 @@ export interface Testimonial {
   reviewImage?: string | null;
   createdAt?: string;
   verified?: boolean;
+  sortOrder?: number;
 }
 
 export interface VideoSettings {
@@ -148,7 +152,6 @@ export interface StoreSettings {
   hours: string;
   lowStockThreshold: number;
   adminEmail: string;
-  adminPassword: string;
   aboutHeadline: string;
   aboutBody: string;
 }
@@ -160,6 +163,7 @@ export interface Brand {
   name: string;
   logo: string | null;
   enabled: boolean;
+  sortOrder?: number;
 }
 
 export type SocialPlatform = "instagram" | "tiktok" | "youtube" | "facebook" | "custom";
@@ -175,6 +179,7 @@ export interface SocialReel {
   duration?: string;
   productId?: ID | null;
   enabled: boolean;
+  sortOrder?: number;
 }
 
 export interface FAQItem {
@@ -183,6 +188,7 @@ export interface FAQItem {
   answer: string;
   category?: string;
   enabled: boolean;
+  sortOrder?: number;
 }
 
 export interface Subscriber {
@@ -202,4 +208,3 @@ export interface ContactQuery {
   createdAt: string;
   status: "New" | "Responded" | "Archived";
 }
-

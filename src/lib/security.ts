@@ -69,6 +69,16 @@ export function sanitizeHref(url: string | null | undefined, fallback = "#"): st
 }
 
 /**
+ * Returns a safe image source. Allows the same safe URLs as links plus uploaded data images.
+ */
+export function sanitizeImageSrc(url: string | null | undefined, fallback = ""): string {
+  if (!url) return fallback;
+  const cleaned = sanitizeRawInput(url);
+  const imageCheck = validateImageUrl(cleaned);
+  return imageCheck.valid ? cleaned : fallback;
+}
+
+/**
  * Sanitizes plain text input to prevent XSS string injections.
  */
 export function sanitizeText(text: string): string {
@@ -254,4 +264,39 @@ export function validateDestinationLink(url: string): { valid: boolean; error?: 
   }
 
   return { valid: true };
+}
+
+/**
+ * Escapes special characters used in PostgREST and SQL queries to prevent filter injection.
+ * Strips null bytes (\0), unescaped quotes, semi-colons, and PostgREST operators.
+ */
+export function escapePostgrestFilter(term: string): string {
+  if (!term) return "";
+  return sanitizeRawInput(term)
+    .replace(/\0/g, "")               // null bytes
+    .replace(/['";\\]/g, "")          // quotes and semicolons
+    .replace(/[(),]/g, "")            // PostgREST composite filter tokens
+    .replace(/[%_]/g, "\\$&")         // SQL LIKE wildcard escapes
+    .slice(0, 200);                   // boundary protection
+}
+
+/**
+ * Sanitizes input before insertion or update in database.
+ * Removes null bytes, dangerous control characters, and limits boundary length.
+ */
+export function sanitizeDbInput<T>(input: T): T {
+  if (typeof input === "string") {
+    return sanitizeRawInput(input).replace(/\0/g, "") as unknown as T;
+  }
+  if (Array.isArray(input)) {
+    return input.map(sanitizeDbInput) as unknown as T;
+  }
+  if (input !== null && typeof input === "object") {
+    const sanitizedObj: Record<string, any> = {};
+    for (const [key, val] of Object.entries(input)) {
+      sanitizedObj[key] = sanitizeDbInput(val);
+    }
+    return sanitizedObj as T;
+  }
+  return input;
 }

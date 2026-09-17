@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import {
   ArrowDown,
@@ -39,7 +39,7 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { formatPrice, newId, useStore } from "@/lib/store";
-import type { SocialPlatform, SocialReel } from "@/lib/types";
+import type { Brand, HeroSlide, SocialPlatform, SocialReel } from "@/lib/types";
 
 export const Route = createFileRoute("/admin/content")({
   component: AdminContent,
@@ -95,19 +95,31 @@ function BrandsPanel() {
 
   const handleAdd = () => {
     const name = newName.trim();
-    if (!name) {
-      toast.error("Brand name daalen.");
+    const logo = newLogo?.trim() || null;
+
+    if (!name && !logo) {
+      toast.error("Brand name ya logo mein se ek cheez add karein.");
       return;
     }
+
+    if (logo) {
+      const logoCheck = validateImageUrl(logo);
+      if (!logoCheck.valid) {
+        toast.error(logoCheck.error || "Invalid brand logo.");
+        return;
+      }
+    }
+
+    const displayName = name || "Brand logo";
     saveBrand({
       id: "",
       name,
-      logo: newLogo || null,
+      logo,
       enabled: true,
     });
     setNewName("");
     setNewLogo(null);
-    toast.success(`"${name}" brands bar mein add ho gaya!`);
+    toast.success(`"${displayName}" brands bar mein add ho gaya!`);
   };
 
   return (
@@ -133,6 +145,9 @@ function BrandsPanel() {
           onChange={setNewLogo}
           hint="PNG transparent background • 320×80 px • Max 5 MB"
           aspectHint="Wide logo"
+          maxWidth={420}
+          maxHeight={140}
+          outputQuality={0.82}
         />
         <Button className="min-h-11 rounded-full" onClick={handleAdd}>
           <Plus className="h-4 w-4 mr-2" />
@@ -154,21 +169,21 @@ function BrandsPanel() {
               {/* Logo preview */}
               <div className="w-16 flex-shrink-0 flex items-center justify-center">
                 {brand.logo ? (
-                  <img src={brand.logo} alt={brand.name} className="h-7 object-contain" />
+                  <img src={brand.logo} alt={brand.name || "Brand logo"} className="h-7 object-contain" />
                 ) : (
                   <span className="text-xs text-ink-muted font-display uppercase tracking-widest">
-                    {brand.name}
+                    {brand.name || "Logo"}
                   </span>
                 )}
               </div>
 
-              <span className="flex-1 font-semibold text-sm truncate">{brand.name}</span>
+              <span className="flex-1 font-semibold text-sm truncate">{brand.name || "Logo only"}</span>
 
               {/* Enable/Disable */}
               <Switch
                 checked={brand.enabled}
                 onCheckedChange={(v) => saveBrand({ ...brand, enabled: v })}
-                aria-label={`${brand.name} enable/disable`}
+                aria-label={`${brand.name || "Brand"} enable/disable`}
               />
 
               {/* Move up/down */}
@@ -199,7 +214,7 @@ function BrandsPanel() {
                 className="text-destructive hover:text-destructive"
                 onClick={() => {
                   deleteBrand(brand.id);
-                  toast.success(`"${brand.name}" delete ho gaya.`);
+                  toast.success(`"${brand.name || "Brand logo"}" delete ho gaya.`);
                 }}
               >
                 <Trash2 className="h-4 w-4" />
@@ -231,12 +246,7 @@ function BrandsPanel() {
                   singleBlock = [...singleBlock, ...enabledBrands];
                 }
                 return [...singleBlock, ...singleBlock].map((b, i) => (
-                  <span
-                    key={`prev-${b.id}-${i}`}
-                    className="px-8 font-display text-base uppercase tracking-widest opacity-60 flex-shrink-0"
-                  >
-                    {b.name}
-                  </span>
+                  <BrandPreviewItem key={`prev-${b.id}-${i}`} brand={b} />
                 ));
               })()}
             </div>
@@ -247,9 +257,33 @@ function BrandsPanel() {
   );
 }
 
+function BrandPreviewItem({ brand }: { brand: Brand }) {
+  return (
+    <span className="px-8 flex h-10 flex-shrink-0 items-center justify-center opacity-70">
+      {brand.logo ? (
+        <>
+          <img src={brand.logo} alt={brand.name || "Brand logo"} className="h-7 max-w-28 object-contain" />
+          {brand.name && (
+            <span className="font-display text-sm uppercase tracking-widest">{brand.name}</span>
+          )}
+        </>
+      ) : (
+        <span className="font-display text-base uppercase tracking-widest">{brand.name}</span>
+      )}
+    </span>
+  );
+}
+
 function AnnouncementPanel() {
   const { announcement, updateAnnouncement } = useStore();
   const [text, setText] = useState(announcement.messages.join("\n"));
+  const [isEditing, setIsEditing] = useState(false);
+
+  useEffect(() => {
+    if (!isEditing) {
+      setText(announcement.messages.join("\n"));
+    }
+  }, [announcement.messages, isEditing]);
 
   return (
     <div className="space-y-5 rounded-xl border border-stone bg-card p-6">
@@ -267,10 +301,13 @@ function AnnouncementPanel() {
           id="a-messages"
           rows={5}
           value={text}
+          onFocus={() => setIsEditing(true)}
+          onBlur={() => setIsEditing(false)}
           onChange={(e) => {
-            setText(e.target.value);
+            const nextText = e.target.value.replace(/\r\n/g, "\n");
+            setText(nextText);
             updateAnnouncement({
-              messages: e.target.value.split("\n").filter((m) => m.trim().length > 0),
+              messages: nextText.split("\n"),
             });
           }}
         />
@@ -307,7 +344,10 @@ function AnnouncementPanel() {
         >
           <div className="marquee-track whitespace-nowrap">
             {(() => {
-              const activeMsgs = announcement.messages.filter((m) => m.trim().length > 0);
+              const activeMsgs = text
+                .split(/\r?\n/)
+                .map((m) => m.trim())
+                .filter((m) => m.length > 0);
               if (activeMsgs.length === 0) return null;
               let singleBlock = [...activeMsgs];
               while (singleBlock.length < 16) {
@@ -327,211 +367,307 @@ function AnnouncementPanel() {
 }
 
 function HeroPanel() {
-  const { heroSlides, updateHeroSlide, moveHeroSlide } = useStore();
+  const { heroSlides, updateHeroSlide, moveHeroSlide, setHeroSlides, deleteHeroSlide } = useStore();
+
+  const handleAddSlide = () => {
+    const newSlide: HeroSlide = {
+      id: "hero-" + Math.random().toString(36).slice(2, 9),
+      image: "",
+      headline: "",
+      subtext: "",
+      ctaText: "",
+      ctaLink: "",
+      eyebrow: "",
+      enabled: true,
+    };
+    setHeroSlides([...heroSlides, newSlide]);
+    toast.success("New slide added. Fill in the details below.");
+  };
 
   return (
-    <div className="space-y-4">
-      {heroSlides.map((slide, i) => (
-        <div key={slide.id} className="space-y-4 rounded-xl border border-stone bg-card p-6">
-          <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
-            <h2 className="truncate font-display text-xl">Slide {i + 1}</h2>
-            <div className="flex shrink-0 items-center gap-2">
-              <Button
-                size="icon"
-                variant="ghost"
-                aria-label="Move slide up"
-                disabled={i === 0}
-                onClick={() => moveHeroSlide(slide.id, -1)}
-              >
-                <ArrowUp className="h-4 w-4" aria-hidden="true" />
-              </Button>
-              <Button
-                size="icon"
-                variant="ghost"
-                aria-label="Move slide down"
-                disabled={i === heroSlides.length - 1}
-                onClick={() => moveHeroSlide(slide.id, 1)}
-              >
-                <ArrowDown className="h-4 w-4" aria-hidden="true" />
-              </Button>
-              <Switch
-                checked={slide.enabled}
-                onCheckedChange={(v) => updateHeroSlide(slide.id, { enabled: v })}
-              />
-            </div>
-          </div>
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="font-display text-2xl">Hero Slides</h2>
+        <Button onClick={handleAddSlide} className="rounded-full min-h-11">
+          <Plus className="mr-2 h-4 w-4" /> Add Slide
+        </Button>
+      </div>
 
-          <ImageUpload
-            label="Slide image"
-            value={slide.image}
-            onChange={(img) => updateHeroSlide(slide.id, { image: img ?? slide.image })}
-            hint="1440×720 px • Max 300 KB • JPG/WebP landscape recommended"
-            aspectHint="16:9 landscape"
-          />
-
-          <p className="text-xs text-ink-muted">
-            💡 <strong>Image-only banner tip:</strong> Agar aap text fields (Headline, Eyebrow, Subtext, CTA) khali chhodenge to storefront par bina kisi dark overlay ke pure full-image banner show hoga.
+      {heroSlides.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-stone p-12 text-center bg-card">
+          <p className="font-display text-lg">No hero slides yet</p>
+          <p className="text-xs text-ink-muted mt-1 mb-4">
+            Add slides to showcase your main offers on the homepage.
           </p>
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor={`h-eyebrow-${slide.id}`}>Eyebrow label (Optional)</Label>
-              <Input
-                id={`h-eyebrow-${slide.id}`}
-                value={slide.eyebrow}
-                placeholder="Optional"
-                onChange={(e) => updateHeroSlide(slide.id, { eyebrow: e.target.value })}
-                className="min-h-11"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor={`h-headline-${slide.id}`}>Headline (Optional)</Label>
-              <Input
-                id={`h-headline-${slide.id}`}
-                value={slide.headline}
-                placeholder="Optional — khali chhodne par sirf image dikhegi"
-                onChange={(e) => updateHeroSlide(slide.id, { headline: e.target.value })}
-                className="min-h-11"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor={`h-sub-${slide.id}`}>Subtext (Optional)</Label>
-              <Input
-                id={`h-sub-${slide.id}`}
-                value={slide.subtext}
-                placeholder="Optional"
-                onChange={(e) => updateHeroSlide(slide.id, { subtext: e.target.value })}
-                className="min-h-11"
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <Label htmlFor={`h-cta-${slide.id}`}>CTA button text (Optional)</Label>
-                <Input
-                  id={`h-cta-${slide.id}`}
-                  value={slide.ctaText}
-                  placeholder="Optional"
-                  onChange={(e) => updateHeroSlide(slide.id, { ctaText: e.target.value })}
-                  className="min-h-11"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor={`h-link-${slide.id}`}>Banner / CTA link (Optional)</Label>
-                <Input
-                  id={`h-link-${slide.id}`}
-                  value={slide.ctaLink}
-                  placeholder="e.g. /glasses (pure image par click se ye open hoga)"
-                  onChange={(e) => updateHeroSlide(slide.id, { ctaLink: e.target.value })}
-                  className="min-h-11"
-                />
-              </div>
-            </div>
-          </div>
+          <Button className="min-h-11 rounded-full" onClick={handleAddSlide}>
+            <Plus className="h-4 w-4 mr-2" /> Add First Slide
+          </Button>
         </div>
-      ))}
+      ) : (
+        <div className="space-y-4">
+          {heroSlides.map((slide, i) => (
+            <div key={slide.id} className="space-y-4 rounded-xl border border-stone bg-card p-6">
+              <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
+                <h2 className="truncate font-display text-xl">Slide {i + 1}</h2>
+                <div className="flex shrink-0 items-center gap-2">
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    aria-label="Move slide up"
+                    disabled={i === 0}
+                    onClick={() => moveHeroSlide(slide.id, -1)}
+                  >
+                    <ArrowUp className="h-4 w-4" aria-hidden="true" />
+                  </Button>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    aria-label="Move slide down"
+                    disabled={i === heroSlides.length - 1}
+                    onClick={() => moveHeroSlide(slide.id, 1)}
+                  >
+                    <ArrowDown className="h-4 w-4" aria-hidden="true" />
+                  </Button>
+                  <Switch
+                    checked={slide.enabled}
+                    onCheckedChange={(v) => updateHeroSlide(slide.id, { enabled: v })}
+                  />
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                    aria-label="Delete slide"
+                    onClick={() => {
+                      if (window.confirm("Are you sure you want to delete this slide?")) {
+                        deleteHeroSlide(slide.id);
+                        toast.success("Slide deleted.");
+                      }
+                    }}
+                  >
+                    <Trash2 className="h-4 w-4" aria-hidden="true" />
+                  </Button>
+                </div>
+              </div>
+
+              <ImageUpload
+                label="Slide image"
+                value={slide.image}
+                onChange={(img) => updateHeroSlide(slide.id, { image: img ?? slide.image })}
+                hint="1440×720 px • Max 300 KB • JPG/WebP landscape recommended"
+                aspectHint="16:9 landscape"
+              />
+
+              <p className="text-xs text-ink-muted">
+                💡 <strong>Image-only banner tip:</strong> Agar aap text fields (Headline, Eyebrow, Subtext, CTA) khali chhodenge to storefront par bina kisi dark overlay ke pure full-image banner show hoga.
+              </p>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor={`h-eyebrow-${slide.id}`}>Eyebrow label (Optional)</Label>
+                  <Input
+                    id={`h-eyebrow-${slide.id}`}
+                    value={slide.eyebrow}
+                    placeholder="Optional"
+                    onChange={(e) => updateHeroSlide(slide.id, { eyebrow: e.target.value })}
+                    className="min-h-11"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor={`h-headline-${slide.id}`}>Headline (Optional)</Label>
+                  <Input
+                    id={`h-headline-${slide.id}`}
+                    value={slide.headline}
+                    placeholder="Optional — khali chhodne par sirf image dikhegi"
+                    onChange={(e) => updateHeroSlide(slide.id, { headline: e.target.value })}
+                    className="min-h-11"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor={`h-sub-${slide.id}`}>Subtext (Optional)</Label>
+                  <Input
+                    id={`h-sub-${slide.id}`}
+                    value={slide.subtext}
+                    placeholder="Optional"
+                    onChange={(e) => updateHeroSlide(slide.id, { subtext: e.target.value })}
+                    className="min-h-11"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label htmlFor={`h-cta-${slide.id}`}>CTA button text (Optional)</Label>
+                    <Input
+                      id={`h-cta-${slide.id}`}
+                      value={slide.ctaText}
+                      placeholder="Optional"
+                      onChange={(e) => updateHeroSlide(slide.id, { ctaText: e.target.value })}
+                      className="min-h-11"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor={`h-link-${slide.id}`}>Banner / CTA link (Optional)</Label>
+                    <Input
+                      id={`h-link-${slide.id}`}
+                      value={slide.ctaLink}
+                      placeholder="e.g. /glasses (pure image par click se ye open hoga)"
+                      onChange={(e) => updateHeroSlide(slide.id, { ctaLink: e.target.value })}
+                      className="min-h-11"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
 
 function BannerPanel() {
-  const { categories, saveCategory } = useStore();
+  const { categories, saveCategory, moveCategory } = useStore();
+
+  const sortedCategories = useMemo(() => {
+    return [...categories].sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+  }, [categories]);
 
   return (
-    <div className="space-y-4">
-      {categories.map((c) => {
-        const banner = c.banner ?? {
-          image: "",
-          heading: "",
-          subtext: "",
-          ctaText: "Shop Now",
-          ctaLink: `/${c.slug}`,
-        };
-        const patch = (next: Partial<typeof banner>) =>
-          saveCategory({ ...c, banner: { ...banner, ...next } });
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h2 className="font-display text-2xl">Category Banners</h2>
+          <p className="text-xs text-ink-muted mt-1">
+            Customize the header banners that appear at the top of category pages.
+          </p>
+        </div>
+      </div>
 
-        return (
-          <div key={c.id} className="space-y-4 rounded-xl border border-stone bg-card p-6">
-            <div className="flex items-center justify-between">
-              <h2 className="font-display text-xl">{c.name} Category & Banner</h2>
-              <span className="text-xs text-ink-muted">Slug: /{c.slug}</span>
-            </div>
+      {categories.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-stone p-12 text-center bg-card">
+          <p className="font-display text-lg">No categories found</p>
+          <p className="text-xs text-ink-muted mt-1 mb-4">
+            You need to create categories in the Products tab first before you can add banners to them.
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {sortedCategories.map((c, i) => {
+            const banner = c.banner ?? {
+              image: "",
+              heading: "",
+              subtext: "",
+              ctaText: "Shop Now",
+              ctaLink: `/${c.slug}`,
+            };
+            const patch = (next: Partial<typeof banner>) =>
+              saveCategory({ ...c, banner: { ...banner, ...next } });
 
-            <div className="grid gap-6 sm:grid-cols-2">
-              <ImageUpload
-                label="Category Icon / Avatar (Circle shown on Homepage)"
-                value={c.image || null}
-                onChange={(img) => saveCategory({ ...c, image: img })}
-                hint="400×400 px square • Max 100 KB • JPG/WebP"
-                aspectHint="1:1 square"
-              />
-              <ImageUpload
-                label="Category Banner Image"
-                value={banner.image || null}
-                onChange={(img) => patch({ image: img ?? "" })}
-                hint="1200×600 px • Max 250 KB • JPG/WebP wide"
-                aspectHint="2:1 wide"
-              />
-            </div>
-            <p className="text-xs text-ink-muted">
-              💡 <strong>Tip:</strong> Heading aur Subtext optional hain. Agar inko khali chhodenge to category page par clean image banner dikhega.
-            </p>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor={`b-head-${c.id}`}>Heading (Optional)</Label>
-                <Input
-                  id={`b-head-${c.id}`}
-                  value={banner.heading}
-                  placeholder="Optional — khali chhodne par sirf image dikhegi"
-                  onChange={(e) => patch({ heading: e.target.value })}
-                  className="min-h-11"
-                />
+            return (
+              <div key={c.id} className="space-y-4 rounded-xl border border-stone bg-card p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="font-display text-xl">{c.name} Category & Banner</h2>
+                    <span className="text-xs text-ink-muted">Slug: /{c.slug}</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      aria-label="Move category up"
+                      disabled={i === 0}
+                      onClick={() => moveCategory(c.id, -1)}
+                    >
+                      <ArrowUp className="h-4 w-4" aria-hidden="true" />
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      aria-label="Move category down"
+                      disabled={i === categories.length - 1}
+                      onClick={() => moveCategory(c.id, 1)}
+                    >
+                      <ArrowDown className="h-4 w-4" aria-hidden="true" />
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="grid gap-6 sm:grid-cols-2">
+                  <ImageUpload
+                    label="Category Icon / Avatar (Circle shown on Homepage)"
+                    value={c.image || null}
+                    onChange={(img) => saveCategory({ ...c, image: img })}
+                    hint="400×400 px square • Max 100 KB • JPG/WebP"
+                    aspectHint="1:1 square"
+                  />
+                  <ImageUpload
+                    label="Category Banner Image"
+                    value={banner.image || null}
+                    onChange={(img) => patch({ image: img ?? "" })}
+                    hint="1200×600 px • Max 250 KB • JPG/WebP wide"
+                    aspectHint="2:1 wide"
+                  />
+                </div>
+                <p className="text-xs text-ink-muted">
+                  💡 <strong>Tip:</strong> Heading aur Subtext optional hain. Agar inko khali chhodenge to category page par clean image banner dikhega.
+                </p>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor={`b-head-${c.id}`}>Heading (Optional)</Label>
+                    <Input
+                      id={`b-head-${c.id}`}
+                      value={banner.heading}
+                      placeholder="Optional — khali chhodne par sirf image dikhegi"
+                      onChange={(e) => patch({ heading: e.target.value })}
+                      className="min-h-11"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor={`b-sub-${c.id}`}>Subtext (Optional)</Label>
+                    <Input
+                      id={`b-sub-${c.id}`}
+                      value={banner.subtext}
+                      placeholder="Optional"
+                      onChange={(e) => patch({ subtext: e.target.value })}
+                      className="min-h-11"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor={`b-cta-${c.id}`}>CTA text (Optional)</Label>
+                    <Input
+                      id={`b-cta-${c.id}`}
+                      value={banner.ctaText}
+                      placeholder="Optional"
+                      onChange={(e) => patch({ ctaText: e.target.value })}
+                      className="min-h-11"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor={`b-link-${c.id}`}>CTA link (Optional)</Label>
+                    <Input
+                      id={`b-link-${c.id}`}
+                      value={banner.ctaLink}
+                      placeholder={`/${c.slug}`}
+                      onChange={(e) => patch({ ctaLink: e.target.value })}
+                      className="min-h-11"
+                    />
+                  </div>
+                </div>
+                {c.banner && (
+                  <Button
+                    variant="ghost"
+                    className="min-h-11"
+                    onClick={() => {
+                      saveCategory({ ...c, banner: null });
+                      toast.success(`${c.name} banner removed.`);
+                    }}
+                  >
+                    Remove banner
+                  </Button>
+                )}
               </div>
-              <div className="space-y-2">
-                <Label htmlFor={`b-sub-${c.id}`}>Subtext (Optional)</Label>
-                <Input
-                  id={`b-sub-${c.id}`}
-                  value={banner.subtext}
-                  placeholder="Optional"
-                  onChange={(e) => patch({ subtext: e.target.value })}
-                  className="min-h-11"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor={`b-cta-${c.id}`}>CTA text (Optional)</Label>
-                <Input
-                  id={`b-cta-${c.id}`}
-                  value={banner.ctaText}
-                  placeholder="Optional"
-                  onChange={(e) => patch({ ctaText: e.target.value })}
-                  className="min-h-11"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor={`b-link-${c.id}`}>CTA link (Optional)</Label>
-                <Input
-                  id={`b-link-${c.id}`}
-                  value={banner.ctaLink}
-                  placeholder={`/${c.slug}`}
-                  onChange={(e) => patch({ ctaLink: e.target.value })}
-                  className="min-h-11"
-                />
-              </div>
-            </div>
-            {c.banner && (
-              <Button
-                variant="ghost"
-                className="min-h-11"
-                onClick={() => {
-                  saveCategory({ ...c, banner: null });
-                  toast.success(`${c.name} banner removed.`);
-                }}
-              >
-                Remove banner
-              </Button>
-            )}
-          </div>
-        );
-      })}
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
@@ -698,14 +834,12 @@ function SocialReelsPanel() {
       toast.error("Reel title/caption is required.");
       return;
     }
-    if (!draft.thumbnail.trim()) {
-      toast.error("Please upload or provide a thumbnail image for the reel.");
-      return;
-    }
-    const imgCheck = validateImageUrl(draft.thumbnail);
-    if (!imgCheck.valid) {
-      toast.error(imgCheck.error || "Invalid thumbnail image.");
-      return;
+    if (draft.thumbnail.trim()) {
+      const imgCheck = validateImageUrl(draft.thumbnail);
+      if (!imgCheck.valid) {
+        toast.error(imgCheck.error || "Invalid thumbnail image.");
+        return;
+      }
     }
     if (!draft.videoUrl.trim()) {
       toast.error("Video URL link is required.");
@@ -1024,7 +1158,7 @@ function SocialReelsPanel() {
                 {/* Thumbnail Image */}
                 <div className="space-y-2">
                   <ImageUpload
-                    label="Reel Vertical Thumbnail Image *"
+                    label="Reel Vertical Thumbnail Image (Optional)"
                     value={draft.thumbnail || null}
                     onChange={(img) => setDraft({ ...draft, thumbnail: img ?? "" })}
                     hint="480×854 px vertical • Max 150 KB • JPG/WebP (9:16)"
@@ -1079,3 +1213,5 @@ function SocialReelsPanel() {
     </div>
   );
 }
+
+

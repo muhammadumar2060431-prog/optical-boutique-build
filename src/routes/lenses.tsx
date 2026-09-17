@@ -3,6 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { CategoryView } from "@/components/site/CategoryView";
 import { SiteLayout } from "@/components/site/SiteLayout";
 import { useStore } from "@/lib/store";
+import { getSiteUrl } from "@/lib/utils";
 
 export const Route = createFileRoute("/lenses")({
   head: () => ({
@@ -19,9 +20,9 @@ export const Route = createFileRoute("/lenses")({
         content: "Shop premium daily disposables, toric lenses, and cosmetic color contacts.",
       },
       { property: "og:type", content: "website" },
-      { property: "og:url", content: "https://optical-boutique-build.lovable.app/lenses" },
+      { property: "og:url", content: getSiteUrl("/lenses") },
     ],
-    links: [{ rel: "canonical", href: "https://optical-boutique-build.lovable.app/lenses" }],
+    links: [{ rel: "canonical", href: getSiteUrl("/lenses") }],
   }),
   component: LensesPage,
 });
