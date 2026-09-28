@@ -1,26 +1,29 @@
 import { useRef, useState } from "react";
-import { Trash2, Upload, Eye, ImagePlus } from "lucide-react";
+import { Trash2, Upload, Eye, ImagePlus, ScanSearch } from "lucide-react";
 
 import { uploadImageToStorage } from "@/lib/supabaseSync";
+import { isSupabaseConfigured } from "@/lib/supabase";
+import { ImageCropper } from "@/components/admin/ImageCropper";
 
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
+import { ImageOptimizer } from "@/lib/image-optimizer";
 
-// ─── Image Size Guide ────────────────────────────────────────────────────────
+// --- Image Size Guide --------------------------------------------------------
 // Recommended sizes for fast loading (website smooth chale):
-//   Logo              : 400×120 px  |  max 80 KB   | PNG/WebP (transparent bg)
-//   Hero Slide Banner : 1440×720 px |  max 300 KB  | JPG/WebP
-//   Category Icon     : 400×400 px  |  max 100 KB  | JPG/WebP (square)
-//   Category Banner   : 1200×600 px |  max 250 KB  | JPG/WebP
-//   Product Main Image: 800×800 px  |  max 200 KB  | JPG/WebP (square)
-//   Product Gallery   : 800×800 px  |  max 150 KB  | JPG/WebP
-//   Variant Image     : 600×600 px  |  max 120 KB  | JPG/WebP
-//   Brand Logo        : 320×80 px   |  max 50 KB   | PNG/SVG (transparent bg)
-//   Reel Thumbnail    : 480×854 px  |  max 150 KB  | JPG/WebP (9:16 vertical)
-//   Testimonial Photo : 400×400 px  |  max 80 KB   | JPG/WebP
+//   Logo              : 400x120 px  |  max 80 KB   | PNG/WebP (transparent bg)
+//   Hero Slide Banner : 1440x720 px |  max 300 KB  | JPG/WebP
+//   Category Icon     : 400x400 px  |  max 100 KB  | JPG/WebP (square)
+//   Category Banner   : 1200x600 px |  max 250 KB  | JPG/WebP
+//   Product Main Image: 800x800 px  |  max 200 KB  | JPG/WebP (square)
+//   Product Gallery   : 800x800 px  |  max 150 KB  | JPG/WebP
+//   Variant Image     : 600x600 px  |  max 120 KB  | JPG/WebP
+//   Brand Logo        : 320x80 px   |  max 50 KB   | PNG/SVG (transparent bg)
+//   Reel Thumbnail    : 480x854 px  |  max 150 KB  | JPG/WebP (9:16 vertical)
+//   Testimonial Photo : 400x400 px  |  max 80 KB   | JPG/WebP
 // Max upload size allowed: 5 MB per file (auto-compressed to optimized quality)
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 
 export function ImageUpload({
   label,
@@ -34,11 +37,12 @@ export function ImageUpload({
   maxWidth = 600,
   maxHeight = 600,
   outputQuality = 0.65,
+  storageFolder = "uploads",
 }: {
   label?: string;
   value: string | null;
   onChange: (url: string | null) => void;
-  /** Called with true when upload starts, false when done — lets parent disable Save */
+  /** Called with true when upload starts, false when done - lets parent disable Save */
   onUploadingChange?: (uploading: boolean) => void;
   optional?: boolean;
   /** Short tip shown below the uploader e.g. "9:16 vertical recommended" */
@@ -53,19 +57,44 @@ export function ImageUpload({
   maxHeight?: number;
   /** Canvas export quality for compressed JPG/WebP output. */
   outputQuality?: number;
+  /** Supabase Storage folder/path prefix. Default: "uploads" */
+  storageFolder?: string;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const [cropModalOpen, setCropModalOpen] = useState(false);
+  const [rawImageToCrop, setRawImageToCrop] = useState<string | null>(null);
+
+  // For re-adjusting an already-set image
+  const [editCropOpen, setEditCropOpen] = useState(false);
+
   const MAX_FILE_BYTES = 10 * 1024 * 1024; // 10 MB
+
+  // Parse aspect hint to number (e.g. "1:1 square" -> 1, "Wide logo" -> 3.33)
+  const getAspectRatio = () => {
+    if (!aspectHint) return undefined;
+    if (aspectHint.includes("1:1") || aspectHint.includes("square")) return 1;
+    if (aspectHint.includes("2:1")) return 2;
+    if (aspectHint.includes("16:9")) return 16 / 9;
+    if (aspectHint.includes("9:16")) return 9 / 16;
+    if (aspectHint.toLowerCase().includes("wide logo")) return 400 / 120;
+    return undefined; // free-form if unknown
+  };
 
   const handleFile = (file: File | undefined) => {
     if (!file) return;
     setError(null);
 
     if (file.size > MAX_FILE_BYTES) {
-      setError("File 10 MB se bari hai. Chhoti image upload karein.");
+      setError("The file exceeds 10 MB. Upload a smaller image.");
+      return;
+    }
+
+    const supportedTypes = new Set(["image/jpeg", "image/png", "image/webp", "image/avif"]);
+    if (!supportedTypes.has(file.type)) {
+      setError("Use a JPG, PNG, WebP, or AVIF image.");
       return;
     }
 
@@ -81,79 +110,8 @@ export function ImageUpload({
         return;
       }
 
-      // Auto-compress using canvas, preserve transparency for PNG/WebP/AVIF
-      const img = new Image();
-      img.onload = async () => {
-        try {
-          const canvas = document.createElement("canvas");
-          let { width, height } = img;
-          const scale = Math.min(1, maxWidth / width, maxHeight / height);
-
-          if (scale < 1) {
-            width = Math.max(1, Math.round(width * scale));
-            height = Math.max(1, Math.round(height * scale));
-          }
-
-          canvas.width = width;
-          canvas.height = height;
-          const ctx = canvas.getContext("2d");
-
-          if (ctx) {
-            ctx.imageSmoothingEnabled = true;
-            ctx.imageSmoothingQuality = "high";
-            ctx.drawImage(img, 0, 0, width, height);
-
-            // Preserve alpha transparency for PNG / WebP / AVIF
-            const isTransparentFormat =
-              file.type.includes("png") ||
-              file.type.includes("webp") ||
-              file.type.includes("avif") ||
-              file.name.toLowerCase().endsWith(".png") ||
-              file.name.toLowerCase().endsWith(".webp") ||
-              file.name.toLowerCase().endsWith(".avif");
-
-            const outputMime = isTransparentFormat ? "image/webp" : "image/jpeg";
-            const compressed = canvas.toDataURL(outputMime, outputQuality);
-
-            // Show preview immediately (base64 for instant feedback)
-            onChange(compressed);
-
-            // ── CRITICAL: Upload to Supabase Storage and WAIT for URL ──
-            // Do NOT let parent save until this resolves!
-            try {
-              const storageUrl = await uploadImageToStorage(compressed, "uploads");
-              if (storageUrl) {
-                // Swap base64 preview with permanent CDN URL
-                onChange(storageUrl);
-              }
-              // If upload fails, keep base64 as fallback (still works visually)
-            } catch {
-              // Storage upload failed — keep base64
-            }
-          } else {
-            // Canvas not available — try direct upload
-            try {
-              const storageUrl = await uploadImageToStorage(rawResult, "uploads");
-              onChange(storageUrl ?? rawResult);
-            } catch {
-              onChange(rawResult);
-            }
-          }
-        } catch {
-          onChange(rawResult);
-        } finally {
-          setIsProcessing(false);
-          onUploadingChange?.(false);
-        }
-      };
-
-      img.onerror = () => {
-        onChange(rawResult);
-        setIsProcessing(false);
-        onUploadingChange?.(false);
-      };
-
-      img.src = rawResult;
+      setRawImageToCrop(rawResult);
+      setCropModalOpen(true);
     };
 
     reader.onerror = () => {
@@ -163,13 +121,47 @@ export function ImageUpload({
     reader.readAsDataURL(file);
   };
 
+  const persistImage = async (image: Blob | string) => {
+    if (!isSupabaseConfigured) {
+      onChange(typeof image === "string" ? image : await ImageOptimizer.toDataUrl(image));
+      return;
+    }
+
+    const storageUrl = await uploadImageToStorage(image, storageFolder, { throwOnError: true });
+    if (storageUrl) onChange(storageUrl);
+  };
+
+  const processAndUploadImage = async (croppedDataUrl: string) => {
+    try {
+      const optimizer = new ImageOptimizer({
+        maxWidth,
+        maxHeight,
+        quality: outputQuality,
+        outputType: "image/webp",
+      });
+      const optimizedImage = await optimizer.optimize(croppedDataUrl);
+      await persistImage(optimizedImage);
+    } catch (processingError) {
+      setError(
+        processingError instanceof Error
+          ? processingError.message
+          : "The image could not be processed or uploaded. Please try again.",
+      );
+    } finally {
+      setIsProcessing(false);
+      onUploadingChange?.(false);
+    }
+  };
+
   return (
     <div className="space-y-1.5">
       {label && (
         <div className="flex items-center justify-between">
           <Label className="text-xs font-semibold">
             {label}{" "}
-            {optional && <span className="text-[11px] font-normal text-muted-foreground">(optional)</span>}
+            {optional && (
+              <span className="text-[11px] font-normal text-muted-foreground">(optional)</span>
+            )}
             {aspectHint && (
               <span className="ml-1.5 text-[9px] font-normal text-gold bg-gold/10 px-1.5 py-0.5 rounded-full border border-gold/20">
                 {aspectHint}
@@ -207,7 +199,7 @@ export function ImageUpload({
           {isProcessing && (
             <div className="absolute inset-0 bg-black/75 flex flex-col items-center justify-center gap-1">
               <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              <span className="text-[8px] text-white font-medium">Uploading…</span>
+              <span className="text-[8px] text-white font-medium">Uploading...</span>
             </div>
           )}
         </div>
@@ -241,6 +233,20 @@ export function ImageUpload({
                   type="button"
                   variant="ghost"
                   size="icon"
+                  className="h-8 w-8 shrink-0 text-muted-foreground hover:text-gold hover:bg-gold/10"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setEditCropOpen(true);
+                  }}
+                  title="Adjust / Re-crop image"
+                  disabled={isProcessing}
+                >
+                  <ScanSearch className="h-3.5 w-3.5" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
                   className="h-8 w-8 text-xs shrink-0 text-muted-foreground hover:text-foreground"
                   onClick={(e) => {
                     e.stopPropagation();
@@ -268,25 +274,60 @@ export function ImageUpload({
           </div>
 
           <p className="text-[10px] text-muted-foreground leading-tight truncate">
-            {hint ?? "JPG / PNG / WebP / AVIF • Transparent BG supported"}
+            {hint ?? "JPG / PNG / WebP / AVIF - Transparent backgrounds supported"}
           </p>
         </div>
       </div>
 
       {error && (
         <p className="text-xs text-destructive font-medium rounded-md bg-destructive/10 px-2.5 py-1.5">
-          ⚠ {error}
+          Warning: {error}
         </p>
       )}
 
       <input
         ref={inputRef}
         type="file"
-        accept="image/avif,image/webp,image/png,image/jpeg,image/jpg,image/heic,image/*"
+        accept="image/avif,image/webp,image/png,image/jpeg"
         className="hidden"
         onChange={(e) => handleFile(e.target.files?.[0])}
         onClick={(e) => ((e.target as HTMLInputElement).value = "")}
       />
+
+      {rawImageToCrop && (
+        <ImageCropper
+          isOpen={cropModalOpen}
+          imageSrc={rawImageToCrop}
+          aspectRatio={getAspectRatio()}
+          onCropCompleteAction={(croppedImage) => {
+            setCropModalOpen(false);
+            processAndUploadImage(croppedImage);
+            setRawImageToCrop(null);
+          }}
+          onClose={() => {
+            setCropModalOpen(false);
+            setRawImageToCrop(null);
+            setIsProcessing(false);
+            onUploadingChange?.(false);
+          }}
+        />
+      )}
+
+      {/* Re-adjust already-set image */}
+      {value && editCropOpen && (
+        <ImageCropper
+          isOpen={editCropOpen}
+          imageSrc={value}
+          aspectRatio={getAspectRatio()}
+          onCropCompleteAction={(croppedImage) => {
+            setEditCropOpen(false);
+            setIsProcessing(true);
+            onUploadingChange?.(true);
+            processAndUploadImage(croppedImage);
+          }}
+          onClose={() => setEditCropOpen(false)}
+        />
+      )}
     </div>
   );
 }

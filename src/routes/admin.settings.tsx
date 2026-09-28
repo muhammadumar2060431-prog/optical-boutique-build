@@ -33,7 +33,7 @@ function AdminSettings() {
         onChange={(e) =>
           setForm({ ...form, [key]: type === "number" ? Number(e.target.value) : e.target.value })
         }
-        className="min-h-11"
+        className="min-h-11 bg-white dark:bg-zinc-900 border-zinc-300 dark:border-zinc-700 focus-visible:ring-2 focus-visible:ring-gold"
       />
     </div>
   );
@@ -63,12 +63,13 @@ function AdminSettings() {
           onChange={(logo) => setForm({ ...form, logo })}
           hint="400×120 px • Max 80 KB • PNG transparent background recommended"
           aspectHint="Wide logo"
+          storageFolder="settings"
         />
 
         <Button
           className="min-h-11 rounded-full"
           onClick={() => {
-            if (!window.confirm("Aap ye settings save karna chahte hain? (Are you sure you want to save these settings?)")) {
+            if (!window.confirm("Are you sure you want to save these settings?")) {
               return;
             }
             updateSettings(form);
@@ -88,7 +89,7 @@ function AdminSettings() {
               id="s-adminEmail"
               value={form.adminEmail}
               onChange={(e) => setForm({ ...form, adminEmail: e.target.value })}
-              className="min-h-11"
+              className="min-h-11 bg-white dark:bg-zinc-900 border-zinc-300 dark:border-zinc-700 focus-visible:ring-2 focus-visible:ring-gold"
             />
           </div>
           <div className="space-y-2">
@@ -98,7 +99,7 @@ function AdminSettings() {
               type="password"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
-              className="min-h-11"
+              className="min-h-11 bg-white dark:bg-zinc-900 border-zinc-300 dark:border-zinc-700 focus-visible:ring-2 focus-visible:ring-gold"
             />
           </div>
         </div>
@@ -107,10 +108,10 @@ function AdminSettings() {
           className="min-h-11 rounded-full"
           onClick={async () => {
             if (newPassword && newPassword.length < 6) {
-              toast.error("Password kam az kam 6 characters ka hona chahiye.");
+              toast.error("The password must be at least 6 characters long.");
               return;
             }
-            if (!window.confirm("Aap admin credentials update karna chahte hain? (Are you sure you want to update credentials?)")) {
+            if (!window.confirm("Are you sure you want to update the admin credentials?")) {
               return;
             }
             try {
@@ -122,7 +123,9 @@ function AdminSettings() {
                 }
               }
               if (form.adminEmail && form.adminEmail !== settings.adminEmail) {
-                const { error: emailErr } = await supabase.auth.updateUser({ email: form.adminEmail });
+                const { error: emailErr } = await supabase.auth.updateUser({
+                  email: form.adminEmail,
+                });
                 if (emailErr) {
                   toast.error("Email update failed: " + emailErr.message);
                   return;
@@ -132,9 +135,12 @@ function AdminSettings() {
                 });
               }
               setNewPassword("");
-              toast.success("Admin credentials Supabase Auth par securely update ho gaye.");
-            } catch (err: any) {
-              toast.error("Error: " + err.message);
+              toast.success("The admin credentials were securely updated in Supabase Auth.");
+            } catch (error: unknown) {
+              toast.error(
+                "Error: " +
+                  (error instanceof Error ? error.message : "Unable to update credentials."),
+              );
             }
           }}
         >

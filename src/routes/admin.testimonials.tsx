@@ -31,6 +31,7 @@ export const Route = createFileRoute("/admin/testimonials")({
 
 const blank = (): Testimonial => ({
   id: "",
+  source: "manual",
   name: "",
   email: "",
   productId: null,
@@ -50,20 +51,30 @@ function AdminTestimonials() {
   const [draft, setDraft] = useState<Testimonial | null>(null);
   const [filterTab, setFilterTab] = useState<"all" | "good" | "bad" | "product">("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const manualTestimonials = useMemo(
+    () => testimonials.filter((testimonial) => testimonial.source !== "customer"),
+    [testimonials],
+  );
 
   // Statistics calculation
-  const totalCount = testimonials.length;
-  const goodReviews = useMemo(() => testimonials.filter((t) => t.rating >= 4), [testimonials]);
-  const badReviews = useMemo(() => testimonials.filter((t) => t.rating < 4), [testimonials]);
+  const totalCount = manualTestimonials.length;
+  const goodReviews = useMemo(
+    () => manualTestimonials.filter((testimonial) => testimonial.rating >= 4),
+    [manualTestimonials],
+  );
+  const badReviews = useMemo(
+    () => manualTestimonials.filter((testimonial) => testimonial.rating < 4),
+    [manualTestimonials],
+  );
   const avgRating = useMemo(() => {
     if (totalCount === 0) return "5.0";
-    const sum = testimonials.reduce((acc, t) => acc + t.rating, 0);
+    const sum = manualTestimonials.reduce((acc, testimonial) => acc + testimonial.rating, 0);
     return (sum / totalCount).toFixed(1);
-  }, [testimonials, totalCount]);
+  }, [manualTestimonials, totalCount]);
 
   // Filtered reviews list
   const filteredList = useMemo(() => {
-    return testimonials.filter((t) => {
+    return manualTestimonials.filter((t) => {
       // Tab filter
       if (filterTab === "good" && t.rating < 4) return false;
       if (filterTab === "bad" && t.rating >= 4) return false;
@@ -81,7 +92,7 @@ function AdminTestimonials() {
 
       return true;
     });
-  }, [testimonials, filterTab, searchQuery]);
+  }, [manualTestimonials, filterTab, searchQuery]);
 
   return (
     <div className="space-y-6">
@@ -99,29 +110,29 @@ function AdminTestimonials() {
         </Button>
       </header>
 
-      {/* ── Top Metric Cards (Good vs Bad Reviews) ── */}
+      {/* -- Top Metric Cards (Good vs Bad Reviews) -- */}
       <div className="grid gap-4 sm:grid-cols-4">
-        <div className="rounded-xl border border-stone bg-card p-4">
-          <p className="text-xs text-ink-muted uppercase font-semibold">Total Reviews</p>
-          <p className="mt-2 font-display text-3xl">{totalCount}</p>
-          <p className="text-[11px] text-ink-muted mt-1">Average: ★ {avgRating} / 5</p>
+        <div className="rounded-xl border border-zinc-900 bg-zinc-900 p-4 text-white">
+          <p className="text-xs font-semibold uppercase text-white">Total Reviews</p>
+          <p className="mt-2 font-display text-3xl text-white">{totalCount}</p>
+          <p className="mt-1 text-[11px] text-white">Average rating: {avgRating} / 5</p>
         </div>
 
         <div
           onClick={() => setFilterTab("good")}
           className={cn(
-            "rounded-xl border p-4 cursor-pointer transition-all",
+            "rounded-xl border p-4 cursor-pointer text-white transition-all",
             filterTab === "good"
-              ? "border-emerald-500 bg-emerald-50/20 ring-2 ring-emerald-500/20"
-              : "border-stone bg-card hover:border-emerald-400/60",
+              ? "border-emerald-700 bg-emerald-600 ring-2 ring-emerald-300"
+              : "border-emerald-600 bg-emerald-600 hover:bg-emerald-700",
           )}
         >
           <div className="flex items-center justify-between">
-            <p className="text-xs text-emerald-700 font-semibold uppercase">Good Reviews (4-5 ★)</p>
-            <ThumbsUp className="h-4 w-4 text-emerald-600" />
+            <p className="text-xs font-semibold uppercase text-white">Good Reviews (4-5 stars)</p>
+            <ThumbsUp className="h-4 w-4 text-white" />
           </div>
-          <p className="mt-2 font-display text-3xl text-emerald-600">{goodReviews.length}</p>
-          <p className="text-[11px] text-emerald-700/80 mt-1">
+          <p className="mt-2 font-display text-3xl text-white">{goodReviews.length}</p>
+          <p className="mt-1 text-[11px] text-white">
             {totalCount > 0 ? Math.round((goodReviews.length / totalCount) * 100) : 0}% Satisfaction
             Rate
           </p>
@@ -130,32 +141,32 @@ function AdminTestimonials() {
         <div
           onClick={() => setFilterTab("bad")}
           className={cn(
-            "rounded-xl border p-4 cursor-pointer transition-all",
+            "rounded-xl border p-4 cursor-pointer text-white transition-all",
             filterTab === "bad"
-              ? "border-amber-500 bg-amber-50/20 ring-2 ring-amber-500/20"
-              : "border-stone bg-card hover:border-amber-400/60",
+              ? "border-red-700 bg-red-600 ring-2 ring-red-300"
+              : "border-red-600 bg-red-600 hover:bg-red-700",
           )}
         >
           <div className="flex items-center justify-between">
-            <p className="text-xs text-amber-700 font-semibold uppercase">
-              Bad / Low Reviews (1-3 ★)
+            <p className="text-xs font-semibold uppercase text-white">
+              Bad / Low Reviews (1-3 stars)
             </p>
-            <ThumbsDown className="h-4 w-4 text-amber-600" />
+            <ThumbsDown className="h-4 w-4 text-white" />
           </div>
-          <p className="mt-2 font-display text-3xl text-amber-600">{badReviews.length}</p>
-          <p className="text-[11px] text-amber-700/80 mt-1">Requires attention / cleanup</p>
+          <p className="mt-2 font-display text-3xl text-white">{badReviews.length}</p>
+          <p className="mt-1 text-[11px] text-white">Requires attention / cleanup</p>
         </div>
 
-        <div className="rounded-xl border border-stone bg-card p-4">
-          <p className="text-xs text-ink-muted uppercase font-semibold">Captured Customer Emails</p>
-          <p className="mt-2 font-display text-3xl text-gold">
-            {testimonials.filter((t) => t.email).length}
+        <div className="rounded-xl border border-amber-600 bg-amber-600 p-4 text-white">
+          <p className="text-xs font-semibold uppercase text-white">Captured Customer Emails</p>
+          <p className="mt-2 font-display text-3xl text-white">
+            {manualTestimonials.filter((t) => t.email).length}
           </p>
-          <p className="text-[11px] text-ink-muted mt-1">Verified submitters</p>
+          <p className="mt-1 text-[11px] text-white">Verified submitters</p>
         </div>
       </div>
 
-      {/* ── Filter Bar & Search ── */}
+      {/* -- Filter Bar & Search -- */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between bg-card p-3 rounded-xl border border-stone">
         <div className="flex items-center gap-1 overflow-x-auto">
           <Button
@@ -200,7 +211,7 @@ function AdminTestimonials() {
         />
       </div>
 
-      {/* ── Review Entries List ── */}
+      {/* -- Review Entries List -- */}
       {filteredList.length === 0 ? (
         <p className="rounded-xl border border-dashed border-stone bg-card px-6 py-16 text-center text-sm text-ink-muted">
           No customer reviews match your filter or search query.
@@ -279,7 +290,7 @@ function AdminTestimonials() {
                   </div>
 
                   {t.title && <h4 className="text-sm font-semibold text-ink pt-0.5">{t.title}</h4>}
-                  <p className="text-sm text-ink-muted line-clamp-3">“{t.quote}”</p>
+                  <p className="text-sm text-ink-muted line-clamp-3">"{t.quote}"</p>
 
                   {/* Customer Uploaded Photo Preview */}
                   {t.reviewImage && (
@@ -355,7 +366,7 @@ function AdminTestimonials() {
         </ul>
       )}
 
-      {/* ── Add / Edit Review Modal ── */}
+      {/* -- Add / Edit Review Modal -- */}
       <Dialog open={!!draft} onOpenChange={(v) => !v && setDraft(null)}>
         <DialogContent className="max-h-[90vh] overflow-y-auto max-w-lg">
           {draft && (
@@ -405,7 +416,7 @@ function AdminTestimonials() {
                     }}
                     className="w-full rounded-md border border-stone bg-card p-2.5 text-sm"
                   >
-                    <option value="none">— General Site Testimonial —</option>
+                    <option value="none">- General Site Testimonial -</option>
                     {products.map((p) => (
                       <option key={p.id} value={p.id}>
                         {p.name} ({p.sku || p.id})
@@ -437,7 +448,7 @@ function AdminTestimonials() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="t-rating">Rating (1–5 Stars)</Label>
+                  <Label htmlFor="t-rating">Rating (1-5 Stars)</Label>
                   <Input
                     id="t-rating"
                     type="number"
@@ -456,9 +467,11 @@ function AdminTestimonials() {
                     optional
                     value={draft.reviewImage || draft.photo || null}
                     onChange={(img) => setDraft({ ...draft, reviewImage: img, photo: img })}
+                    storageFolder="testimonials"
                   />
                   <p className="text-[11px] text-ink-muted">
-                    💡 Screenshot upload karne par ye storefront review section par proof card ke tor par display hoga.
+                    An uploaded screenshot will appear as a proof card in the storefront review
+                    section.
                   </p>
                 </div>
 
@@ -473,17 +486,14 @@ function AdminTestimonials() {
                       toast.error("Please provide review text.");
                       return;
                     }
-                    if (
-                      !window.confirm(
-                        "Aap is review/testimonial ko save karna chahte hain? (Are you sure you want to save this review?)",
-                      )
-                    ) {
+                    if (!window.confirm("Are you sure you want to save this review?")) {
                       return;
                     }
                     const finalImg = draft.reviewImage || draft.photo || null;
                     saveTestimonial({
                       ...draft,
                       id: draft.id || newId("tst"),
+                      source: "manual",
                       quote: draft.quote.trim(),
                       photo: finalImg,
                       reviewImage: finalImg,

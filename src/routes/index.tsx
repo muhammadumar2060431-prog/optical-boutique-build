@@ -20,10 +20,14 @@ export const Route = createFileRoute("/")({
         content:
           "Shop handcrafted acetate & titanium frames, designer sunglasses, and prescription contact lenses. Enjoy free shipping and expert optician support.",
       },
-      { property: "og:title", content: "OPTIQUE — Designer Eyeglasses, Sunglasses & Contact Lenses" },
+      {
+        property: "og:title",
+        content: "OPTIQUE — Designer Eyeglasses, Sunglasses & Contact Lenses",
+      },
       {
         property: "og:description",
-        content: "Shop handcrafted acetate & titanium frames, designer sunglasses, and prescription contact lenses.",
+        content:
+          "Shop handcrafted acetate & titanium frames, designer sunglasses, and prescription contact lenses.",
       },
       { property: "og:type", content: "website" },
       { property: "og:url", content: getSiteUrl("/") },
@@ -52,7 +56,7 @@ function HomePage() {
       <Testimonials />
 
       {/* ── Frequently Asked Questions (Interactive Aesthetic Accordion) ── */}
-      <FaqSection />
+      <FaqSection isHomepage={true} />
 
       <VideoSection />
     </SiteLayout>

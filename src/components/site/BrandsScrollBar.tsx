@@ -1,5 +1,15 @@
 import { useStore } from "@/lib/store";
 
+const FONT_FAMILY_MAP: Record<string, string> = {
+  sans: "'Inter', sans-serif",
+  display: "'Poppins', sans-serif",
+  serif: "'Poppins', sans-serif",
+  mono: "ui-monospace, monospace",
+  playfair: "'Poppins', sans-serif",
+  outfit: "'Poppins', sans-serif",
+  montserrat: "'Inter', sans-serif",
+};
+
 export function BrandsScrollBar() {
   const { brands } = useStore();
   const enabled = brands.filter((b) => b.enabled);
@@ -22,11 +32,23 @@ export function BrandsScrollBar() {
         {items.map((brand, i) => {
           const name = brand.name?.trim() || "";
           const logo = brand.logo?.trim() || "";
+          const fontFamily = FONT_FAMILY_MAP[brand.fontStyle ?? "sans"] ?? FONT_FAMILY_MAP["sans"];
 
           return (
             <div key={`${brand.id}-${i}`} className="brand-item">
-              {logo && <img src={logo} alt={name || "Brand logo"} className="brand-logo-img" draggable={false} />}
-              {name && <span className="brand-logo-text">{name}</span>}
+              {logo && (
+                <img
+                  src={logo}
+                  alt={name || "Brand logo"}
+                  className="brand-logo-img"
+                  draggable={false}
+                />
+              )}
+              {name && (
+                <span className="brand-logo-text" style={{ fontFamily }}>
+                  {name}
+                </span>
+              )}
             </div>
           );
         })}

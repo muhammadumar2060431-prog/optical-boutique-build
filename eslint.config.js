@@ -36,5 +36,16 @@ export default tseslint.config(
       "@typescript-eslint/no-unused-vars": "off",
     },
   },
+  {
+    files: [
+      "src/components/ui/**/*.{ts,tsx}",
+      "src/components/site/filters.tsx",
+      "src/components/site/WhatsAppModal.tsx",
+      "src/lib/cart.tsx",
+    ],
+    rules: {
+      "react-refresh/only-export-components": "off",
+    },
+  },
   eslintPluginPrettier,
 );

@@ -1,8 +1,34 @@
 import "./lib/error-capture";
 
+import * as Sentry from "@sentry/tanstackstart-react";
+import { logger } from "./lib/api/logger.server";
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
+import { applySecurityHeaders } from "./lib/security-headers";
 
+const sentryDsn = process.env["SENTRY_DSN"];
+const configuredSampleRate = Number(process.env["SENTRY_TRACES_SAMPLE_RATE"] ?? "0.1");
+const tracesSampleRate =
+  Number.isFinite(configuredSampleRate) && configuredSampleRate >= 0 && configuredSampleRate <= 1
+    ? configuredSampleRate
+    : 0.1;
+
+Sentry.init({
+  dsn: sentryDsn,
+  enabled: Boolean(sentryDsn),
+  environment: process.env["SENTRY_ENVIRONMENT"] ?? process.env["NODE_ENV"],
+  dataCollection: {
+    userInfo: false,
+    cookies: false,
+    httpHeaders: false,
+    httpBodies: [],
+    urlQueryParams: false,
+    databaseQueryData: false,
+    queues: false,
+    stackFrameVariables: false,
+  },
+  tracesSampleRate,
+});
 type ServerEntry = {
   fetch: (request: Request, env: unknown, ctx: unknown) => Promise<Response> | Response;
 };
@@ -28,7 +54,9 @@ async function normalizeCatastrophicSsrResponse(response: Response): Promise<Res
   const body = await response.clone().text();
   if (!isH3SwallowedErrorBody(body)) return response;
 
-  console.error(consumeLastCapturedError() ?? new Error(`h3 swallowed SSR error: ${body}`));
+  const error = consumeLastCapturedError() ?? new Error("h3 swallowed an SSR error");
+  Sentry.captureException(error, { tags: { source: "ssr-response" } });
+  logger.error("ssr.response.failed", { error });
   return new Response(renderErrorPage(), {
     status: 500,
     headers: { "content-type": "text/html; charset=utf-8" },
@@ -44,18 +72,26 @@ function isH3SwallowedErrorBody(body: string): boolean {
   }
 }
 
-export default {
+const serverEntry: ServerEntry = {
   async fetch(request: Request, env: unknown, ctx: unknown) {
     try {
       const handler = await getServerEntry();
       const response = await handler.fetch(request, env, ctx);
-      return await normalizeCatastrophicSsrResponse(response);
+      return applySecurityHeaders(await normalizeCatastrophicSsrResponse(response), request);
     } catch (error) {
-      console.error(error);
-      return new Response(renderErrorPage(), {
-        status: 500,
-        headers: { "content-type": "text/html; charset=utf-8" },
-      });
+      Sentry.captureException(error, { tags: { source: "ssr-request" } });
+      logger.error("ssr.request.failed", { error });
+      return applySecurityHeaders(
+        new Response(renderErrorPage(), {
+          status: 500,
+          headers: { "content-type": "text/html; charset=utf-8" },
+        }),
+        request,
+      );
     }
   },
 };
+
+export default Sentry.wrapFetchWithSentry(
+  serverEntry as Parameters<typeof Sentry.wrapFetchWithSentry>[0],
+) as ServerEntry;

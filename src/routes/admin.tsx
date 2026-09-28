@@ -8,6 +8,7 @@ import {
   LogOut,
   Mail,
   Menu,
+  Newspaper,
   MessageSquare,
   Package,
   Quote,
@@ -26,10 +27,10 @@ import { AdminDashboard } from "@/components/admin/AdminDashboard";
 export const Route = createFileRoute("/admin")({
   head: () => ({
     meta: [
-      { title: "Admin — OPTIQUE Control Panel" },
+      { title: "Admin - OPTIQUE Control Panel" },
       { name: "description", content: "Manage OPTIQUE products, orders, inventory and content." },
       { name: "robots", content: "noindex, nofollow" },
-      { property: "og:title", content: "Admin — OPTIQUE Control Panel" },
+      { property: "og:title", content: "Admin - OPTIQUE Control Panel" },
       { property: "og:description", content: "Internal control panel for the OPTIQUE store." },
     ],
   }),
@@ -44,6 +45,7 @@ const nav = [
   { to: "/admin/products", label: "Products", icon: Package, exact: false },
   { to: "/admin/inventory", label: "Inventory", icon: Boxes, exact: false },
   { to: "/admin/content", label: "Content", icon: ImageIcon, exact: false },
+  { to: "/admin/blog", label: "Blog", icon: Newspaper, exact: false },
   { to: "/admin/testimonials", label: "Testimonials", icon: Quote, exact: false },
   { to: "/admin/faqs", label: "FAQs", icon: HelpCircle, exact: false },
   { to: "/admin/subscribers", label: "Subscribers", icon: Mail, exact: false },
@@ -117,7 +119,7 @@ function AdminLayout() {
 
       <div className="min-w-0 flex-1">
         <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
-          {/* Double-check auth on every render — prevents stale state bypass */}
+          {/* Double-check auth on every render - prevents stale state bypass */}
           {isAdmin ? <Outlet /> : <AdminLogin />}
         </div>
       </div>
@@ -132,22 +134,16 @@ function AdminLogin() {
   const [error, setError] = useState("");
   const [remaining, setRemaining] = useState(0);
 
-  // ── Progressive lockout config ──────────────────────────────
-  // Each tier: { minAttempts, lockSeconds }
-  const LOCKOUT_TIERS = [
-    { minAttempts: 3,  lockSeconds: 60 },        // 1 min
-    { minAttempts: 5,  lockSeconds: 180 },       // 3 min
-    { minAttempts: 7,  lockSeconds: 900 },       // 15 min
-    { minAttempts: 10, lockSeconds: 3600 },      // 1 hour
-    { minAttempts: 12, lockSeconds: 7200 },      // 2 hours
-  ] as const;
+  const LOCKOUT_TIERS = [{ minAttempts: 5, lockSeconds: 900 }] as const;
 
   const LS_ATTEMPTS_KEY = "optique_admin_attempts";
-  const LS_LOCKED_KEY   = "optique_admin_locked_until";
+  const LS_LOCKED_KEY = "optique_admin_locked_until";
 
   // Read persisted state from localStorage
-  const getStoredAttempts = () => (typeof window === "undefined" ? 0 : parseInt(localStorage.getItem(LS_ATTEMPTS_KEY) || "0", 10));
-  const getStoredLockedUntil = () => (typeof window === "undefined" ? 0 : parseInt(localStorage.getItem(LS_LOCKED_KEY) || "0", 10));
+  const getStoredAttempts = () =>
+    typeof window === "undefined" ? 0 : parseInt(localStorage.getItem(LS_ATTEMPTS_KEY) || "0", 10);
+  const getStoredLockedUntil = () =>
+    typeof window === "undefined" ? 0 : parseInt(localStorage.getItem(LS_LOCKED_KEY) || "0", 10);
 
   const [attempts, setAttempts] = useState<number>(() => getStoredAttempts());
   const [lockedUntil, setLockedUntil] = useState<number>(() => getStoredLockedUntil());
@@ -189,7 +185,7 @@ function AdminLogin() {
   // Human-readable lockout time
   const formatTime = (secs: number) => {
     if (secs >= 3600) return `${Math.ceil(secs / 3600)} ghanta`;
-    if (secs >= 60)   return `${Math.ceil(secs / 60)} minute`;
+    if (secs >= 60) return `${Math.ceil(secs / 60)} minute`;
     return `${secs} second`;
   };
 
@@ -227,22 +223,21 @@ function AdminLogin() {
       }
       setAttempts(newAttempts);
 
-      const lockSecs = getLockoutSeconds(newAttempts);
+      const serverRetryAfter = typeof res === "object" ? res.retryAfter : undefined;
+      const lockSecs = serverRetryAfter ?? getLockoutSeconds(newAttempts);
       if (lockSecs !== null) {
         applyLockout(newAttempts, lockSecs);
-        setError(
-          `Zyada galt koshishain! ${formatTime(lockSecs)} ke liye block kar diya gaya hai.`
-        );
+        setError(`Too many failed attempts. Login has been blocked for ${formatTime(lockSecs)}.`);
       } else {
-        // Not yet locked — warn with attempts remaining until next tier
+        // Not yet locked - warn with attempts remaining until next tier
         const nextTier = LOCKOUT_TIERS.find((t) => t.minAttempts > newAttempts);
         const attemptsUntilLock = nextTier ? nextTier.minAttempts - newAttempts : 1;
         const customError = typeof res === "object" && res.error ? res.error : null;
         setError(
           customError ||
-            `Galt email ya password. ${attemptsUntilLock} galat koshish aur — phr ${
-              nextTier ? formatTime(nextTier.lockSeconds) : "block"
-            } ke liye lock ho jaega.`
+            `Incorrect email or password. ${attemptsUntilLock} more failed ${
+              attemptsUntilLock === 1 ? "attempt" : "attempts"
+            } will lock login for ${nextTier ? formatTime(nextTier.lockSeconds) : "an extended period"}.`,
         );
       }
     }
@@ -250,8 +245,9 @@ function AdminLogin() {
 
   // Format remaining time nicely
   const remainingText = () => {
-    if (remaining >= 3600) return `${Math.ceil(remaining / 3600)}h ${Math.ceil((remaining % 3600) / 60)}m`;
-    if (remaining >= 60)   return `${Math.floor(remaining / 60)}m ${remaining % 60}s`;
+    if (remaining >= 3600)
+      return `${Math.ceil(remaining / 3600)}h ${Math.ceil((remaining % 3600) / 60)}m`;
+    if (remaining >= 60) return `${Math.floor(remaining / 60)}m ${remaining % 60}s`;
     return `${remaining}s`;
   };
 
@@ -300,7 +296,7 @@ function AdminLogin() {
           <div className="rounded-lg border border-destructive/40 bg-destructive/10 p-4 space-y-2">
             <div className="flex items-center justify-between">
               <p className="text-xs font-bold text-destructive uppercase tracking-wider">
-                🔒 Account Blocked
+                Account Blocked
               </p>
               <span className="text-xs font-mono font-bold text-destructive bg-destructive/20 px-2 py-0.5 rounded-full">
                 {remainingText()}
@@ -312,13 +308,11 @@ function AdminLogin() {
               <div
                 className="h-full bg-destructive rounded-full transition-all duration-1000"
                 style={{
-                  width: `${Math.max(0, Math.min(100, (remaining / (lockedUntil > 0 ? Math.max(60, Math.ceil((lockedUntil - (lockedUntil - remaining * 1000)) / 1000)) : 60)) * 100))}%`
+                  width: `${Math.max(0, Math.min(100, (remaining / (lockedUntil > 0 ? Math.max(60, Math.ceil((lockedUntil - (lockedUntil - remaining * 1000)) / 1000)) : 60)) * 100))}%`,
                 }}
               />
             </div>
-            <p className="text-[10px] text-destructive/60">
-              {attempts} galt koshishain ki gayi hain
-            </p>
+            <p className="text-[10px] text-destructive/60">{attempts} failed login attempts</p>
           </div>
         )}
 
@@ -333,7 +327,7 @@ function AdminLogin() {
                   key={i}
                   className={cn(
                     "h-1.5 w-1.5 rounded-full transition-colors",
-                    i < attempts ? "bg-destructive" : "bg-stone-300/40"
+                    i < attempts ? "bg-destructive" : "bg-stone-300/40",
                   )}
                 />
               ))}
@@ -341,22 +335,19 @@ function AdminLogin() {
           </div>
         )}
 
-        <Button
-          type="submit"
-          className="min-h-11 w-full rounded-full"
-          disabled={isLocked}
-        >
-          {isLocked ? `🔒 Blocked (${remainingText()})` : "Enter"}
+        <Button type="submit" className="min-h-11 w-full rounded-full" disabled={isLocked}>
+          {isLocked ? `Blocked (${remainingText()})` : "Enter"}
         </Button>
 
         <div className="text-center pt-1">
-          <Link to="/" className="text-xs text-sidebar-foreground/60 hover:text-white transition-colors">
-            ← Return to Store
+          <Link
+            to="/"
+            className="text-xs text-sidebar-foreground/60 hover:text-white transition-colors"
+          >
+            Return to Store
           </Link>
         </div>
       </form>
     </div>
   );
 }
-
-

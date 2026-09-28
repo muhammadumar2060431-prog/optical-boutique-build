@@ -39,6 +39,7 @@ const blankFaq = (): FAQItem => ({
   answer: "",
   category: "Prescription & Lenses",
   enabled: true,
+  showOnHome: false,
 });
 
 function AdminFaqs() {
@@ -160,6 +161,11 @@ function AdminFaqs() {
                       {faq.category}
                     </span>
                   )}
+                  {faq.showOnHome && (
+                    <span className="rounded-full bg-emerald-500/10 text-emerald-600 border border-emerald-500/30 px-2 py-0.5 text-[10px] font-semibold">
+                      Featured on Home
+                    </span>
+                  )}
                   {faq.enabled === false && (
                     <span className="rounded-full bg-amber-500/10 text-amber-600 px-2 py-0.5 text-[10px] font-semibold">
                       Hidden / Draft
@@ -172,9 +178,26 @@ function AdminFaqs() {
               </div>
 
               {/* Action Buttons */}
-              <div className="flex shrink-0 items-center gap-1">
+              <div className="flex shrink-0 items-center gap-1.5 flex-wrap justify-end">
+                {/* Home Page toggle */}
+                <div
+                  className="flex items-center gap-1 bg-background px-2.5 py-1.5 rounded-lg border border-stone"
+                  title="Show on homepage section"
+                >
+                  <span className="text-[10px] text-ink-muted font-medium">Home</span>
+                  <Switch
+                    checked={!!faq.showOnHome}
+                    onCheckedChange={(showOnHome) => {
+                      saveFaq({ ...faq, showOnHome });
+                      toast.success(
+                        showOnHome ? "FAQ added to Homepage." : "FAQ removed from Homepage.",
+                      );
+                    }}
+                  />
+                </div>
+
                 {/* Live toggle */}
-                <div className="flex items-center gap-1 mr-2 bg-background px-2.5 py-1.5 rounded-lg border border-stone">
+                <div className="flex items-center gap-1 mr-1 bg-background px-2.5 py-1.5 rounded-lg border border-stone">
                   <span className="text-[10px] text-ink-muted font-medium">
                     {faq.enabled ? "Live" : "Draft"}
                   </span>
@@ -293,6 +316,23 @@ function AdminFaqs() {
                   </div>
                 </div>
 
+                {/* Show on Home Page Toggle */}
+                <div className="flex items-center justify-between rounded-xl border border-stone bg-card p-4">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="faq-home" className="text-sm font-semibold">
+                      Featured on Home Page
+                    </Label>
+                    <p className="text-xs text-ink-muted">
+                      When enabled, this FAQ will be featured in the homepage FAQ section.
+                    </p>
+                  </div>
+                  <Switch
+                    id="faq-home"
+                    checked={draft.showOnHome ?? false}
+                    onCheckedChange={(v) => setDraft({ ...draft, showOnHome: v })}
+                  />
+                </div>
+
                 {/* Enabled Toggle */}
                 <div className="flex items-center justify-between rounded-xl border border-stone bg-card p-4">
                   <div className="space-y-0.5">
@@ -300,7 +340,7 @@ function AdminFaqs() {
                       Published / Visible on Website
                     </Label>
                     <p className="text-xs text-ink-muted">
-                      Turn off to save as a draft without displaying on the homepage.
+                      Turn off to save as a draft without displaying on the website.
                     </p>
                   </div>
                   <Switch
@@ -322,11 +362,7 @@ function AdminFaqs() {
                       toast.error("Please enter an answer.");
                       return;
                     }
-                    if (
-                      !window.confirm(
-                        "Aap is FAQ ko save karna chahte hain? (Are you sure you want to save this FAQ?)",
-                      )
-                    ) {
+                    if (!window.confirm("Are you sure you want to save this FAQ?")) {
                       return;
                     }
                     saveFaq({

@@ -20,7 +20,9 @@ export const Route = createFileRoute("/category/$slug")({
       if (data && !error) {
         return { category: mapDbCategoryToStore(data) };
       }
-    } catch {}
+    } catch {
+      // Fall back to cached data when the network is unavailable.
+    }
 
     if (typeof window !== "undefined") {
       try {
@@ -30,7 +32,9 @@ export const Route = createFileRoute("/category/$slug")({
           const found = cats.find((c) => c.slug === params.slug);
           if (found) return { category: found };
         }
-      } catch {}
+      } catch {
+        // Fall back to cached data when the network is unavailable.
+      }
     }
 
     return { category: null };
@@ -38,11 +42,14 @@ export const Route = createFileRoute("/category/$slug")({
   head: ({ loaderData, params }) => {
     const category = loaderData?.category;
     const url = getSiteUrl(`/category/${params.slug}`);
-    const title = category ? `${category.name} — Handcrafted Eyewear | OPTIQUE` : "Eyewear Collection | OPTIQUE";
+    const title = category
+      ? `${category.name} — Handcrafted Eyewear | OPTIQUE`
+      : "Eyewear Collection | OPTIQUE";
     const description = category
       ? `Explore the OPTIQUE ${category.name.toLowerCase()} collection. Featuring premium materials, expert fitting, and fast delivery.`
       : "Explore our curated collection of premium designer eyewear and lenses.";
-    const ogImage = category?.image && category.image !== "/placeholder.svg" ? category.image : "/brand-logo.png";
+    const ogImage =
+      category?.image && category.image !== "/placeholder.svg" ? category.image : "/brand-logo.png";
     const ogImageUrl = ogImage.startsWith("http") ? ogImage : getSiteUrl(ogImage);
 
     return {
@@ -76,7 +83,8 @@ function CategoryPage() {
         <div className="mx-auto max-w-3xl px-4 py-28 text-center">
           <h1 className="font-display text-3xl">Collection Not Found</h1>
           <p className="mt-2 text-sm text-ink-muted">
-            The requested collection could not be found. Please browse our Eyeglasses or Sunglasses collections from the navigation above.
+            The requested collection could not be found. Please browse our Eyeglasses or Sunglasses
+            collections from the navigation above.
           </p>
         </div>
       )}

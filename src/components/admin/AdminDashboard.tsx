@@ -3,11 +3,18 @@ import { Link } from "@tanstack/react-router";
 import { Badge } from "@/components/ui/badge";
 import { useStore } from "@/lib/store";
 
+const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+
 export function AdminDashboard() {
   const { products, categories, orders, getInventoryRows } = useStore();
   const rows = getInventoryRows();
   const lowStock = rows.filter((r) => r.status !== "In stock");
-  const newOrders = orders.filter((o) => o.status === "New");
+  const todayCutoff = Date.now() - ONE_DAY_MS;
+  const todaysOrders = orders.filter((o) => {
+    const createdAt = new Date(o.createdAt).getTime();
+    return Number.isFinite(createdAt) && createdAt >= todayCutoff;
+  });
+  const newOrders = todaysOrders.filter((o) => o.status === "New");
 
   const metrics = [
     { label: "Total products", value: products.length },
@@ -42,13 +49,13 @@ export function AdminDashboard() {
             View all
           </Link>
         </div>
-        {orders.length === 0 ? (
+        {todaysOrders.length === 0 ? (
           <p className="px-5 py-10 text-center text-sm text-ink-muted">
-            No orders yet — new WhatsApp and contact-form enquiries will appear here automatically.
+            No orders in the last 24 hours.
           </p>
         ) : (
           <ul className="divide-y divide-stone">
-            {orders.slice(0, 6).map((o) => (
+            {todaysOrders.slice(0, 6).map((o) => (
               <li
                 key={o.id}
                 className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-5 py-4"

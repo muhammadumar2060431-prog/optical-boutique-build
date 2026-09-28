@@ -36,7 +36,8 @@ export function loadOrderReceipt(reference?: string): OrderReceipt | null {
     const parsed = JSON.parse(raw) as OrderReceipt;
     if (!parsed || typeof parsed.reference !== "string" || !Array.isArray(parsed.lines))
       return null;
-    if (reference && (parsed.reference || "").toLowerCase() !== reference.trim().toLowerCase()) return null;
+    if (reference && (parsed.reference || "").toLowerCase() !== reference.trim().toLowerCase())
+      return null;
     return parsed;
   } catch {
     return null;

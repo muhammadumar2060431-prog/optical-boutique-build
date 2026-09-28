@@ -49,10 +49,13 @@ function AboutPage() {
                   About Us
                 </p>
                 <h1 className="font-display text-3xl font-bold leading-tight text-zinc-900 sm:text-4xl lg:text-5xl">
-                  Designing and crafting high-precision, beautifully finished frames for over three decades.
+                  Designing and crafting high-precision, beautifully finished frames for over three
+                  decades.
                 </h1>
                 <p className="mt-6 text-[15px] leading-relaxed text-zinc-500">
-                  With our frames featured across leading optical boutiques worldwide, we combine traditional optical craftsmanship with modern precision to deliver eyewear of unmatched comfort and enduring style.
+                  With our frames featured across leading optical boutiques worldwide, we combine
+                  traditional optical craftsmanship with modern precision to deliver eyewear of
+                  unmatched comfort and enduring style.
                 </p>
 
                 {/* Floating black glasses image inside text column for small screens */}
@@ -142,10 +145,12 @@ function AboutPage() {
                   Three decades of expertise in crafting eyewear with premium materials
                 </h2>
                 <p className="mt-6 text-[15px] leading-relaxed text-zinc-500">
-                  We have dedicated years to perfecting our craft, tailoring frames to harmonize with diverse facial profiles and personal styles.
+                  We have dedicated years to perfecting our craft, tailoring frames to harmonize
+                  with diverse facial profiles and personal styles.
                 </p>
                 <p className="mt-4 text-[15px] leading-relaxed text-zinc-500">
-                  From ergonomic temple contouring to hand-polished acetate and Japanese titanium hardware, every pair reflects our commitment to optical excellence.
+                  From ergonomic temple contouring to hand-polished acetate and Japanese titanium
+                  hardware, every pair reflects our commitment to optical excellence.
                 </p>
                 {/* Tortoise glasses floating */}
                 <div className="mt-10">
@@ -193,10 +198,13 @@ function AboutPage() {
                   Quality eyewear, accessible to everyone.
                 </h2>
                 <p className="mt-6 text-[15px] leading-relaxed text-zinc-500">
-                  Everyone deserves well-fitted, durable eyewear. Regardless of your prescription complexity or style preference, we deliver precision lenses paired with exquisite frames at honest, transparent prices.
+                  Everyone deserves well-fitted, durable eyewear. Regardless of your prescription
+                  complexity or style preference, we deliver precision lenses paired with exquisite
+                  frames at honest, transparent prices.
                 </p>
                 <p className="mt-4 text-[15px] leading-relaxed text-zinc-500">
-                  We believe that premium craftsmanship and clear, comfortable vision should be accessible to all.
+                  We believe that premium craftsmanship and clear, comfortable vision should be
+                  accessible to all.
                 </p>
               </div>
             </Reveal>

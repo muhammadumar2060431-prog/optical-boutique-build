@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { CheckCircle2, Maximize2, Star, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -11,14 +11,17 @@ import { Reveal } from "./Reveal";
 
 export function Testimonials() {
   const { testimonials } = useStore();
+  const manualTestimonials = testimonials.filter(
+    (testimonial) => testimonial.source !== "customer",
+  );
   const [selectedReview, setSelectedReview] = useState<Testimonial | null>(null);
 
-  if (!testimonials.length) return null;
+  if (!manualTestimonials.length) return null;
 
   // Build a single block with enough items to span wide viewports
-  let singleBlock = [...testimonials];
+  let singleBlock = [...manualTestimonials];
   while (singleBlock.length < 10) {
-    singleBlock = [...singleBlock, ...testimonials];
+    singleBlock = [...singleBlock, ...manualTestimonials];
   }
   const items = [...singleBlock, ...singleBlock];
 

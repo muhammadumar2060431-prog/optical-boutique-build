@@ -1,8 +1,6 @@
 # Optique Suite
 
-Lovable Build Prompt — Premium Eyewear E-commerce Store (Detailed)
-
-Copy everything below into Lovable as one prompt.
+Premium Eyewear E-commerce Store - Project Specification
 
 Build a premium, fully responsive e-commerce web application for a brand selling eyeglasses (frames) and eye contact lenses. The site must feel like a high-end optical boutique — clean, professional, trustworthy, and modern, on the level of a real premium retail brand's website. It needs a complete customer-facing storefront PLUS a full custom admin panel for managing everything (no third-party CMS, no external website builder embeds). Use React with a modern router (multi-page feel, real routes/URLs per page, not just anchor scrolling) and a consistent component library so every button, input, card, and modal looks and behaves the same everywhere.
 
@@ -370,17 +368,89 @@ Warehouse video section left as a neutral "coming soon" placeholder until a chan
 
 A few sample orders already in the Orders table (mix of WhatsApp and Contact Form sources, mixed statuses) so the admin panel doesn't look empty on first login.
 
-This project was built with [Lovable](https://lovable.dev).
+## Local Setup
 
-**Live app**: https://optical-boutique-build.lovable.app
+Requirements: Node.js and npm.
 
-## Build with Lovable
+```sh
+npm install
+cp .env.example .env.development
+npm run dev
+```
 
-Continue developing this project in the [Lovable editor](https://lovable.dev/projects/c319ec25-fdf4-4769-bf1f-23fc29e588e3).
+Use separate environment files for each target:
 
-- **Ship faster**: describe what you want to build and Lovable handles the code.
-- **Stay in sync**: every change made in Lovable is committed straight to this repository.
-- **Full ownership**: this code is yours. Push to `main` on GitHub and your changes sync back into Lovable, ready for your next prompt.
+- `.env.development` for local development
+- `.env.staging` for staging deployments
+- `.env.production` for production deployments
+
+Real environment files are ignored by Git. Keep secrets such as service-role keys out of frontend code and never expose them with a `VITE_` prefix.
+
+Useful checks before shipping:
+
+```sh
+npm run lint
+npm run build
+npm audit
+```
+
+## Deploy to Vercel
+
+1. Import this Git repository in Vercel and keep the detected TanStack Start settings.
+2. Add these values under Project Settings -> Environment Variables:
+   `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `SUPABASE_URL`,
+   `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `SITE_URL`,
+   `ALLOWED_ORIGINS`, `VITE_SENTRY_DSN`, `SENTRY_DSN`,
+   `VITE_SENTRY_ENVIRONMENT`, and `SENTRY_ENVIRONMENT`.
+3. Scope production values to Production and staging values to Preview. Set
+   `SITE_URL` and `ALLOWED_ORIGINS` to the corresponding HTTPS domain.
+4. Run `npx supabase db push` against the production Supabase project before the
+   first production deployment.
+5. Deploy from Vercel. The included `vercel.json` selects the TanStack Start
+   framework and Nitro creates the server output.
+
+Only public browser values may use the `VITE_` prefix. Keep
+`SUPABASE_SERVICE_ROLE_KEY` server-only.
+
+### Sentry
+
+Create a Sentry TanStack Start project, then configure the DSN for both runtimes:
+`VITE_SENTRY_DSN` for the browser and `SENTRY_DSN` for the server. Use
+`VITE_SENTRY_ENVIRONMENT` and `SENTRY_ENVIRONMENT` to separate `staging` from
+`production`.
+
+For readable production stack traces, also add `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`,
+and `SENTRY_PROJECT` as server-only build variables in Vercel. The auth token is
+used only while building and must never use the `VITE_` prefix. Error events do
+not collect user information, cookies, headers, request bodies, URL query
+parameters, database values, or stack-frame local variables by default in this
+project.
+
+After deployment, trigger one controlled test error in Preview and confirm it
+appears in the Sentry project with the `staging` environment before enabling the
+same variables in Production.
+
+### Transactional email
+
+Order, inquiry, and newsletter emails are sent by the `resend-emails` Supabase
+Edge Function. Database triggers authenticate with a dedicated
+`RESEND_WEBHOOK_SECRET`; its matching database copy is stored encrypted in
+Supabase Vault. Keep `RESEND_API_KEY`, `RESEND_WEBHOOK_SECRET`, and
+`RESEND_FROM_EMAIL` in Supabase Edge Function secrets rather than Vercel.
+
+`onboarding@resend.dev` is suitable only for initial account testing. Before
+sending confirmations to customer addresses, verify the production domain in
+Resend and set `RESEND_FROM_EMAIL` to a sender on that domain, for example
+`OPTIQUE <orders@example.com>`.
+
+### Deployment readiness checklist
+
+- Keep all application changes in Git/GitHub. The GitHub CI workflow runs typecheck, lint, tests, and a production build on pull requests and `main` pushes.
+- Use Vercel Preview deployments as staging. Scope staging values to Preview and production values to Production in Vercel Environment Variables.
+- Before promoting to production, test the Preview URL with realistic product/order data, then verify `/health`, product listing pagination, checkout/order APIs, admin login, and contact forms.
+- Configure the production domain in Vercel Domains. Wait for Vercel DNS verification and automatic SSL issuance before sharing the live URL.
+- Set `SITE_URL` and `ALLOWED_ORIGINS` to the exact HTTPS domain(s). Include both apex and `www` only when both are configured.
+- Rollback plan: in Vercel, open Deployments, choose the last known-good production deployment, and click Promote/Redeploy. If the database migration caused the issue, apply the matching rollback SQL or restore from the latest Supabase backup before re-promoting traffic.
 
 ## Development
 
@@ -392,3 +462,25 @@ cd <repository-name>
 npm i
 npm run dev
 ```
+
+## API and production security
+
+Public order traffic uses the versioned /api/v1 routes. Configure SITE_URL,
+ALLOWED_ORIGINS, SUPABASE_URL, SUPABASE_ANON_KEY, and the server-only
+SUPABASE_SERVICE_ROLE_KEY in the deployment environment. Never expose the service-role key
+through a VITE_ variable.
+
+Apply database migrations before deploying the application with: npx supabase db push
+
+The migration adds durable checkout idempotency, a database-backed checkout rate limit, and
+removes anonymous direct inserts into orders. The application also applies per-instance HTTP
+rate limits and exact-origin CORS checks.
+
+Monitoring and API routes:
+
+- GET /health
+- POST /api/v1/orders
+- GET /api/v1/orders/track/:reference
+- Authenticated admin CRUD at /api/v1/orders and /api/v1/orders/:id
+
+Run API and transport-control tests with: npm test

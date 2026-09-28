@@ -9,6 +9,7 @@ import {
 } from "react";
 
 import type { Product, Variant } from "./types";
+import { trackMetaEvent } from "./meta-events";
 
 export interface CartItem {
   key: string;
@@ -105,6 +106,17 @@ export function CartProvider({ children }: { children: ReactNode }) {
           qty,
         },
       ];
+    });
+    trackMetaEvent({
+      eventName: "AddToCart",
+      customData: {
+        value: (variant?.price ?? product.price) * qty,
+        currency: "PKR",
+        contentIds: [product.id],
+        contentType: "product",
+        contentName: product.name,
+        numItems: qty,
+      },
     });
   }, []);
 

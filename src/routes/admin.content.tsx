@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import {
   ArrowDown,
@@ -92,13 +92,35 @@ function BrandsPanel() {
   const { brands, saveBrand, deleteBrand, moveBrand } = useStore();
   const [newName, setNewName] = useState("");
   const [newLogo, setNewLogo] = useState<string | null>(null);
+  const [newFontStyle, setNewFontStyle] = useState("sans");
+
+  const fontOptions = [
+    { value: "sans", label: "Manrope (Modern Clean)", family: "'Manrope', sans-serif" },
+    {
+      value: "display",
+      label: "Cormorant (Elegant Serif)",
+      family: "'Cormorant Garamond', Georgia, serif",
+    },
+    { value: "serif", label: "Serif (Classic)", family: "Georgia, 'Times New Roman', serif" },
+    { value: "mono", label: "Monospace (Tech)", family: "'Courier New', Courier, monospace" },
+    {
+      value: "playfair",
+      label: "Playfair Display (Luxury)",
+      family: "'Playfair Display', Georgia, serif",
+    },
+    { value: "outfit", label: "Outfit (Stylish Bold)", family: "'Outfit', sans-serif" },
+    { value: "montserrat", label: "Montserrat (Premium)", family: "'Montserrat', sans-serif" },
+  ];
+
+  const getFontFamily = (fontStyle?: string) =>
+    fontOptions.find((f) => f.value === fontStyle)?.family ?? "'Manrope', sans-serif";
 
   const handleAdd = () => {
     const name = newName.trim();
     const logo = newLogo?.trim() || null;
 
     if (!name && !logo) {
-      toast.error("Brand name ya logo mein se ek cheez add karein.");
+      toast.error("Add either a brand name or a logo.");
       return;
     }
 
@@ -115,50 +137,69 @@ function BrandsPanel() {
       id: "",
       name,
       logo,
+      fontStyle: newFontStyle,
       enabled: true,
     });
     setNewName("");
     setNewLogo(null);
-    toast.success(`"${displayName}" brands bar mein add ho gaya!`);
+    setNewFontStyle("sans");
+    toast.success(`"${displayName}" was added to the brands bar.`);
   };
 
   return (
     <div className="space-y-6">
       {/* Add new brand */}
       <div className="rounded-xl border border-stone bg-card p-6 space-y-4">
-        <h2 className="font-display text-xl">Naya Brand Add Karein</h2>
-        <div className="space-y-2">
-          <Label htmlFor="brand-name">Brand Name</Label>
-          <Input
-            id="brand-name"
-            value={newName}
-            onChange={(e) => setNewName(e.target.value)}
-            placeholder="e.g. Ray-Ban"
-            className="min-h-11"
-            onKeyDown={(e) => e.key === "Enter" && handleAdd()}
-          />
+        <h2 className="font-display text-xl">Add a New Brand</h2>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-2">
+            <Label htmlFor="brand-name">Brand Name</Label>
+            <Input
+              id="brand-name"
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              placeholder="e.g. Ray-Ban"
+              className="min-h-11"
+              onKeyDown={(e) => e.key === "Enter" && handleAdd()}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Font Style</Label>
+            <Select value={newFontStyle} onValueChange={setNewFontStyle}>
+              <SelectTrigger className="min-h-11 w-full bg-card">
+                <SelectValue placeholder="Select font..." />
+              </SelectTrigger>
+              <SelectContent>
+                {fontOptions.map((font) => (
+                  <SelectItem key={font.value} value={font.value}>
+                    <span style={{ fontFamily: font.family }}>{font.label}</span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
         <ImageUpload
           label="Brand Logo"
           optional
           value={newLogo}
           onChange={setNewLogo}
-          hint="PNG transparent background • 320×80 px • Max 5 MB"
+          hint="Transparent PNG - 320 x 80 px - Max 5 MB"
           aspectHint="Wide logo"
           maxWidth={420}
           maxHeight={140}
           outputQuality={0.82}
+          storageFolder="brands"
         />
         <Button className="min-h-11 rounded-full" onClick={handleAdd}>
           <Plus className="h-4 w-4 mr-2" />
-          Brand Add Karein
+          Add Brand
         </Button>
       </div>
 
-
       {/* Existing brands list */}
       {brands.length === 0 ? (
-        <p className="text-sm text-ink-muted">Abhi koi brand nahi hai.</p>
+        <p className="text-sm text-ink-muted">No brands have been added yet.</p>
       ) : (
         <div className="space-y-3">
           {brands.map((brand, i) => (
@@ -169,15 +210,27 @@ function BrandsPanel() {
               {/* Logo preview */}
               <div className="w-16 flex-shrink-0 flex items-center justify-center">
                 {brand.logo ? (
-                  <img src={brand.logo} alt={brand.name || "Brand logo"} className="h-7 object-contain" />
+                  <img
+                    src={brand.logo}
+                    alt={brand.name || "Brand logo"}
+                    className="h-7 object-contain"
+                  />
                 ) : (
-                  <span className="text-xs text-ink-muted font-display uppercase tracking-widest">
+                  <span
+                    className="text-xs text-ink-muted uppercase tracking-widest"
+                    style={{ fontFamily: getFontFamily(brand.fontStyle) }}
+                  >
                     {brand.name || "Logo"}
                   </span>
                 )}
               </div>
 
-              <span className="flex-1 font-semibold text-sm truncate">{brand.name || "Logo only"}</span>
+              <span
+                className="flex-1 font-semibold text-sm truncate"
+                style={{ fontFamily: getFontFamily(brand.fontStyle) }}
+              >
+                {brand.name || "Logo only"}
+              </span>
 
               {/* Enable/Disable */}
               <Switch
@@ -262,7 +315,11 @@ function BrandPreviewItem({ brand }: { brand: Brand }) {
     <span className="px-8 flex h-10 flex-shrink-0 items-center justify-center opacity-70">
       {brand.logo ? (
         <>
-          <img src={brand.logo} alt={brand.name || "Brand logo"} className="h-7 max-w-28 object-contain" />
+          <img
+            src={brand.logo}
+            alt={brand.name || "Brand logo"}
+            className="h-7 max-w-28 object-contain"
+          />
           {brand.name && (
             <span className="font-display text-sm uppercase tracking-widest">{brand.name}</span>
           )}
@@ -355,7 +412,7 @@ function AnnouncementPanel() {
               }
               return [...singleBlock, ...singleBlock].map((m, i) => (
                 <span key={`${m}-${i}`} className="px-6 flex-shrink-0">
-                  {m} •
+                  {m} -
                 </span>
               ));
             })()}
@@ -453,12 +510,17 @@ function HeroPanel() {
                 label="Slide image"
                 value={slide.image}
                 onChange={(img) => updateHeroSlide(slide.id, { image: img ?? slide.image })}
-                hint="1440×720 px • Max 300 KB • JPG/WebP landscape recommended"
-                aspectHint="16:9 landscape"
+                hint="1440 x 720 px - Max 300 KB - JPG/WebP landscape recommended"
+                aspectHint="2:1 wide"
+                maxWidth={1920}
+                maxHeight={960}
+                outputQuality={0.88}
+                storageFolder="hero"
               />
 
               <p className="text-xs text-ink-muted">
-                💡 <strong>Image-only banner tip:</strong> Agar aap text fields (Headline, Eyebrow, Subtext, CTA) khali chhodenge to storefront par bina kisi dark overlay ke pure full-image banner show hoga.
+                <strong>Image-only banner tip:</strong> Leave the Headline, Eyebrow, Subtext, and
+                CTA fields blank to display a full-image banner without a dark overlay.
               </p>
 
               <div className="grid gap-4 sm:grid-cols-2">
@@ -477,7 +539,7 @@ function HeroPanel() {
                   <Input
                     id={`h-headline-${slide.id}`}
                     value={slide.headline}
-                    placeholder="Optional — khali chhodne par sirf image dikhegi"
+                    placeholder="Optional - leave blank to display only the image"
                     onChange={(e) => updateHeroSlide(slide.id, { headline: e.target.value })}
                     className="min-h-11"
                   />
@@ -508,7 +570,7 @@ function HeroPanel() {
                     <Input
                       id={`h-link-${slide.id}`}
                       value={slide.ctaLink}
-                      placeholder="e.g. /glasses (pure image par click se ye open hoga)"
+                      placeholder="e.g. /glasses (clicking the full image opens this path)"
                       onChange={(e) => updateHeroSlide(slide.id, { ctaLink: e.target.value })}
                       className="min-h-11"
                     />
@@ -545,7 +607,8 @@ function BannerPanel() {
         <div className="rounded-2xl border border-dashed border-stone p-12 text-center bg-card">
           <p className="font-display text-lg">No categories found</p>
           <p className="text-xs text-ink-muted mt-1 mb-4">
-            You need to create categories in the Products tab first before you can add banners to them.
+            You need to create categories in the Products tab first before you can add banners to
+            them.
           </p>
         </div>
       ) : (
@@ -595,19 +658,22 @@ function BannerPanel() {
                     label="Category Icon / Avatar (Circle shown on Homepage)"
                     value={c.image || null}
                     onChange={(img) => saveCategory({ ...c, image: img })}
-                    hint="400×400 px square • Max 100 KB • JPG/WebP"
+                    hint="400 x 400 px square - Max 100 KB - JPG/WebP"
                     aspectHint="1:1 square"
+                    storageFolder="categories"
                   />
                   <ImageUpload
                     label="Category Banner Image"
                     value={banner.image || null}
                     onChange={(img) => patch({ image: img ?? "" })}
-                    hint="1200×600 px • Max 250 KB • JPG/WebP wide"
+                    hint="1200 x 600 px - Max 250 KB - JPG/WebP wide"
                     aspectHint="2:1 wide"
+                    storageFolder="categories"
                   />
                 </div>
                 <p className="text-xs text-ink-muted">
-                  💡 <strong>Tip:</strong> Heading aur Subtext optional hain. Agar inko khali chhodenge to category page par clean image banner dikhega.
+                  <strong>Tip:</strong> The heading and subtext are optional. Leave them blank to
+                  display a clean image banner on the category page.
                 </p>
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
@@ -615,7 +681,7 @@ function BannerPanel() {
                     <Input
                       id={`b-head-${c.id}`}
                       value={banner.heading}
-                      placeholder="Optional — khali chhodne par sirf image dikhegi"
+                      placeholder="Optional - leave blank to display only the image"
                       onChange={(e) => patch({ heading: e.target.value })}
                       className="min-h-11"
                     />
@@ -694,7 +760,7 @@ function VideoPanel() {
           {error && <p className="text-xs text-destructive">{error}</p>}
           {!video.lockedChannel && (
             <p className="text-xs text-ink-muted">
-              No channel is locked yet — a video won't go live until you lock an approved channel
+              No channel is locked yet - a video will not go live until you lock an approved channel
               below. The public video section stays as a placeholder in the meantime.
             </p>
           )}
@@ -850,11 +916,7 @@ function SocialReelsPanel() {
       toast.error(videoCheck.error || "Invalid video URL link.");
       return;
     }
-    if (
-      !window.confirm(
-        "Aap is reel ko save karna chahte hain? (Are you sure you want to save this reel?)",
-      )
-    ) {
+    if (!window.confirm("Are you sure you want to save this reel?")) {
       return;
     }
 
@@ -992,7 +1054,7 @@ function SocialReelsPanel() {
                           </div>
                         </div>
                       ) : (
-                        <span className="text-xs text-ink-muted">—</span>
+                        <span className="text-xs text-ink-muted">-</span>
                       )}
                     </td>
 
@@ -1161,8 +1223,9 @@ function SocialReelsPanel() {
                     label="Reel Vertical Thumbnail Image (Optional)"
                     value={draft.thumbnail || null}
                     onChange={(img) => setDraft({ ...draft, thumbnail: img ?? "" })}
-                    hint="480×854 px vertical • Max 150 KB • JPG/WebP (9:16)"
+                    hint="480 x 854 px vertical - Max 150 KB - JPG/WebP (9:16)"
                     aspectHint="9:16 vertical"
+                    storageFolder="reels"
                   />
                   <p className="text-[11px] text-ink-muted">
                     This vertical image will be displayed on the homepage scrollable reels track.
@@ -1213,5 +1276,3 @@ function SocialReelsPanel() {
     </div>
   );
 }
-
-

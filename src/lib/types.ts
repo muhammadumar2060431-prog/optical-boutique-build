@@ -1,4 +1,4 @@
-export type ID = string;
+﻿export type ID = string;
 
 export interface Variant {
   id: ID;
@@ -121,6 +121,7 @@ export interface AnnouncementSettings {
 
 export interface Testimonial {
   id: ID;
+  source?: "manual" | "customer";
   name: string;
   email?: string | null;
   productId?: ID | null;
@@ -162,6 +163,7 @@ export interface Brand {
   id: ID;
   name: string;
   logo: string | null;
+  fontStyle?: string;
   enabled: boolean;
   sortOrder?: number;
 }
@@ -188,6 +190,7 @@ export interface FAQItem {
   answer: string;
   category?: string;
   enabled: boolean;
+  showOnHome?: boolean;
   sortOrder?: number;
 }
 

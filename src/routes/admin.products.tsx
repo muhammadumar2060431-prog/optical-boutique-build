@@ -31,6 +31,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
+import { getProductSubImages } from "@/lib/product-images";
 import { formatPrice, newId, useStore } from "@/lib/store";
 import type { Category, Collection, Product, Variant } from "@/lib/types";
 
@@ -105,8 +106,15 @@ function AdminProducts() {
 }
 
 function ProductsTab() {
-  const { products, categories, collections, saveProduct, deleteProduct, moveProduct, productStock } =
-    useStore();
+  const {
+    products,
+    categories,
+    collections,
+    saveProduct,
+    deleteProduct,
+    moveProduct,
+    productStock,
+  } = useStore();
   const [query, setQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [collectionFilter, setCollectionFilter] = useState("all");
@@ -201,8 +209,9 @@ function ProductsTab() {
           <p className="text-sm font-semibold mb-2">No products found</p>
           {categories.length === 0 ? (
             <p className="text-sm text-ink-muted">
-              You must create at least one category before adding products. <br/>
-              Click the <strong>"Categories & Collections"</strong> tab above to create your first category.
+              You must create at least one category before adding products. <br />
+              Click the <strong>"Categories & Collections"</strong> tab above to create your first
+              category.
             </p>
           ) : (
             <p className="text-sm text-ink-muted">
@@ -229,16 +238,18 @@ function ProductsTab() {
                 const col = collections.find((c) => c.id === p.collectionId);
                 return (
                   <tr key={p.id} className="hover:bg-zinc-200/80 transition-colors">
-                    <td className="px-4 py-3">
-                      <div className="flex min-w-0 items-center gap-3">
+                    <td className="px-4 py-3 max-w-[220px]">
+                      <div className="flex min-w-0 items-center gap-3 overflow-hidden">
                         <img
                           src={p.image}
                           alt=""
                           className="h-11 w-11 shrink-0 rounded-md object-cover border border-stone"
                         />
-                        <div className="min-w-0">
-                          <p className="truncate font-semibold">{p.name}</p>
-                          <p className="text-xs text-ink-muted">SKU: {p.sku || "—"}</p>
+                        <div className="min-w-0 overflow-hidden">
+                          <p className="truncate font-semibold leading-tight" title={p.name}>
+                            {p.name}
+                          </p>
+                          <p className="text-xs text-ink-muted truncate">SKU: {p.sku || "—"}</p>
                         </div>
                       </div>
                     </td>
@@ -378,18 +389,7 @@ function ProductDialog({
     const currentId = draft.id || `new-${draft.categoryId}-${draft.sku}`;
     if (lastDraftIdRef.current !== currentId) {
       lastDraftIdRef.current = currentId;
-      const rawList =
-        Array.isArray(draft.subImages) && draft.subImages.length > 0
-          ? draft.subImages
-          : Array.isArray((draft.details as any)?.subImages) &&
-              (draft.details as any).subImages.length > 0
-            ? (draft.details as any).subImages
-            : Array.isArray((draft as any).images) && (draft as any).images.length > 1
-              ? (draft as any).images.slice(1)
-              : [];
-      const subImages = rawList.filter(
-        (s: any): s is string => typeof s === "string" && s.trim().length > 0,
-      );
+      const subImages = getProductSubImages(draft);
 
       setForm({
         ...draft,
@@ -599,6 +599,7 @@ function ProductDialog({
                   onChange={(img) => setForm({ ...value, image: img ?? "" })}
                   hint="800×800 px square • Max 200 KB • JPG/WebP recommended"
                   aspectHint="1:1 square"
+                  storageFolder="products"
                 />
 
                 <ImageUpload
@@ -608,6 +609,7 @@ function ProductDialog({
                   onChange={(img) => setForm({ ...value, hoverImage: img ?? null })}
                   hint="800×800 px square • Max 200 KB • Same ratio as main image"
                   aspectHint="1:1 square"
+                  storageFolder="products"
                 />
 
                 <div>
@@ -618,7 +620,9 @@ function ProductDialog({
                     {[0, 1, 2].map((i) => {
                       const angleValue =
                         value.subImages?.[i] ||
-                        (Array.isArray(value.details?.subImages) ? value.details.subImages[i] : null) ||
+                        (Array.isArray(value.details?.subImages)
+                          ? value.details.subImages[i]
+                          : null) ||
                         null;
                       return (
                         <ImageUpload
@@ -655,6 +659,7 @@ function ProductDialog({
                           }}
                           hint="500×500 px • PNG/WebP/AVIF (Transparent BG supported)"
                           aspectHint="1:1 square"
+                          storageFolder="products"
                         />
                       );
                     })}
@@ -814,6 +819,7 @@ function ProductDialog({
                           onChange={(img) => setVariant({ ...v, image: img ?? "" })}
                           hint="600×600 px square • Max 120 KB • JPG/WebP"
                           aspectHint="1:1 square"
+                          storageFolder="products"
                         />
                       </li>
                     ))}
@@ -831,7 +837,13 @@ function ProductDialog({
                 <div className="space-y-4">
                   {/* New Arrival Toggle & Dedicated Showcase Image */}
                   <div className="rounded-xl border border-stone/80 bg-card p-4 space-y-3.5">
-                    <label className="flex items-center justify-between gap-4 cursor-pointer">
+                    <div
+                      className="flex items-center justify-between gap-4 cursor-pointer select-none"
+                      onClick={(e) => {
+                        if ((e.target as HTMLElement).closest('[role="switch"]')) return;
+                        setForm({ ...value, isNewArrival: !value.isNewArrival });
+                      }}
+                    >
                       <div>
                         <span className="text-sm font-semibold flex items-center gap-1.5">
                           <Sparkles className="h-4 w-4 text-gold" />
@@ -846,7 +858,7 @@ function ProductDialog({
                         checked={!!value.isNewArrival}
                         onCheckedChange={(v) => setForm({ ...value, isNewArrival: v })}
                       />
-                    </label>
+                    </div>
 
                     {value.isNewArrival && (
                       <div className="pt-3 border-t border-stone/50 space-y-2">
@@ -855,8 +867,8 @@ function ProductDialog({
                             📸 Dedicated New Arrival Section Image
                           </p>
                           <p className="text-[11px] text-ink-muted mt-0.5">
-                            Yeh image <strong>sirf New Arrivals section</strong> mein show hogi.
-                            Agar upload nahi karenge to standard product image use hogi.
+                            This image appears <strong>only in the New Arrivals section</strong>.
+                            The standard product image is used when no image is uploaded.
                           </p>
                         </div>
                         <ImageUpload
@@ -866,13 +878,20 @@ function ProductDialog({
                           onChange={(img) => setForm({ ...value, newArrivalImage: img })}
                           hint="800×800 px • PNG/WebP/AVIF (Background removal transparent image supported)"
                           aspectHint="1:1 square"
+                          storageFolder="products"
                         />
                       </div>
                     )}
                   </div>
 
                   <div className="grid gap-3 sm:grid-cols-2">
-                    <label className="flex items-center justify-between rounded-lg border border-stone/60 p-3.5 cursor-pointer">
+                    <div
+                      className="flex items-center justify-between rounded-lg border border-stone/60 p-3.5 cursor-pointer select-none"
+                      onClick={(e) => {
+                        if ((e.target as HTMLElement).closest('[role="switch"]')) return;
+                        setForm({ ...value, isBestseller: !value.isBestseller });
+                      }}
+                    >
                       <div>
                         <span className="text-sm font-semibold">Best Seller Badge</span>
                         <p className="text-xs text-ink-muted">Displays "Best Seller" ribbon</p>
@@ -881,9 +900,15 @@ function ProductDialog({
                         checked={!!value.isBestseller}
                         onCheckedChange={(v) => setForm({ ...value, isBestseller: v })}
                       />
-                    </label>
+                    </div>
 
-                    <label className="flex items-center justify-between rounded-lg border border-stone/60 p-3.5 cursor-pointer">
+                    <div
+                      className="flex items-center justify-between rounded-lg border border-stone/60 p-3.5 cursor-pointer select-none"
+                      onClick={(e) => {
+                        if ((e.target as HTMLElement).closest('[role="switch"]')) return;
+                        setForm({ ...value, featured: !value.featured });
+                      }}
+                    >
                       <div>
                         <span className="text-sm font-semibold">Homepage Bestsellers Grid</span>
                         <p className="text-xs text-ink-muted">Feature on main home page</p>
@@ -892,7 +917,7 @@ function ProductDialog({
                         checked={!!value.featured}
                         onCheckedChange={(v) => setForm({ ...value, featured: v })}
                       />
-                    </label>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -961,10 +986,31 @@ function CategoriesTab() {
   const [categoryDraft, setCategoryDraft] = useState<Category | null>(null);
   const [collectionDraft, setCollectionDraft] = useState<Collection | null>(null);
 
+  const sortedCategories = useMemo(
+    () => [...categories].sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0)),
+    [categories],
+  );
+  const collectionsByCategory = useMemo(() => {
+    const index = new Map<string, Collection[]>();
+    for (const collection of collections) {
+      const group = index.get(collection.categoryId);
+      if (group) group.push(collection);
+      else index.set(collection.categoryId, [collection]);
+    }
+    return index;
+  }, [collections]);
+  const productCountByCategory = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const product of products) {
+      counts.set(product.categoryId, (counts.get(product.categoryId) ?? 0) + 1);
+    }
+    return counts;
+  }, [products]);
+
   // If a category is selected, show its Collections view (Level 2)
   if (selectedCategory) {
     const activeCategory = categories.find((c) => c.id === selectedCategory.id) || selectedCategory;
-    const catCollections = collections.filter((c) => c.categoryId === activeCategory.id);
+    const catCollections = collectionsByCategory.get(activeCategory.id) ?? [];
 
     return (
       <div className="space-y-6">
@@ -1157,7 +1203,7 @@ function CategoriesTab() {
                       <div className="space-y-1">
                         <Label className="text-xs">Banner Heading (Optional)</Label>
                         <Input
-                          placeholder="Optional — khali chhodne par sirf image dikhegi"
+                          placeholder="Optional - leave blank to display only the image"
                           value={collectionDraft.banner.heading}
                           onChange={(e) =>
                             setCollectionDraft({
@@ -1202,7 +1248,7 @@ function CategoriesTab() {
                         toast.error("Collection name is required.");
                         return;
                       }
-                      if (!window.confirm("Aap is collection ko save karna chahte hain? (Are you sure you want to save this collection?)")) {
+                      if (!window.confirm("Are you sure you want to save this collection?")) {
                         return;
                       }
                       saveCollection({
@@ -1224,10 +1270,6 @@ function CategoriesTab() {
       </div>
     );
   }
-
-  const sortedCategories = useMemo(() => {
-    return [...categories].sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
-  }, [categories]);
 
   // Level 1: Categories View
   return (
@@ -1264,8 +1306,8 @@ function CategoriesTab() {
           </thead>
           <tbody className="divide-y divide-stone">
             {sortedCategories.map((c, i) => {
-              const catCols = collections.filter((col) => col.categoryId === c.id);
-              const count = products.filter((p) => p.categoryId === c.id).length;
+              const catCols = collectionsByCategory.get(c.id) ?? [];
+              const count = productCountByCategory.get(c.id) ?? 0;
               return (
                 <tr key={c.id} className="hover:bg-mist/30 transition-colors">
                   <td className="px-4 py-3">
@@ -1420,7 +1462,7 @@ function CategoriesTab() {
                       toast.error("A category name is required.");
                       return;
                     }
-                    if (!window.confirm("Aap is category ko save karna chahte hain? (Are you sure you want to save this category?)")) {
+                    if (!window.confirm("Are you sure you want to save this category?")) {
                       return;
                     }
                     saveCategory({

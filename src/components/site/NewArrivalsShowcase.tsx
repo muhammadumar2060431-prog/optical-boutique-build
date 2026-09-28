@@ -15,13 +15,13 @@ export function NewArrivalsShowcase() {
 
   const [currentIndex, setCurrentIndex] = useState(0);
 
-  // Auto-advance every 6 seconds if not hovered
+  // Auto-advance every 5 seconds if not hovered
   const [isHovered, setIsHovered] = useState(false);
   useEffect(() => {
     if (isHovered || items.length <= 1) return;
     const timer = setInterval(() => {
       setCurrentIndex((prev) => (prev + 1) % items.length);
-    }, 6000);
+    }, 5000);
     return () => clearInterval(timer);
   }, [isHovered, items.length]);
 

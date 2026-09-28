@@ -54,7 +54,6 @@ function PlatformBadge({ platform }: { platform: SocialPlatform }) {
   }
 }
 
-
 type PlaybackSource =
   | { kind: "iframe"; src: string }
   | { kind: "video"; src: string }
@@ -122,7 +121,6 @@ export function SocialProofReels() {
   const taggedProduct = selectedReel?.productId
     ? products.find((p) => p.id === selectedReel.productId)
     : null;
-
 
   const selectedPlayback = selectedReel
     ? getPlaybackSource(selectedReel.videoUrl, selectedReel.platform)

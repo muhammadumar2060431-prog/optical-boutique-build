@@ -3,6 +3,7 @@ import { ArrowRight, CheckCircle2, Loader2, Mail } from "lucide-react";
 import { toast } from "sonner";
 
 import { useStore } from "@/lib/store";
+import { trackMetaEvent } from "@/lib/meta-events";
 import { Reveal } from "./Reveal";
 
 export function NewsletterSection() {
@@ -23,6 +24,11 @@ export function NewsletterSection() {
       const res = addSubscriber(email);
       setIsSubmitting(false);
       if (res.ok) {
+        trackMetaEvent({
+          eventName: "CompleteRegistration",
+          userData: { email },
+          customData: { contentName: "Email newsletter" },
+        });
         setIsSuccess(true);
         setEmail("");
         toast.success(res.message);

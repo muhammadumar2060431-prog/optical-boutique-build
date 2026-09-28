@@ -29,7 +29,9 @@ export function FilterSheet({ dark = false, className }: { dark?: boolean; class
   }, [open, filters]);
 
   const variantLabels = Array.from(
-    new Set(products.flatMap((p) => p.variants.map((v) => v.label))),
+    new Set(
+      products.filter((p) => p.status !== "Draft").flatMap((p) => p.variants.map((v) => v.label)),
+    ),
   );
 
   const toggle = (list: string[], value: string) =>

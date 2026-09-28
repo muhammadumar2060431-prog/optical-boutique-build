@@ -32,11 +32,7 @@ function AdminInventory() {
     productName: string,
   ) => {
     const safe = Math.max(0, Math.round(newQty) || 0);
-    if (
-      !window.confirm(
-        `Aap "${productName}" ka stock change karke ${safe} karna chahte hain? (Are you sure you want to set stock to ${safe}?)`,
-      )
-    ) {
+    if (!window.confirm(`Are you sure you want to set "${productName}" stock to ${safe}?`)) {
       return;
     }
     updateStock(productId, variantId, safe);
@@ -112,8 +108,8 @@ function AdminInventory() {
           <table className="w-full min-w-[720px] text-sm">
             <thead className="border-b-2 border-[#555555] bg-[#666666] text-left text-xs tracking-[0.14em] uppercase text-white">
               <tr>
-                <th className="px-4 py-3 text-white font-semibold">Category</th>
                 <th className="px-4 py-3 text-white font-semibold">Product / variant</th>
+                <th className="px-4 py-3 text-white font-semibold">Category</th>
                 <th className="px-4 py-3 text-white font-semibold">Stock</th>
                 <th className="px-4 py-3 text-white font-semibold">Status</th>
                 <th className="px-4 py-3 text-white font-semibold">Updated</th>
@@ -128,14 +124,29 @@ function AdminInventory() {
                     r.status !== "In stock" && "bg-amber-50/20",
                   )}
                 >
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 shrink-0 overflow-hidden rounded-md bg-white border border-zinc-200 flex items-center justify-center">
+                        <img
+                          src={r.image || "/placeholder.svg"}
+                          alt={r.name}
+                          className="h-full w-full object-cover"
+                        />
+                      </div>
+                      <span className="font-semibold max-w-[200px] truncate" title={r.name}>
+                        {r.name}
+                      </span>
+                    </div>
+                  </td>
                   <td className="px-4 py-3 text-ink-muted">{r.categoryName}</td>
-                  <td className="px-4 py-3 font-semibold">{r.name}</td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
                       <button
                         type="button"
                         aria-label="Decrease stock"
-                        onClick={() => handleStockChange(r.productId, r.variantId, r.stock - 1, r.name)}
+                        onClick={() =>
+                          handleStockChange(r.productId, r.variantId, r.stock - 1, r.name)
+                        }
                         className="grid h-9 w-9 place-items-center rounded-full border border-zinc-300 bg-white hover:border-[#666666]"
                       >
                         <Minus className="h-3.5 w-3.5" aria-hidden="true" />
@@ -145,14 +156,21 @@ function AdminInventory() {
                         type="number"
                         value={r.stock}
                         onChange={(e) =>
-                          handleStockChange(r.productId, r.variantId, Number(e.target.value), r.name)
+                          handleStockChange(
+                            r.productId,
+                            r.variantId,
+                            Number(e.target.value),
+                            r.name,
+                          )
                         }
                         className="h-9 w-20 text-center bg-white border-zinc-300"
                       />
                       <button
                         type="button"
                         aria-label="Increase stock"
-                        onClick={() => handleStockChange(r.productId, r.variantId, r.stock + 1, r.name)}
+                        onClick={() =>
+                          handleStockChange(r.productId, r.variantId, r.stock + 1, r.name)
+                        }
                         className="grid h-9 w-9 place-items-center rounded-full border border-zinc-300 bg-white hover:border-[#666666]"
                       >
                         <Plus className="h-3.5 w-3.5" aria-hidden="true" />

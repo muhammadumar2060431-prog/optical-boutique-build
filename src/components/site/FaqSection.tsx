@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { Link } from "@tanstack/react-router";
 import { ChevronDown, HelpCircle, Search } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -6,14 +7,24 @@ import { Input } from "@/components/ui/input";
 import { useStore } from "@/lib/store";
 import { Reveal } from "./Reveal";
 
-export function FaqSection() {
+interface FaqSectionProps {
+  isHomepage?: boolean;
+}
+
+export function FaqSection({ isHomepage = false }: FaqSectionProps) {
   const { faqs } = useStore();
   const [activeCategory, setActiveCategory] = useState<string>("All");
   const [searchQuery, setSearchQuery] = useState<string>("");
 
   const publishedFaqs = useMemo(() => {
-    return faqs.filter((f) => f.enabled !== false);
-  }, [faqs]);
+    const allLive = faqs.filter((f) => f.enabled !== false);
+    if (!isHomepage) return allLive;
+
+    // Homepage mode: show FAQs that have showOnHome = true
+    const featured = allLive.filter((f) => f.showOnHome === true);
+    // Fall back to all live FAQs if admin hasn't toggled specific ones yet
+    return featured.length > 0 ? featured : allLive;
+  }, [faqs, isHomepage]);
 
   const categories = useMemo(() => {
     const set = new Set<string>();
@@ -35,7 +46,7 @@ export function FaqSection() {
 
   const [openId, setOpenId] = useState<string | null>(filteredFaqs[0]?.id ?? null);
 
-  if (!publishedFaqs.length) return null;
+  if (!publishedFaqs.length && isHomepage) return null;
 
   return (
     <section className="bg-white py-20 sm:py-28 relative overflow-hidden border-b border-zinc-200 text-black">
@@ -191,6 +202,18 @@ export function FaqSection() {
                   </div>
                 );
               })}
+            </div>
+          )}
+
+          {isHomepage && (
+            <div className="mt-10 text-center">
+              <Link
+                to="/faqs"
+                className="inline-flex min-h-11 w-full max-w-full items-center justify-center rounded-full bg-black px-4 text-xs font-semibold uppercase tracking-[0.08em] text-white transition-all hover:bg-zinc-800 shadow-md sm:w-auto sm:px-8 sm:tracking-[0.16em]"
+              >
+                <span className="sm:hidden">View all FAQs &rarr;</span>
+                <span className="hidden sm:inline">View All Frequently Asked Questions &rarr;</span>
+              </Link>
             </div>
           )}
         </Reveal>

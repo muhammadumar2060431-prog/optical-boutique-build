@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { toast } from "sonner";
 import {
@@ -82,7 +82,10 @@ const statusConfig: Record<
 };
 
 function parseOrderInfo(order: Order) {
-  const rawParts = (order.contact || "").split("·").map((s) => s.trim()).filter(Boolean);
+  const rawParts = (order.contact || "")
+    .split("·")
+    .map((s) => s.trim())
+    .filter(Boolean);
   let phone = "";
   let email = "";
 
@@ -105,10 +108,25 @@ function parseOrderInfo(order: Order) {
     waNumber = "92" + cleanDigits.slice(1);
   }
 
-  const lines = (order.message || "").split("\n").map((l) => l.trim()).filter(Boolean);
+  // Handle both multi-line and single-line (inline) message formats
+  // Single-line example: "Checkout order OPT-123 — quantity 1 (Rs. 5,000).Delivery address: abc.Customer notes: xyz"
+  const rawMsg = order.message || "";
+
+  // Normalize: split on known label prefixes even without newlines
+  const normalized = rawMsg
+    .replace(/\.?\s*(Delivery address:)/gi, "\nDelivery address:")
+    .replace(/\.?\s*(Customer notes:)/gi, "\nCustomer notes:")
+    .replace(/\.?\s*(Checkout order)/gi, "\nCheckout order");
+
+  const lines = normalized
+    .split("\n")
+    .map((l) => l.trim())
+    .filter(Boolean);
   let address = "";
   let notes = "";
   let itemSummary = "";
+  let quantity = "";
+  let price = "";
   const generalLines: string[] = [];
 
   for (const line of lines) {
@@ -118,6 +136,12 @@ function parseOrderInfo(order: Order) {
       notes = line.replace(/^customer notes:\s*/i, "").trim();
     } else if (/^checkout order\s*/i.test(line)) {
       itemSummary = line;
+      // Extract quantity e.g. "quantity 2" or "qty 2"
+      const qtyMatch = line.match(/quantity\s*(\d+)/i) || line.match(/qty\s*(\d+)/i);
+      if (qtyMatch) quantity = qtyMatch[1] ?? "";
+      // Extract price e.g. "(Rs. 5,000)" or "Rs 5000"
+      const priceMatch = line.match(/\(Rs\.?\s*([\d,]+)\)/i) || line.match(/Rs\.?\s*([\d,]+)/i);
+      if (priceMatch) price = `Rs. ${priceMatch[1] ?? ""}`;
     } else {
       generalLines.push(line);
     }
@@ -130,6 +154,8 @@ function parseOrderInfo(order: Order) {
     address,
     notes,
     itemSummary,
+    quantity,
+    price,
     generalMessage: generalLines.join("\n"),
   };
 }
@@ -148,6 +174,13 @@ function OrderDetailsModal({
   const [courierName, setCourierName] = useState(order.courierName || "TCS Express");
   const [trackingNumber, setTrackingNumber] = useState(order.trackingNumber || "");
   const info = useMemo(() => parseOrderInfo(order), [order]);
+
+  // Reset local courier state whenever a different order is opened
+  useEffect(() => {
+    setCourierName(order.courierName || "TCS Express");
+    setTrackingNumber(order.trackingNumber || "");
+    setCopied(false);
+  }, [order.id, order.courierName, order.trackingNumber]);
 
   const matchedProduct = useMemo(() => {
     if (order.productId) {
@@ -187,23 +220,39 @@ function OrderDetailsModal({
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleSaveCourier = (markAsDispatched: boolean) => {
-    if (markAsDispatched && !trackingNumber.trim() && courierName !== "Direct Rider / In-City Delivery") {
+  const handleSaveCourier = async (markAsDispatched: boolean) => {
+    // Couriers with no tracking portal (Rider, Other) don't need a tracking number
+    const selectedCourier = SUPPORTED_COURIERS.find((c) => c.name === courierName);
+    const requiresTracking = selectedCourier ? selectedCourier.trackingUrlTemplate !== null : true;
+    if (markAsDispatched && requiresTracking && !trackingNumber.trim()) {
       toast.error("Please enter a tracking number before marking as dispatched.");
       return;
     }
     const nextStatus = markAsDispatched ? "Dispatched" : order.status;
-    updateOrderCourier(order.id, courierName, trackingNumber.trim() || null, nextStatus);
-    toast.success(markAsDispatched ? "Order marked as Dispatched with tracking!" : "Courier details saved!");
+    const saved = await updateOrderCourier(
+      order.id,
+      courierName,
+      trackingNumber.trim() || null,
+      nextStatus,
+    );
+    if (!saved) {
+      toast.error("Courier details could not be saved. Please try again.");
+      return;
+    }
+    toast.success(
+      markAsDispatched ? "Order marked as Dispatched with tracking!" : "Courier details saved!",
+    );
   };
 
   const trackingPortalUrl = getCourierTrackingUrl(courierName, trackingNumber);
 
   const siteOrigin = typeof window !== "undefined" ? window.location.origin : "";
   const dispatchWaMessage = encodeURIComponent(
-    `Assalam-o-Alaikum ${order.customerName}! Aapka ${storeName} order (${order.reference}) dispatch ho chuka hai via ${courierName}.${trackingNumber ? ` Tracking Number: ${trackingNumber}.` : ""}\n\nAap apna parcel yahan track kar sakte hain: ${trackingPortalUrl || `${siteOrigin}/order-status?ref=${order.reference}`}\n\nShukriya!`,
+    `Hello ${order.customerName}! Your ${storeName} order (${order.reference}) has been dispatched via ${courierName}.${trackingNumber ? ` Tracking number: ${trackingNumber}.` : ""}\n\nTrack your parcel here: ${trackingPortalUrl || `${siteOrigin}/order-status?ref=${order.reference}`}\n\nThank you!`,
   );
-  const dispatchWaUrl = info.waNumber ? `https://wa.me/${info.waNumber}?text=${dispatchWaMessage}` : null;
+  const dispatchWaUrl = info.waNumber
+    ? `https://wa.me/${info.waNumber}?text=${dispatchWaMessage}`
+    : null;
 
   const waMessage = encodeURIComponent(
     `Hello ${order.customerName}, this is ${storeName} regarding your order ${order.reference}. Could we confirm your order details?`,
@@ -229,7 +278,11 @@ function OrderDetailsModal({
               title="Copy Reference"
               className="grid h-7 w-7 place-items-center rounded-md text-zinc-200 transition-colors hover:bg-white/20 hover:text-white"
             >
-              {copied ? <Check className="h-3.5 w-3.5 text-emerald-300" /> : <Copy className="h-3.5 w-3.5" />}
+              {copied ? (
+                <Check className="h-3.5 w-3.5 text-emerald-300" />
+              ) : (
+                <Copy className="h-3.5 w-3.5" />
+              )}
             </button>
           </div>
 
@@ -261,7 +314,9 @@ function OrderDetailsModal({
                 </>
               )}
             </span>
-            <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold ${currentStatusCfg.badgeClass}`}>
+            <span
+              className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold ${currentStatusCfg.badgeClass}`}
+            >
               <span className={`h-1.5 w-1.5 rounded-full ${currentStatusCfg.dotClass}`} />
               {currentStatusCfg.label}
             </span>
@@ -285,7 +340,11 @@ function OrderDetailsModal({
                   month: "short",
                   year: "numeric",
                 })}{" "}
-                at {new Date(order.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                at{" "}
+                {new Date(order.createdAt).toLocaleTimeString([], {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
               </span>
             </div>
           </div>
@@ -337,52 +396,106 @@ function OrderDetailsModal({
         )}
 
         {/* Product & Order Items */}
-        <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
-          <div className="flex items-center gap-2 border-b border-zinc-100 pb-2.5">
-            <Package className="h-4 w-4 text-zinc-700" />
-            <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-700">
+        <div className="rounded-xl border border-zinc-200 bg-white overflow-hidden shadow-sm">
+          {/* Section Header */}
+          <div className="flex items-center gap-2 px-4 py-3 bg-zinc-50 border-b border-zinc-100">
+            <Package className="h-4 w-4 text-zinc-600" />
+            <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-600">
               Ordered Item
             </h3>
           </div>
 
-          <div className="mt-3.5 flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3.5 min-w-0">
+          {/* Product Row */}
+          <div className="p-4">
+            <div className="flex items-start gap-4">
               {/* Product Thumbnail */}
-              <div className="relative h-14 w-14 sm:h-16 sm:w-16 shrink-0 overflow-hidden rounded-xl border border-zinc-200 bg-zinc-50 p-1 flex items-center justify-center shadow-xs">
+              <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl border border-zinc-200 bg-gradient-to-br from-zinc-50 to-zinc-100 flex items-center justify-center shadow-sm">
                 {productImage ? (
                   <img
                     src={productImage}
                     alt={order.productName}
-                    className="h-full w-full object-contain transition-transform duration-200 hover:scale-105"
+                    className="h-full w-full object-contain p-1.5 transition-transform duration-200 hover:scale-105"
                   />
                 ) : (
-                  <Package className="h-6 w-6 text-zinc-400" />
+                  <Package className="h-8 w-8 text-zinc-300" />
                 )}
               </div>
 
-              <div className="min-w-0">
-                <p className="font-bold text-zinc-900 text-base leading-snug">
-                  {order.productName}
+              {/* Product Info */}
+              <div className="flex-1 min-w-0">
+                <p className="font-bold text-zinc-900 text-base leading-snug truncate">
+                  {order.productName || "Glasses"}
                 </p>
-                {order.variantLabel && (
-                  <span className="mt-1 inline-block rounded-md bg-zinc-100 px-2.5 py-0.5 text-xs font-medium text-zinc-700">
-                    Variant: {order.variantLabel}
+                <div className="mt-1.5 flex flex-wrap gap-2">
+                  {order.variantLabel && (
+                    <span className="inline-flex items-center gap-1 rounded-md bg-violet-50 border border-violet-200 px-2 py-0.5 text-xs font-semibold text-violet-700">
+                      <Sparkles className="h-3 w-3" />
+                      {order.variantLabel}
+                    </span>
+                  )}
+                  {info.quantity && (
+                    <span className="inline-flex items-center gap-1 rounded-md bg-blue-50 border border-blue-200 px-2 py-0.5 text-xs font-semibold text-blue-700">
+                      <ShoppingCart className="h-3 w-3" />
+                      Qty: {info.quantity}
+                    </span>
+                  )}
+                  {info.price && (
+                    <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 border border-emerald-200 px-2 py-0.5 text-xs font-bold text-emerald-700">
+                      {info.price}
+                    </span>
+                  )}
+                </div>
+                <div className="mt-2">
+                  <span
+                    className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium border ${
+                      order.stockDeducted
+                        ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                        : "bg-amber-50 text-amber-700 border-amber-200"
+                    }`}
+                  >
+                    <CheckCircle2 className="h-3 w-3" />
+                    {order.stockDeducted ? "Stock deducted" : "Pending stock deduction"}
                   </span>
-                )}
+                </div>
+              </div>
+
+              {/* Order Ref */}
+              <div className="shrink-0 text-right hidden sm:block">
+                <p className="text-[10px] font-medium text-zinc-400 uppercase tracking-wider">
+                  Ref
+                </p>
+                <p className="font-mono text-xs font-bold text-zinc-700">
+                  {order.reference || "—"}
+                </p>
               </div>
             </div>
 
-            <span className="shrink-0 inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-medium text-emerald-700 border border-emerald-200">
-              <CheckCircle2 className="h-3 w-3" />
-              {order.stockDeducted ? "Stock deducted" : "Manual stock"}
-            </span>
+            {/* Structured info grid if address/notes parsed inline */}
+            {(info.address || info.notes) && (
+              <div className="mt-4 grid gap-3 sm:grid-cols-2 border-t border-zinc-100 pt-4">
+                {info.address && (
+                  <div className="rounded-lg bg-blue-50/60 border border-blue-100 px-3 py-2.5">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-blue-500 mb-1">
+                      Delivery Address
+                    </p>
+                    <p className="text-xs font-medium text-zinc-800 leading-relaxed">
+                      {info.address}
+                    </p>
+                  </div>
+                )}
+                {info.notes && (
+                  <div className="rounded-lg bg-amber-50/60 border border-amber-100 px-3 py-2.5">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-amber-500 mb-1">
+                      Customer Notes
+                    </p>
+                    <p className="text-xs font-medium text-zinc-800 italic leading-relaxed">
+                      {info.notes}
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
-
-          {info.itemSummary && (
-            <div className="mt-3 rounded-lg bg-zinc-50 p-2.5 text-xs font-medium text-zinc-700 border border-zinc-100">
-              {info.itemSummary}
-            </div>
-          )}
         </div>
 
         {/* Courier & Dispatch Tracking Card */}
@@ -488,9 +601,7 @@ function OrderDetailsModal({
                 Delivery Address
               </h3>
             </div>
-            <p className="pl-6 text-sm font-medium text-zinc-800 leading-relaxed">
-              {info.address}
-            </p>
+            <p className="pl-6 text-sm font-medium text-zinc-800 leading-relaxed">{info.address}</p>
           </div>
         )}
 
@@ -503,9 +614,7 @@ function OrderDetailsModal({
                 Customer Notes
               </h3>
             </div>
-            <p className="pl-6 text-sm font-medium text-zinc-800 italic">
-              "{info.notes}"
-            </p>
+            <p className="pl-6 text-sm font-medium text-zinc-800 italic">"{info.notes}"</p>
           </div>
         )}
 
@@ -589,15 +698,17 @@ function AdminOrders() {
     [orders, status, source, query],
   );
 
-  const change = (order: Order, next: OrderStatus) => {
+  const change = async (order: Order, next: OrderStatus) => {
     if (
-      !window.confirm(
-        `Aap order "${order.reference}" ka status "${next}" karna chahte hain? (Are you sure you want to change status to ${next}?)`,
-      )
+      !window.confirm(`Are you sure you want to change order "${order.reference}" to "${next}"?`)
     ) {
       return;
     }
-    setOrderStatus(order.id, next);
+    const saved = await setOrderStatus(order.id, next);
+    if (!saved) {
+      toast.error("The order status could not be saved. Please try again.");
+      return;
+    }
     setSelected((prev) => (prev && prev.id === order.id ? { ...prev, status: next } : prev));
     toast.success(
       next === "Completed"
@@ -689,7 +800,11 @@ function AdminOrders() {
                   </td>
                   <td className="px-4 py-3">
                     <span className="font-medium text-zinc-900">{o.productName}</span>
-                    {o.variantLabel ? <span className="text-zinc-600"> · {o.variantLabel}</span> : ""}
+                    {o.variantLabel ? (
+                      <span className="text-zinc-600"> · {o.variantLabel}</span>
+                    ) : (
+                      ""
+                    )}
                   </td>
                   <td className="px-4 py-3">
                     <span
@@ -753,7 +868,10 @@ function AdminOrders() {
       )}
 
       <Dialog open={!!selected} onOpenChange={(v) => !v && setSelected(null)}>
-        <DialogContent className="max-w-2xl overflow-hidden p-0 rounded-2xl border-zinc-200 bg-white shadow-2xl">
+        <DialogContent
+          key={selected?.id}
+          className="max-w-2xl overflow-hidden p-0 rounded-2xl border-zinc-200 bg-white shadow-2xl"
+        >
           {selected && (
             <OrderDetailsModal
               order={selected}

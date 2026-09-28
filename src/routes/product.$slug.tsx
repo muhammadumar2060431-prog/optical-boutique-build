@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, createFileRoute, useNavigate, useParams } from "@tanstack/react-router";
 import {
   Check,
@@ -31,6 +31,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { useCart } from "@/lib/cart";
 import { supabase } from "@/lib/supabase";
 import { mapDbProductToStore } from "@/lib/supabaseSync";
+import { getProductSubImages } from "@/lib/product-images";
+import { trackMetaEvent } from "@/lib/meta-events";
 import type { Product } from "@/lib/types";
 import { formatPrice, newId, useStore } from "@/lib/store";
 import { cn, getSiteUrl } from "@/lib/utils";
@@ -49,7 +51,9 @@ export const Route = createFileRoute("/product/$slug")({
       if (data && !error) {
         return { product: mapDbProductToStore(data) };
       }
-    } catch {}
+    } catch {
+      // Fall back to cached data when the network is unavailable.
+    }
 
     // 2. Fallback to client localStorage if available
     if (typeof window !== "undefined") {
@@ -60,7 +64,9 @@ export const Route = createFileRoute("/product/$slug")({
           const found = prods.find((p) => p.slug === params.slug);
           if (found) return { product: found };
         }
-      } catch {}
+      } catch {
+        // Fall back to cached data when the network is unavailable.
+      }
     }
 
     return { product: null };
@@ -68,14 +74,12 @@ export const Route = createFileRoute("/product/$slug")({
   head: ({ loaderData, params }) => {
     const product = loaderData?.product;
     const url = getSiteUrl(`/product/${params.slug}`);
-    const title = product ? `${product.name} — OPTIQUE Eyewear` : "Product — OPTIQUE Eyewear";
+    const title = product ? `${product.name} - OPTIQUE Eyewear` : "Product - OPTIQUE Eyewear";
     const description = product?.description
       ? product.description.slice(0, 155)
       : "Frame and lens details, colour options, stock and fitting information.";
     const rawImage =
-      product?.image && product.image !== "/placeholder.svg"
-        ? product.image
-        : "/brand-logo.png";
+      product?.image && product.image !== "/placeholder.svg" ? product.image : "/brand-logo.png";
     const ogImageUrl = rawImage.startsWith("http") ? rawImage : getSiteUrl(rawImage);
 
     return {
@@ -144,6 +148,7 @@ function ProductPage() {
   const { openWhatsAppModal } = useWhatsAppModal();
   const navigate = useNavigate();
   const product = getProductBySlug(slug);
+  const trackedViewRef = useRef<string | null>(null);
 
   const [variantId, setVariantId] = useState<string | null>(null);
   const [activeImage, setActiveImage] = useState<string | null>(null);
@@ -160,24 +165,41 @@ function ProductPage() {
   const [revImage, setRevImage] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<"newest" | "highest" | "lowest">("newest");
 
+  useEffect(() => {
+    if (!product || trackedViewRef.current === product.id) return;
+    trackedViewRef.current = product.id;
+    trackMetaEvent({
+      eventName: "ViewContent",
+      customData: {
+        value: product.salePrice ?? product.price,
+        currency: "PKR",
+        contentIds: [product.id],
+        contentType: "product",
+        contentName: product.name,
+        numItems: 1,
+      },
+    });
+  }, [product]);
+
   const variant = useMemo(
     () => product?.variants.find((v) => v.id === variantId) ?? null,
     [product, variantId],
   );
 
-  // Product social reels — ONLY show reels tagged to this specific product
+  // Product social reels - ONLY show reels tagged to this specific product
   // All reels are shown on the homepage; here we show only product-specific ones
   const productReels = useMemo(() => {
     if (!product) return [];
     return socialReels.filter((r) => r.enabled && r.productId === product.id);
   }, [socialReels, product]);
 
-  // Product reviews — ONLY show reviews linked to this specific product
+  // Product reviews - ONLY show reviews linked to this specific product
   // General "site" testimonials (no productId) are only shown on the homepage
   const productReviews = useMemo(() => {
     if (!product) return [];
     return testimonials.filter(
-      (t) => t.productId === product.id || t.productName === product.name,
+      (t) =>
+        t.source === "customer" && (t.productId === product.id || t.productName === product.name),
     );
   }, [testimonials, product]);
 
@@ -229,15 +251,7 @@ function ProductPage() {
   const collection = product.collectionId ? getCollectionById(product.collectionId) : null;
 
   // Build full gallery including primary image, sub images and variant images
-  const subImagesList: string[] = (
-    Array.isArray(product.subImages) && product.subImages.length > 0
-      ? product.subImages
-      : Array.isArray((product.details as any)?.subImages) && (product.details as any).subImages.length > 0
-        ? (product.details as any).subImages
-        : Array.isArray((product as any).images) && (product as any).images.length > 1
-          ? (product as any).images.slice(1)
-          : []
-  ).filter((img: any): img is string => typeof img === "string" && img.trim().length > 0);
+  const subImagesList = getProductSubImages(product);
 
   const variantImagesList: string[] = Array.isArray(product.variants)
     ? product.variants
@@ -248,8 +262,15 @@ function ProductPage() {
   const galleryItems = [
     { src: product.image, id: "main-0", label: "Primary View" },
     ...subImagesList.map((img, i) => ({ src: img, id: `angle-${i}`, label: `Angle ${i + 1}` })),
-    ...variantImagesList.map((img, i) => ({ src: img, id: `variant-${i}`, label: `Option ${i + 1}` })),
-  ].filter((item): item is { src: string; id: string; label: string } => typeof item.src === "string" && item.src.trim().length > 0);
+    ...variantImagesList.map((img, i) => ({
+      src: img,
+      id: `variant-${i}`,
+      label: `Option ${i + 1}`,
+    })),
+  ].filter(
+    (item): item is { src: string; id: string; label: string } =>
+      typeof item.src === "string" && item.src.trim().length > 0,
+  );
 
   const gallery = galleryItems.map((g) => g.src);
 
@@ -278,7 +299,7 @@ function ProductPage() {
   );
 
   const recordIntent = () => {
-    addOrder({
+    void addOrder({
       customerName: "WhatsApp customer",
       contact: "Via WhatsApp",
       productId: product.id,
@@ -306,7 +327,8 @@ function ProductPage() {
     }
 
     saveTestimonial({
-      id: newId("tst"),
+      id: newId("review"),
+      source: "customer",
       name: revName.trim(),
       email: revEmail.trim(),
       productId: product.id,
@@ -335,9 +357,9 @@ function ProductPage() {
 
   return (
     <SiteLayout>
-      <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-14">
+      <div className="mx-auto min-w-0 max-w-7xl px-4 py-10 sm:px-6 sm:py-14">
         {/* Breadcrumb */}
-        <nav className="text-xs tracking-[0.14em] uppercase text-ink-muted flex items-center flex-wrap gap-2">
+        <nav className="flex min-w-0 flex-wrap items-center gap-2 text-xs tracking-[0.14em] uppercase text-ink-muted">
           <Link to="/" className="hover:text-gold">
             Home
           </Link>
@@ -355,20 +377,20 @@ function ProductPage() {
             </>
           )}
           <span>/</span>
-          <span className="text-ink font-semibold">{product.name}</span>
+          <span className="min-w-0 break-words text-ink font-semibold">{product.name}</span>
         </nav>
 
-        <div className="mt-8 grid gap-10 lg:grid-cols-2">
+        <div className="mt-8 grid min-w-0 grid-cols-[minmax(0,1fr)] gap-10 lg:grid-cols-2">
           {/* Gallery / Images */}
-          <div className="space-y-4">
-            <div className="lens-ring relative overflow-hidden rounded-2xl bg-jet border border-stone">
+          <div className="min-w-0 space-y-4">
+            <div className="lens-ring relative w-full min-w-0 max-w-full overflow-hidden rounded-2xl bg-jet border border-stone">
               <img
                 key={mainImage}
                 src={mainImage}
                 alt={product.name}
                 width={1024}
                 height={1024}
-                className="rise-in aspect-square w-full object-cover"
+                className="rise-in aspect-square w-full max-w-full object-cover"
               />
 
               {/* Floating Badges */}
@@ -386,11 +408,16 @@ function ProductPage() {
                     New Arrival
                   </Badge>
                 )}
+                {product.isBestseller && (
+                  <Badge className="bg-gold text-white px-3 py-1 text-xs font-bold uppercase tracking-wider shadow-sm">
+                    Best Seller
+                  </Badge>
+                )}
               </div>
             </div>
 
             {galleryItems.length > 1 && (
-              <div className="flex gap-3 overflow-x-auto pb-2">
+              <div className="flex min-w-0 max-w-full gap-3 overflow-x-auto pb-2">
                 {galleryItems.map((item, idx) => (
                   <button
                     key={item.id}
@@ -419,7 +446,7 @@ function ProductPage() {
           </div>
 
           {/* Product Details & Purchase Actions */}
-          <div className="space-y-6">
+          <div className="min-w-0 space-y-6">
             <div className="space-y-2.5">
               <div className="flex items-center justify-between">
                 <span className="eyebrow text-gold font-bold">
@@ -432,7 +459,9 @@ function ProductPage() {
                 )}
               </div>
 
-              <h1 className="font-display text-4xl leading-tight sm:text-5xl">{product.name}</h1>
+              <p className="min-w-0 break-words text-lg sm:text-xl font-medium leading-snug text-foreground">
+                {product.name}
+              </p>
 
               {/* Rating summary subheader */}
               <div className="flex items-center gap-2 pt-1">
@@ -454,7 +483,7 @@ function ProductPage() {
               </div>
 
               {/* Pricing Display */}
-              <div className="flex items-baseline gap-3 pt-1">
+              <div className="flex flex-wrap items-baseline gap-3 pt-1 lg:flex-nowrap">
                 {isDiscounted ? (
                   <>
                     <p className="text-3xl font-bold text-black">{formatPrice(currentPrice)}</p>
@@ -475,27 +504,33 @@ function ProductPage() {
             </div>
 
             {(() => {
-              const descLines = (product.description || "").split("\n");
-              const isLong = descLines.length > 12;
-              const displayText =
-                isLong && !isDescExpanded
-                  ? descLines.slice(0, 12).join("\n")
-                  : product.description;
+              // Use character count as a reliable proxy for "long" description
+              // ~60 chars per visual line x 10 lines = 600 chars threshold
+              const desc = product.description || "";
+              const LINE_HEIGHT_PX = 24; // matches leading-relaxed at 15px font
+              const MAX_LINES = 8;
+              const maxHeightCollapsed = `${LINE_HEIGHT_PX * MAX_LINES}px`;
 
               return (
                 <div className="space-y-1">
-                  <p className="text-[15px] leading-relaxed text-black font-medium whitespace-pre-line">
-                    {displayText}
-                  </p>
-                  {isLong && (
-                    <button
-                      type="button"
-                      onClick={() => setIsDescExpanded(!isDescExpanded)}
-                      className="text-xs font-bold text-gold hover:underline cursor-pointer focus:outline-none inline-block pt-1"
-                    >
-                      {isDescExpanded ? "Show less" : "... Read more"}
-                    </button>
-                  )}
+                  <div
+                    style={{
+                      maxHeight: isDescExpanded ? "none" : maxHeightCollapsed,
+                      overflow: "hidden",
+                      transition: "max-height 0.3s ease",
+                    }}
+                  >
+                    <p className="text-[15px] leading-relaxed text-black font-medium whitespace-pre-line">
+                      {desc}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsDescExpanded(!isDescExpanded)}
+                    className="text-xs font-bold text-gold hover:underline cursor-pointer focus:outline-none inline-block pt-1"
+                  >
+                    {isDescExpanded ? "Show less" : "... Read more"}
+                  </button>
                 </div>
               );
             })()}
@@ -567,7 +602,7 @@ function ProductPage() {
               )}
             >
               <span className="h-2 w-2 rounded-full bg-current inline-block" />
-              {status === "Low stock" ? `Only ${stock} left in stock — order soon` : status}
+              {status === "Low stock" ? `Only ${stock} left in stock - order soon` : status}
             </p>
 
             {/* Action Buttons */}
@@ -628,297 +663,291 @@ function ProductPage() {
           </div>
         </div>
 
-        {/* ── Customer Reviews Section ── */}
+        {/* -- Customer Reviews Section -- */}
         <div className="mt-16 sm:mt-24 border-t border-stone/60 pt-10">
-            {/* 1. Overall Rating Breakdown Box (Matching Image 2 layout) */}
-            <div className="grid gap-8 md:grid-cols-[280px_1fr] items-center rounded-2xl border border-stone-400 bg-[#666666] text-white p-6 sm:p-8">
-              {/* Big Score Box */}
-              <div className="flex flex-col items-center justify-center border-b border-stone-400/60 pb-6 md:border-b-0 md:border-r md:pr-8 md:pb-0 text-center">
-                <div className="font-display text-5xl sm:text-6xl font-bold text-white">
-                  {avgRating}{" "}
-                  <span className="text-lg font-sans text-stone-200 font-normal">out of 5</span>
-                </div>
-                <div className="flex text-amber-400 my-2">
-                  {Array.from({ length: 5 }).map((_, i) => (
-                    <Star
-                      key={i}
-                      className={cn(
-                        "h-5 w-5",
-                        i < Math.round(avgRating)
-                          ? "fill-amber-400 text-amber-400"
-                          : "text-stone-400",
-                      )}
-                    />
-                  ))}
-                </div>
-                <p className="text-xs text-stone-200">({totalReviewsCount} Verified Reviews)</p>
-
-                <Button
-                  type="button"
-                  onClick={() => setReviewFormOpen((prev) => !prev)}
-                  className="mt-4 rounded-full min-h-10 px-5 text-xs font-bold bg-white text-stone-900 hover:bg-stone-100 shadow-md border-0"
-                >
-                  <Plus className="mr-1.5 h-4 w-4 text-stone-900" />{" "}
-                  {reviewFormOpen ? "Close Review Form" : "Write a Review"}
-                </Button>
+          {/* 1. Overall Rating Breakdown Box (Matching Image 2 layout) */}
+          <div className="grid gap-8 md:grid-cols-[280px_1fr] items-center rounded-2xl border border-stone-400 bg-[#666666] text-white p-6 sm:p-8">
+            {/* Big Score Box */}
+            <div className="flex flex-col items-center justify-center border-b border-stone-400/60 pb-6 md:border-b-0 md:border-r md:pr-8 md:pb-0 text-center">
+              <div className="font-display text-5xl sm:text-6xl font-bold text-white">
+                {avgRating}{" "}
+                <span className="text-lg font-sans text-stone-200 font-normal">out of 5</span>
               </div>
-
-                {/* 5-Star to 1-Star Progress Bars */}
-                <div className="space-y-2.5">
-                  {[5, 4, 3, 2, 1].map((star) => {
-                    const count = starCounts[star as 1 | 2 | 3 | 4 | 5];
-                    const percent =
-                      totalReviewsCount > 0 ? Math.round((count / totalReviewsCount) * 100) : 0;
-                    return (
-                      <div key={star} className="flex items-center gap-3 text-xs">
-                        <span className="w-10 font-semibold text-white shrink-0">{star} Star</span>
-                        <div className="h-2.5 flex-1 rounded-full bg-white overflow-hidden border border-white/20">
-                          <div
-                            className="h-full bg-amber-400 transition-all duration-500 rounded-full"
-                            style={{ width: `${percent}%` }}
-                          />
-                        </div>
-                        <span className="w-12 text-right font-mono text-stone-200 text-[11px] shrink-0">
-                          {percent}% ({count})
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
+              <div className="flex text-amber-400 my-2">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <Star
+                    key={i}
+                    className={cn(
+                      "h-5 w-5",
+                      i < Math.round(avgRating)
+                        ? "fill-amber-400 text-amber-400"
+                        : "text-stone-400",
+                    )}
+                  />
+                ))}
               </div>
+              <p className="text-xs text-stone-200">({totalReviewsCount} Verified Reviews)</p>
 
-              {/* 2. Review Submission Form (Mandatory Email check) */}
-              {reviewFormOpen && (
-                <form
-                  onSubmit={handleReviewSubmit}
-                  className="rounded-2xl border border-gold/40 bg-gold/5 p-6 sm:p-8 space-y-5 animate-in fade-in slide-in-from-top-4 duration-300"
-                >
-                  <div className="flex items-center justify-between border-b border-gold/20 pb-4">
-                    <h3 className="font-display text-xl sm:text-2xl">Submit Your Product Review</h3>
-                    <span className="text-xs text-amber-700 font-semibold bg-amber-100 px-3 py-1 rounded-full">
-                      * Email Required
+              <Button
+                type="button"
+                onClick={() => setReviewFormOpen((prev) => !prev)}
+                className="mt-4 rounded-full min-h-10 px-5 text-xs font-bold bg-white text-stone-900 hover:bg-stone-100 shadow-md border-0"
+              >
+                <Plus className="mr-1.5 h-4 w-4 text-stone-900" />{" "}
+                {reviewFormOpen ? "Close Review Form" : "Write a Review"}
+              </Button>
+            </div>
+
+            {/* 5-Star to 1-Star Progress Bars */}
+            <div className="space-y-2.5">
+              {[5, 4, 3, 2, 1].map((star) => {
+                const count = starCounts[star as 1 | 2 | 3 | 4 | 5];
+                const percent =
+                  totalReviewsCount > 0 ? Math.round((count / totalReviewsCount) * 100) : 0;
+                return (
+                  <div key={star} className="flex items-center gap-3 text-xs">
+                    <span className="w-10 font-semibold text-white shrink-0">{star} Star</span>
+                    <div className="h-2.5 flex-1 rounded-full bg-white overflow-hidden border border-white/20">
+                      <div
+                        className="h-full bg-amber-400 transition-all duration-500 rounded-full"
+                        style={{ width: `${percent}%` }}
+                      />
+                    </div>
+                    <span className="w-12 text-right font-mono text-stone-200 text-[11px] shrink-0">
+                      {percent}% ({count})
                     </span>
                   </div>
+                );
+              })}
+            </div>
+          </div>
 
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <div className="space-y-2">
-                      <Label htmlFor="rev-email" className="font-semibold">
-                        Your Email Address <span className="text-destructive">*</span>
-                      </Label>
-                      <Input
-                        id="rev-email"
-                        type="email"
-                        required
-                        value={revEmail}
-                        onChange={(e) => setRevEmail(e.target.value)}
-                        placeholder="e.g. customer@example.com"
-                        className="bg-card min-h-11"
-                      />
-                      <p className="text-[11px] text-ink-muted">
-                        Required for verification. Your email will be recorded in our admin panel.
-                      </p>
-                    </div>
+          {/* 2. Review Submission Form (Mandatory Email check) */}
+          {reviewFormOpen && (
+            <form
+              onSubmit={handleReviewSubmit}
+              className="rounded-2xl border border-gold/40 bg-gold/5 p-6 sm:p-8 space-y-5 animate-in fade-in slide-in-from-top-4 duration-300"
+            >
+              <div className="flex items-center justify-between border-b border-gold/20 pb-4">
+                <h3 className="font-display text-xl sm:text-2xl">Submit Your Product Review</h3>
+                <span className="text-xs text-amber-700 font-semibold bg-amber-100 px-3 py-1 rounded-full">
+                  * Email Required
+                </span>
+              </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="rev-name" className="font-semibold">
-                        Your Full Name <span className="text-destructive">*</span>
-                      </Label>
-                      <Input
-                        id="rev-name"
-                        required
-                        value={revName}
-                        onChange={(e) => setRevName(e.target.value)}
-                        placeholder="e.g. Kristin Watson"
-                        className="bg-card min-h-11"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label className="font-semibold">Your Rating (Click stars)</Label>
-                    <div className="flex items-center gap-1.5 pt-1">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <button
-                          key={star}
-                          type="button"
-                          onClick={() => setRevRating(star)}
-                          className="p-1 hover:scale-110 transition-transform cursor-pointer"
-                        >
-                          <Star
-                            className={cn(
-                              "h-7 w-7 transition-colors",
-                              star <= revRating
-                                ? "fill-amber-400 text-amber-400"
-                                : "text-stone-300 hover:text-amber-300",
-                            )}
-                          />
-                        </button>
-                      ))}
-                      <span className="ml-2 text-sm font-bold text-ink">{revRating} / 5 Stars</span>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="rev-title">Review Headline / Summary</Label>
-                    <Input
-                      id="rev-title"
-                      value={revTitle}
-                      onChange={(e) => setRevTitle(e.target.value)}
-                      placeholder="e.g. Love It: My Recent Eyewear Purchase"
-                      className="bg-card min-h-11"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="rev-quote" className="font-semibold">
-                      Review Message <span className="text-destructive">*</span>
-                    </Label>
-                    <Textarea
-                      id="rev-quote"
-                      required
-                      rows={4}
-                      value={revQuote}
-                      onChange={(e) => setRevQuote(e.target.value)}
-                      placeholder="Write your honest opinion about the comfort, clarity, fit, and frame quality..."
-                      className="bg-card"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <ImageUpload
-                      label="Attach a Photo or Screenshot (Optional)"
-                      optional
-                      value={revImage}
-                      onChange={(img) => setRevImage(img)}
-                    />
-                  </div>
-
-                  <div className="pt-2 flex justify-end gap-3">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="min-h-11 rounded-full"
-                      onClick={() => setReviewFormOpen(false)}
-                    >
-                      Cancel
-                    </Button>
-                    <Button type="submit" className="min-h-11 rounded-full px-8 font-semibold">
-                      Submit Review
-                    </Button>
-                  </div>
-                </form>
-              )}
-
-              {/* 3. Review List Header & Controls */}
-              <div className="space-y-6">
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-stone/50 pb-4">
-                  <div>
-                    <h3 className="font-display text-2xl">Review List</h3>
-                    <p className="text-xs text-ink-muted mt-0.5">
-                      Showing {sortedReviews.length} customer reviews for {product.name}
-                    </p>
-                  </div>
-
-                  {/* Sort Dropdown */}
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-ink-muted font-medium">Sort by:</span>
-                    <select
-                      value={sortBy}
-                      onChange={(e) => setSortBy(e.target.value as "newest" | "highest" | "lowest")}
-                      className="rounded-lg border border-stone bg-card px-3 py-1.5 text-xs font-semibold text-ink focus:outline-none focus:ring-1 focus:ring-gold"
-                    >
-                      <option value="newest">Newest First</option>
-                      <option value="highest">Highest Rating</option>
-                      <option value="lowest">Lowest Rating</option>
-                    </select>
-                  </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="rev-email" className="font-semibold">
+                    Your Email Address <span className="text-destructive">*</span>
+                  </Label>
+                  <Input
+                    id="rev-email"
+                    type="email"
+                    required
+                    value={revEmail}
+                    onChange={(e) => setRevEmail(e.target.value)}
+                    placeholder="e.g. customer@example.com"
+                    className="bg-card min-h-11"
+                  />
+                  <p className="text-[11px] text-ink-muted">
+                    Required for verification. Your email will be recorded in our admin panel.
+                  </p>
                 </div>
 
-                {/* Review List Entries (Image 2 style) */}
-                {sortedReviews.length === 0 ? (
-                  <p className="py-12 text-center text-sm text-ink-muted rounded-xl border border-dashed border-stone bg-card">
-                    No reviews yet for this product. Be the first to submit a review!
-                  </p>
-                ) : (
-                  <div className="space-y-6 divide-y divide-stone/40">
-                    {sortedReviews.map((rev) => (
-                      <div key={rev.id} className="pt-6 first:pt-0 space-y-3">
-                        {/* Reviewer Header */}
-                        <div className="flex items-start justify-between gap-4">
-                          <div className="flex items-center gap-3">
-                            <div className="h-10 w-10 rounded-full bg-gold/10 border border-gold/30 flex items-center justify-center font-bold text-gold shrink-0">
-                              {rev.name.charAt(0).toUpperCase()}
-                            </div>
-                            <div>
-                              <div className="flex items-center gap-2">
-                                <h4 className="font-semibold text-foreground text-sm">
-                                  {rev.name}
-                                </h4>
-                                {rev.verified !== false && (
-                                  <span className="inline-flex items-center gap-0.5 text-[10px] text-emerald-600 font-semibold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-                                    <CheckCircle2 className="h-3 w-3" /> Verified
-                                  </span>
-                                )}
-                              </div>
-                              {rev.createdAt && (
-                                <p className="text-[11px] text-ink-muted">
-                                  {new Date(rev.createdAt).toLocaleDateString("en-US", {
-                                    year: "numeric",
-                                    month: "short",
-                                    day: "numeric",
-                                  })}
-                                </p>
-                              )}
-                            </div>
-                          </div>
-
-                          {/* Rating Stars */}
-                          <div className="flex items-center gap-1.5 shrink-0">
-                            <div className="flex text-amber-400">
-                              {Array.from({ length: 5 }).map((_, i) => (
-                                <Star
-                                  key={i}
-                                  className={cn(
-                                    "h-3.5 w-3.5",
-                                    i < rev.rating
-                                      ? "fill-amber-400 text-amber-400"
-                                      : "text-stone-300",
-                                  )}
-                                />
-                              ))}
-                            </div>
-                            <span className="text-xs font-bold text-ink">{rev.rating}.0</span>
-                          </div>
-                        </div>
-
-                        {/* Title & Comment */}
-                        {rev.title && (
-                          <h5 className="font-semibold text-base text-foreground pt-1">
-                            {rev.title}
-                          </h5>
-                        )}
-                        <p className="text-sm text-ink-muted leading-relaxed">{rev.quote}</p>
-
-                        {/* Customer Uploaded Images */}
-                        {rev.reviewImage && (
-                          <div className="pt-2 flex gap-3">
-                            <div className="h-24 w-24 rounded-xl overflow-hidden border border-stone bg-jet shrink-0 shadow-xs">
-                              <img
-                                src={rev.reviewImage}
-                                alt="Customer review media"
-                                className="h-full w-full object-cover"
-                              />
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
+                <div className="space-y-2">
+                  <Label htmlFor="rev-name" className="font-semibold">
+                    Your Full Name <span className="text-destructive">*</span>
+                  </Label>
+                  <Input
+                    id="rev-name"
+                    required
+                    value={revName}
+                    onChange={(e) => setRevName(e.target.value)}
+                    placeholder="e.g. Kristin Watson"
+                    className="bg-card min-h-11"
+                  />
+                </div>
               </div>
+
+              <div className="space-y-2">
+                <Label className="font-semibold">Your Rating (Click stars)</Label>
+                <div className="flex items-center gap-1.5 pt-1">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      key={star}
+                      type="button"
+                      onClick={() => setRevRating(star)}
+                      className="p-1 hover:scale-110 transition-transform cursor-pointer"
+                    >
+                      <Star
+                        className={cn(
+                          "h-7 w-7 transition-colors",
+                          star <= revRating
+                            ? "fill-amber-400 text-amber-400"
+                            : "text-stone-300 hover:text-amber-300",
+                        )}
+                      />
+                    </button>
+                  ))}
+                  <span className="ml-2 text-sm font-bold text-ink">{revRating} / 5 Stars</span>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="rev-title">Review Headline / Summary</Label>
+                <Input
+                  id="rev-title"
+                  value={revTitle}
+                  onChange={(e) => setRevTitle(e.target.value)}
+                  placeholder="e.g. Love It: My Recent Eyewear Purchase"
+                  className="bg-card min-h-11"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="rev-quote" className="font-semibold">
+                  Review Message <span className="text-destructive">*</span>
+                </Label>
+                <Textarea
+                  id="rev-quote"
+                  required
+                  rows={4}
+                  value={revQuote}
+                  onChange={(e) => setRevQuote(e.target.value)}
+                  placeholder="Write your honest opinion about the comfort, clarity, fit, and frame quality..."
+                  className="bg-card"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <ImageUpload
+                  label="Attach a Photo or Screenshot (Optional)"
+                  optional
+                  value={revImage}
+                  onChange={(img) => setRevImage(img)}
+                />
+              </div>
+
+              <div className="pt-2 flex justify-end gap-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="min-h-11 rounded-full"
+                  onClick={() => setReviewFormOpen(false)}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" className="min-h-11 rounded-full px-8 font-semibold">
+                  Submit Review
+                </Button>
+              </div>
+            </form>
+          )}
+
+          {/* 3. Review List Header & Controls */}
+          <div className="space-y-6">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-stone/50 pb-4">
+              <div>
+                <h3 className="font-display text-2xl">Review List</h3>
+                <p className="text-xs text-ink-muted mt-0.5">
+                  Showing {sortedReviews.length} customer reviews for {product.name}
+                </p>
+              </div>
+
+              {/* Sort Dropdown */}
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-ink-muted font-medium">Sort by:</span>
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as "newest" | "highest" | "lowest")}
+                  className="rounded-lg border border-stone bg-card px-3 py-1.5 text-xs font-semibold text-ink focus:outline-none focus:ring-1 focus:ring-gold"
+                >
+                  <option value="newest">Newest First</option>
+                  <option value="highest">Highest Rating</option>
+                  <option value="lowest">Lowest Rating</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Review List Entries (Image 2 style) */}
+            {sortedReviews.length === 0 ? (
+              <p className="py-12 text-center text-sm text-ink-muted rounded-xl border border-dashed border-stone bg-card">
+                No reviews yet for this product. Be the first to submit a review!
+              </p>
+            ) : (
+              <div className="space-y-6 divide-y divide-stone/40">
+                {sortedReviews.map((rev) => (
+                  <div key={rev.id} className="pt-6 first:pt-0 space-y-3">
+                    {/* Reviewer Header */}
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-full bg-gold/10 border border-gold/30 flex items-center justify-center font-bold text-gold shrink-0">
+                          {rev.name.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h4 className="font-semibold text-foreground text-sm">{rev.name}</h4>
+                            {rev.verified !== false && (
+                              <span className="inline-flex items-center gap-0.5 text-[10px] text-emerald-600 font-semibold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                                <CheckCircle2 className="h-3 w-3" /> Verified
+                              </span>
+                            )}
+                          </div>
+                          {rev.createdAt && (
+                            <p className="text-[11px] text-ink-muted">
+                              {new Date(rev.createdAt).toLocaleDateString("en-US", {
+                                year: "numeric",
+                                month: "short",
+                                day: "numeric",
+                              })}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Rating Stars */}
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <div className="flex text-amber-400">
+                          {Array.from({ length: 5 }).map((_, i) => (
+                            <Star
+                              key={i}
+                              className={cn(
+                                "h-3.5 w-3.5",
+                                i < rev.rating ? "fill-amber-400 text-amber-400" : "text-stone-300",
+                              )}
+                            />
+                          ))}
+                        </div>
+                        <span className="text-xs font-bold text-ink">{rev.rating}.0</span>
+                      </div>
+                    </div>
+
+                    {/* Title & Comment */}
+                    {rev.title && (
+                      <h5 className="font-semibold text-base text-foreground pt-1">{rev.title}</h5>
+                    )}
+                    <p className="text-sm text-ink-muted leading-relaxed">{rev.quote}</p>
+
+                    {/* Customer Uploaded Images */}
+                    {rev.reviewImage && (
+                      <div className="pt-2 flex gap-3">
+                        <div className="h-24 w-24 rounded-xl overflow-hidden border border-stone bg-jet shrink-0 shadow-xs">
+                          <img
+                            src={rev.reviewImage}
+                            alt="Customer review media"
+                            className="h-full w-full object-cover"
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* ── 1. Product Social Proof Video Reels Section — only shown when reels are tagged ── */}
+        {/* -- 1. Product Social Proof Video Reels Section - only shown when reels are tagged -- */}
         {productReels.length > 0 && (
           <section className="mt-20 border-t border-stone/60 pt-14">
             <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
@@ -1008,7 +1037,7 @@ function ProductPage() {
           </section>
         )}
 
-        {/* ── 2. Product Verified Testimonial Cards Section (Matching Image 3) ── */}
+        {/* -- 2. Product Verified Testimonial Cards Section (Matching Image 3) -- */}
         <section className="mt-16 sm:mt-20 border-t border-stone/60 pt-14">
           <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
             <div>
@@ -1071,7 +1100,7 @@ function ProductPage() {
                     </div>
 
                     <p className="text-xs text-white/90 line-clamp-3 leading-snug font-medium italic">
-                      “{t.quote}”
+                      &ldquo;{t.quote}&rdquo;
                     </p>
                   </div>
                 </div>

@@ -15,12 +15,27 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as CartRouteImport } from './routes/cart'
 import { Route as CheckoutRouteImport } from './routes/checkout'
 import { Route as ContactRouteImport } from './routes/contact'
+import { Route as FaqRouteImport } from './routes/faq'
+import { Route as FaqsRouteImport } from './routes/faqs'
+import { Route as FrameSizeGuideRouteImport } from './routes/frame-size-guide'
 import { Route as GlassesRouteImport } from './routes/glasses'
+import { Route as HealthRouteImport } from './routes/health'
+import { Route as LensGuideRouteImport } from './routes/lens-guide'
 import { Route as LensesRouteImport } from './routes/lenses'
+import { Route as NotFoundRouteImport } from './routes/not-found'
 import { Route as OrderConfirmationRouteImport } from './routes/order-confirmation'
 import { Route as OrderStatusRouteImport } from './routes/order-status'
+import { Route as PrescriptionGuideRouteImport } from './routes/prescription-guide'
+import { Route as PrivacyPolicyRouteImport } from './routes/privacy-policy'
+import { Route as RefundPolicyRouteImport } from './routes/refund-policy'
+import { Route as ReturnsPolicyRouteImport } from './routes/returns-policy'
+import { Route as ShippingPolicyRouteImport } from './routes/shipping-policy'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
+import { Route as TermsRouteImport } from './routes/terms'
+import { Route as TermsOfServiceRouteImport } from './routes/terms-of-service'
+import { Route as WarrantyRouteImport } from './routes/warranty'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
+import { Route as AdminBlogRouteImport } from './routes/admin.blog'
 import { Route as AdminContentRouteImport } from './routes/admin.content'
 import { Route as AdminFaqsRouteImport } from './routes/admin.faqs'
 import { Route as AdminInventoryRouteImport } from './routes/admin.inventory'
@@ -30,8 +45,15 @@ import { Route as AdminQueriesRouteImport } from './routes/admin.queries'
 import { Route as AdminSettingsRouteImport } from './routes/admin.settings'
 import { Route as AdminSubscribersRouteImport } from './routes/admin.subscribers'
 import { Route as AdminTestimonialsRouteImport } from './routes/admin.testimonials'
+import { Route as BlogIndexRouteImport } from './routes/blog.index'
+import { Route as BlogSlugRouteImport } from './routes/blog.$slug'
 import { Route as CategorySlugRouteImport } from './routes/category.$slug'
 import { Route as ProductSlugRouteImport } from './routes/product.$slug'
+import { Route as ApiV1OrdersRouteImport } from './routes/api.v1.orders'
+import { Route as ApiV1AdminLoginRouteImport } from './routes/api.v1.admin.login'
+import { Route as ApiV1MetaEventsRouteImport } from './routes/api.v1.meta.events'
+import { Route as ApiV1OrdersIdRouteImport } from './routes/api.v1.orders.$id'
+import { Route as ApiV1OrdersTrackReferenceRouteImport } from './routes/api.v1.orders.track.$reference'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -63,14 +85,44 @@ const ContactRoute = ContactRouteImport.update({
   path: '/contact',
   getParentRoute: () => rootRouteImport,
 } as any)
+const FaqRoute = FaqRouteImport.update({
+  id: '/faq',
+  path: '/faq',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FaqsRoute = FaqsRouteImport.update({
+  id: '/faqs',
+  path: '/faqs',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FrameSizeGuideRoute = FrameSizeGuideRouteImport.update({
+  id: '/frame-size-guide',
+  path: '/frame-size-guide',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const GlassesRoute = GlassesRouteImport.update({
   id: '/glasses',
   path: '/glasses',
   getParentRoute: () => rootRouteImport,
 } as any)
+const HealthRoute = HealthRouteImport.update({
+  id: '/health',
+  path: '/health',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LensGuideRoute = LensGuideRouteImport.update({
+  id: '/lens-guide',
+  path: '/lens-guide',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LensesRoute = LensesRouteImport.update({
   id: '/lenses',
   path: '/lenses',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NotFoundRoute = NotFoundRouteImport.update({
+  id: '/not-found',
+  path: '/not-found',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OrderConfirmationRoute = OrderConfirmationRouteImport.update({
@@ -83,14 +135,59 @@ const OrderStatusRoute = OrderStatusRouteImport.update({
   path: '/order-status',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PrescriptionGuideRoute = PrescriptionGuideRouteImport.update({
+  id: '/prescription-guide',
+  path: '/prescription-guide',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacyPolicyRoute = PrivacyPolicyRouteImport.update({
+  id: '/privacy-policy',
+  path: '/privacy-policy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RefundPolicyRoute = RefundPolicyRouteImport.update({
+  id: '/refund-policy',
+  path: '/refund-policy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReturnsPolicyRoute = ReturnsPolicyRouteImport.update({
+  id: '/returns-policy',
+  path: '/returns-policy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ShippingPolicyRoute = ShippingPolicyRouteImport.update({
+  id: '/shipping-policy',
+  path: '/shipping-policy',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
   path: '/sitemap.xml',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TermsOfServiceRoute = TermsOfServiceRouteImport.update({
+  id: '/terms-of-service',
+  path: '/terms-of-service',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WarrantyRoute = WarrantyRouteImport.update({
+  id: '/warranty',
+  path: '/warranty',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminIndexRoute = AdminIndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminBlogRoute = AdminBlogRouteImport.update({
+  id: '/blog',
+  path: '/blog',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminContentRoute = AdminContentRouteImport.update({
@@ -138,6 +235,16 @@ const AdminTestimonialsRoute = AdminTestimonialsRouteImport.update({
   path: '/testimonials',
   getParentRoute: () => AdminRoute,
 } as any)
+const BlogIndexRoute = BlogIndexRouteImport.update({
+  id: '/blog/',
+  path: '/blog/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BlogSlugRoute = BlogSlugRouteImport.update({
+  id: '/blog/$slug',
+  path: '/blog/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CategorySlugRoute = CategorySlugRouteImport.update({
   id: '/category/$slug',
   path: '/category/$slug',
@@ -148,6 +255,32 @@ const ProductSlugRoute = ProductSlugRouteImport.update({
   path: '/product/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiV1OrdersRoute = ApiV1OrdersRouteImport.update({
+  id: '/api/v1/orders',
+  path: '/api/v1/orders',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1AdminLoginRoute = ApiV1AdminLoginRouteImport.update({
+  id: '/api/v1/admin/login',
+  path: '/api/v1/admin/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1MetaEventsRoute = ApiV1MetaEventsRouteImport.update({
+  id: '/api/v1/meta/events',
+  path: '/api/v1/meta/events',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1OrdersIdRoute = ApiV1OrdersIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => ApiV1OrdersRoute,
+} as any)
+const ApiV1OrdersTrackReferenceRoute =
+  ApiV1OrdersTrackReferenceRouteImport.update({
+    id: '/track/$reference',
+    path: '/track/$reference',
+    getParentRoute: () => ApiV1OrdersRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -156,11 +289,26 @@ export interface FileRoutesByFullPath {
   '/cart': typeof CartRoute
   '/checkout': typeof CheckoutRoute
   '/contact': typeof ContactRoute
+  '/faq': typeof FaqRoute
+  '/faqs': typeof FaqsRoute
+  '/frame-size-guide': typeof FrameSizeGuideRoute
   '/glasses': typeof GlassesRoute
+  '/health': typeof HealthRoute
+  '/lens-guide': typeof LensGuideRoute
   '/lenses': typeof LensesRoute
+  '/not-found': typeof NotFoundRoute
   '/order-confirmation': typeof OrderConfirmationRoute
   '/order-status': typeof OrderStatusRoute
+  '/prescription-guide': typeof PrescriptionGuideRoute
+  '/privacy-policy': typeof PrivacyPolicyRoute
+  '/refund-policy': typeof RefundPolicyRoute
+  '/returns-policy': typeof ReturnsPolicyRoute
+  '/shipping-policy': typeof ShippingPolicyRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/terms': typeof TermsRoute
+  '/terms-of-service': typeof TermsOfServiceRoute
+  '/warranty': typeof WarrantyRoute
+  '/admin/blog': typeof AdminBlogRoute
   '/admin/content': typeof AdminContentRoute
   '/admin/faqs': typeof AdminFaqsRoute
   '/admin/inventory': typeof AdminInventoryRoute
@@ -170,9 +318,16 @@ export interface FileRoutesByFullPath {
   '/admin/settings': typeof AdminSettingsRoute
   '/admin/subscribers': typeof AdminSubscribersRoute
   '/admin/testimonials': typeof AdminTestimonialsRoute
+  '/blog/$slug': typeof BlogSlugRoute
   '/category/$slug': typeof CategorySlugRoute
   '/product/$slug': typeof ProductSlugRoute
   '/admin/': typeof AdminIndexRoute
+  '/blog/': typeof BlogIndexRoute
+  '/api/v1/orders': typeof ApiV1OrdersRouteWithChildren
+  '/api/v1/admin/login': typeof ApiV1AdminLoginRoute
+  '/api/v1/meta/events': typeof ApiV1MetaEventsRoute
+  '/api/v1/orders/$id': typeof ApiV1OrdersIdRoute
+  '/api/v1/orders/track/$reference': typeof ApiV1OrdersTrackReferenceRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -180,11 +335,26 @@ export interface FileRoutesByTo {
   '/cart': typeof CartRoute
   '/checkout': typeof CheckoutRoute
   '/contact': typeof ContactRoute
+  '/faq': typeof FaqRoute
+  '/faqs': typeof FaqsRoute
+  '/frame-size-guide': typeof FrameSizeGuideRoute
   '/glasses': typeof GlassesRoute
+  '/health': typeof HealthRoute
+  '/lens-guide': typeof LensGuideRoute
   '/lenses': typeof LensesRoute
+  '/not-found': typeof NotFoundRoute
   '/order-confirmation': typeof OrderConfirmationRoute
   '/order-status': typeof OrderStatusRoute
+  '/prescription-guide': typeof PrescriptionGuideRoute
+  '/privacy-policy': typeof PrivacyPolicyRoute
+  '/refund-policy': typeof RefundPolicyRoute
+  '/returns-policy': typeof ReturnsPolicyRoute
+  '/shipping-policy': typeof ShippingPolicyRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/terms': typeof TermsRoute
+  '/terms-of-service': typeof TermsOfServiceRoute
+  '/warranty': typeof WarrantyRoute
+  '/admin/blog': typeof AdminBlogRoute
   '/admin/content': typeof AdminContentRoute
   '/admin/faqs': typeof AdminFaqsRoute
   '/admin/inventory': typeof AdminInventoryRoute
@@ -194,9 +364,16 @@ export interface FileRoutesByTo {
   '/admin/settings': typeof AdminSettingsRoute
   '/admin/subscribers': typeof AdminSubscribersRoute
   '/admin/testimonials': typeof AdminTestimonialsRoute
+  '/blog/$slug': typeof BlogSlugRoute
   '/category/$slug': typeof CategorySlugRoute
   '/product/$slug': typeof ProductSlugRoute
   '/admin': typeof AdminIndexRoute
+  '/blog': typeof BlogIndexRoute
+  '/api/v1/orders': typeof ApiV1OrdersRouteWithChildren
+  '/api/v1/admin/login': typeof ApiV1AdminLoginRoute
+  '/api/v1/meta/events': typeof ApiV1MetaEventsRoute
+  '/api/v1/orders/$id': typeof ApiV1OrdersIdRoute
+  '/api/v1/orders/track/$reference': typeof ApiV1OrdersTrackReferenceRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -206,11 +383,26 @@ export interface FileRoutesById {
   '/cart': typeof CartRoute
   '/checkout': typeof CheckoutRoute
   '/contact': typeof ContactRoute
+  '/faq': typeof FaqRoute
+  '/faqs': typeof FaqsRoute
+  '/frame-size-guide': typeof FrameSizeGuideRoute
   '/glasses': typeof GlassesRoute
+  '/health': typeof HealthRoute
+  '/lens-guide': typeof LensGuideRoute
   '/lenses': typeof LensesRoute
+  '/not-found': typeof NotFoundRoute
   '/order-confirmation': typeof OrderConfirmationRoute
   '/order-status': typeof OrderStatusRoute
+  '/prescription-guide': typeof PrescriptionGuideRoute
+  '/privacy-policy': typeof PrivacyPolicyRoute
+  '/refund-policy': typeof RefundPolicyRoute
+  '/returns-policy': typeof ReturnsPolicyRoute
+  '/shipping-policy': typeof ShippingPolicyRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/terms': typeof TermsRoute
+  '/terms-of-service': typeof TermsOfServiceRoute
+  '/warranty': typeof WarrantyRoute
+  '/admin/blog': typeof AdminBlogRoute
   '/admin/content': typeof AdminContentRoute
   '/admin/faqs': typeof AdminFaqsRoute
   '/admin/inventory': typeof AdminInventoryRoute
@@ -220,9 +412,16 @@ export interface FileRoutesById {
   '/admin/settings': typeof AdminSettingsRoute
   '/admin/subscribers': typeof AdminSubscribersRoute
   '/admin/testimonials': typeof AdminTestimonialsRoute
+  '/blog/$slug': typeof BlogSlugRoute
   '/category/$slug': typeof CategorySlugRoute
   '/product/$slug': typeof ProductSlugRoute
   '/admin/': typeof AdminIndexRoute
+  '/blog/': typeof BlogIndexRoute
+  '/api/v1/orders': typeof ApiV1OrdersRouteWithChildren
+  '/api/v1/admin/login': typeof ApiV1AdminLoginRoute
+  '/api/v1/meta/events': typeof ApiV1MetaEventsRoute
+  '/api/v1/orders/$id': typeof ApiV1OrdersIdRoute
+  '/api/v1/orders/track/$reference': typeof ApiV1OrdersTrackReferenceRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -233,11 +432,26 @@ export interface FileRouteTypes {
     | '/cart'
     | '/checkout'
     | '/contact'
+    | '/faq'
+    | '/faqs'
+    | '/frame-size-guide'
     | '/glasses'
+    | '/health'
+    | '/lens-guide'
     | '/lenses'
+    | '/not-found'
     | '/order-confirmation'
     | '/order-status'
+    | '/prescription-guide'
+    | '/privacy-policy'
+    | '/refund-policy'
+    | '/returns-policy'
+    | '/shipping-policy'
     | '/sitemap.xml'
+    | '/terms'
+    | '/terms-of-service'
+    | '/warranty'
+    | '/admin/blog'
     | '/admin/content'
     | '/admin/faqs'
     | '/admin/inventory'
@@ -247,9 +461,16 @@ export interface FileRouteTypes {
     | '/admin/settings'
     | '/admin/subscribers'
     | '/admin/testimonials'
+    | '/blog/$slug'
     | '/category/$slug'
     | '/product/$slug'
     | '/admin/'
+    | '/blog/'
+    | '/api/v1/orders'
+    | '/api/v1/admin/login'
+    | '/api/v1/meta/events'
+    | '/api/v1/orders/$id'
+    | '/api/v1/orders/track/$reference'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -257,11 +478,26 @@ export interface FileRouteTypes {
     | '/cart'
     | '/checkout'
     | '/contact'
+    | '/faq'
+    | '/faqs'
+    | '/frame-size-guide'
     | '/glasses'
+    | '/health'
+    | '/lens-guide'
     | '/lenses'
+    | '/not-found'
     | '/order-confirmation'
     | '/order-status'
+    | '/prescription-guide'
+    | '/privacy-policy'
+    | '/refund-policy'
+    | '/returns-policy'
+    | '/shipping-policy'
     | '/sitemap.xml'
+    | '/terms'
+    | '/terms-of-service'
+    | '/warranty'
+    | '/admin/blog'
     | '/admin/content'
     | '/admin/faqs'
     | '/admin/inventory'
@@ -271,9 +507,16 @@ export interface FileRouteTypes {
     | '/admin/settings'
     | '/admin/subscribers'
     | '/admin/testimonials'
+    | '/blog/$slug'
     | '/category/$slug'
     | '/product/$slug'
     | '/admin'
+    | '/blog'
+    | '/api/v1/orders'
+    | '/api/v1/admin/login'
+    | '/api/v1/meta/events'
+    | '/api/v1/orders/$id'
+    | '/api/v1/orders/track/$reference'
   id:
     | '__root__'
     | '/'
@@ -282,11 +525,26 @@ export interface FileRouteTypes {
     | '/cart'
     | '/checkout'
     | '/contact'
+    | '/faq'
+    | '/faqs'
+    | '/frame-size-guide'
     | '/glasses'
+    | '/health'
+    | '/lens-guide'
     | '/lenses'
+    | '/not-found'
     | '/order-confirmation'
     | '/order-status'
+    | '/prescription-guide'
+    | '/privacy-policy'
+    | '/refund-policy'
+    | '/returns-policy'
+    | '/shipping-policy'
     | '/sitemap.xml'
+    | '/terms'
+    | '/terms-of-service'
+    | '/warranty'
+    | '/admin/blog'
     | '/admin/content'
     | '/admin/faqs'
     | '/admin/inventory'
@@ -296,9 +554,16 @@ export interface FileRouteTypes {
     | '/admin/settings'
     | '/admin/subscribers'
     | '/admin/testimonials'
+    | '/blog/$slug'
     | '/category/$slug'
     | '/product/$slug'
     | '/admin/'
+    | '/blog/'
+    | '/api/v1/orders'
+    | '/api/v1/admin/login'
+    | '/api/v1/meta/events'
+    | '/api/v1/orders/$id'
+    | '/api/v1/orders/track/$reference'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -308,13 +573,32 @@ export interface RootRouteChildren {
   CartRoute: typeof CartRoute
   CheckoutRoute: typeof CheckoutRoute
   ContactRoute: typeof ContactRoute
+  FaqRoute: typeof FaqRoute
+  FaqsRoute: typeof FaqsRoute
+  FrameSizeGuideRoute: typeof FrameSizeGuideRoute
   GlassesRoute: typeof GlassesRoute
+  HealthRoute: typeof HealthRoute
+  LensGuideRoute: typeof LensGuideRoute
   LensesRoute: typeof LensesRoute
+  NotFoundRoute: typeof NotFoundRoute
   OrderConfirmationRoute: typeof OrderConfirmationRoute
   OrderStatusRoute: typeof OrderStatusRoute
+  PrescriptionGuideRoute: typeof PrescriptionGuideRoute
+  PrivacyPolicyRoute: typeof PrivacyPolicyRoute
+  RefundPolicyRoute: typeof RefundPolicyRoute
+  ReturnsPolicyRoute: typeof ReturnsPolicyRoute
+  ShippingPolicyRoute: typeof ShippingPolicyRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  TermsRoute: typeof TermsRoute
+  TermsOfServiceRoute: typeof TermsOfServiceRoute
+  WarrantyRoute: typeof WarrantyRoute
+  BlogSlugRoute: typeof BlogSlugRoute
   CategorySlugRoute: typeof CategorySlugRoute
   ProductSlugRoute: typeof ProductSlugRoute
+  BlogIndexRoute: typeof BlogIndexRoute
+  ApiV1OrdersRoute: typeof ApiV1OrdersRouteWithChildren
+  ApiV1AdminLoginRoute: typeof ApiV1AdminLoginRoute
+  ApiV1MetaEventsRoute: typeof ApiV1MetaEventsRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -361,6 +645,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ContactRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/faq': {
+      id: '/faq'
+      path: '/faq'
+      fullPath: '/faq'
+      preLoaderRoute: typeof FaqRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/faqs': {
+      id: '/faqs'
+      path: '/faqs'
+      fullPath: '/faqs'
+      preLoaderRoute: typeof FaqsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/frame-size-guide': {
+      id: '/frame-size-guide'
+      path: '/frame-size-guide'
+      fullPath: '/frame-size-guide'
+      preLoaderRoute: typeof FrameSizeGuideRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/glasses': {
       id: '/glasses'
       path: '/glasses'
@@ -368,11 +673,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GlassesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/health': {
+      id: '/health'
+      path: '/health'
+      fullPath: '/health'
+      preLoaderRoute: typeof HealthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/lens-guide': {
+      id: '/lens-guide'
+      path: '/lens-guide'
+      fullPath: '/lens-guide'
+      preLoaderRoute: typeof LensGuideRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/lenses': {
       id: '/lenses'
       path: '/lenses'
       fullPath: '/lenses'
       preLoaderRoute: typeof LensesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/not-found': {
+      id: '/not-found'
+      path: '/not-found'
+      fullPath: '/not-found'
+      preLoaderRoute: typeof NotFoundRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/order-confirmation': {
@@ -389,6 +715,41 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OrderStatusRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/prescription-guide': {
+      id: '/prescription-guide'
+      path: '/prescription-guide'
+      fullPath: '/prescription-guide'
+      preLoaderRoute: typeof PrescriptionGuideRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacy-policy': {
+      id: '/privacy-policy'
+      path: '/privacy-policy'
+      fullPath: '/privacy-policy'
+      preLoaderRoute: typeof PrivacyPolicyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/refund-policy': {
+      id: '/refund-policy'
+      path: '/refund-policy'
+      fullPath: '/refund-policy'
+      preLoaderRoute: typeof RefundPolicyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/returns-policy': {
+      id: '/returns-policy'
+      path: '/returns-policy'
+      fullPath: '/returns-policy'
+      preLoaderRoute: typeof ReturnsPolicyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/shipping-policy': {
+      id: '/shipping-policy'
+      path: '/shipping-policy'
+      fullPath: '/shipping-policy'
+      preLoaderRoute: typeof ShippingPolicyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/sitemap.xml': {
       id: '/sitemap.xml'
       path: '/sitemap.xml'
@@ -396,11 +757,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SitemapDotxmlRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/terms-of-service': {
+      id: '/terms-of-service'
+      path: '/terms-of-service'
+      fullPath: '/terms-of-service'
+      preLoaderRoute: typeof TermsOfServiceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/warranty': {
+      id: '/warranty'
+      path: '/warranty'
+      fullPath: '/warranty'
+      preLoaderRoute: typeof WarrantyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/': {
       id: '/admin/'
       path: '/'
       fullPath: '/admin/'
       preLoaderRoute: typeof AdminIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/blog': {
+      id: '/admin/blog'
+      path: '/blog'
+      fullPath: '/admin/blog'
+      preLoaderRoute: typeof AdminBlogRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/content': {
@@ -466,6 +855,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminTestimonialsRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/blog/': {
+      id: '/blog/'
+      path: '/blog'
+      fullPath: '/blog/'
+      preLoaderRoute: typeof BlogIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/blog/$slug': {
+      id: '/blog/$slug'
+      path: '/blog/$slug'
+      fullPath: '/blog/$slug'
+      preLoaderRoute: typeof BlogSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/category/$slug': {
       id: '/category/$slug'
       path: '/category/$slug'
@@ -480,10 +883,46 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProductSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/v1/orders': {
+      id: '/api/v1/orders'
+      path: '/api/v1/orders'
+      fullPath: '/api/v1/orders'
+      preLoaderRoute: typeof ApiV1OrdersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/admin/login': {
+      id: '/api/v1/admin/login'
+      path: '/api/v1/admin/login'
+      fullPath: '/api/v1/admin/login'
+      preLoaderRoute: typeof ApiV1AdminLoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/meta/events': {
+      id: '/api/v1/meta/events'
+      path: '/api/v1/meta/events'
+      fullPath: '/api/v1/meta/events'
+      preLoaderRoute: typeof ApiV1MetaEventsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/orders/$id': {
+      id: '/api/v1/orders/$id'
+      path: '/$id'
+      fullPath: '/api/v1/orders/$id'
+      preLoaderRoute: typeof ApiV1OrdersIdRouteImport
+      parentRoute: typeof ApiV1OrdersRoute
+    }
+    '/api/v1/orders/track/$reference': {
+      id: '/api/v1/orders/track/$reference'
+      path: '/track/$reference'
+      fullPath: '/api/v1/orders/track/$reference'
+      preLoaderRoute: typeof ApiV1OrdersTrackReferenceRouteImport
+      parentRoute: typeof ApiV1OrdersRoute
+    }
   }
 }
 
 interface AdminRouteChildren {
+  AdminBlogRoute: typeof AdminBlogRoute
   AdminContentRoute: typeof AdminContentRoute
   AdminFaqsRoute: typeof AdminFaqsRoute
   AdminInventoryRoute: typeof AdminInventoryRoute
@@ -497,6 +936,7 @@ interface AdminRouteChildren {
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
+  AdminBlogRoute: AdminBlogRoute,
   AdminContentRoute: AdminContentRoute,
   AdminFaqsRoute: AdminFaqsRoute,
   AdminInventoryRoute: AdminInventoryRoute,
@@ -511,6 +951,20 @@ const AdminRouteChildren: AdminRouteChildren = {
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
+interface ApiV1OrdersRouteChildren {
+  ApiV1OrdersIdRoute: typeof ApiV1OrdersIdRoute
+  ApiV1OrdersTrackReferenceRoute: typeof ApiV1OrdersTrackReferenceRoute
+}
+
+const ApiV1OrdersRouteChildren: ApiV1OrdersRouteChildren = {
+  ApiV1OrdersIdRoute: ApiV1OrdersIdRoute,
+  ApiV1OrdersTrackReferenceRoute: ApiV1OrdersTrackReferenceRoute,
+}
+
+const ApiV1OrdersRouteWithChildren = ApiV1OrdersRoute._addFileChildren(
+  ApiV1OrdersRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
@@ -518,13 +972,32 @@ const rootRouteChildren: RootRouteChildren = {
   CartRoute: CartRoute,
   CheckoutRoute: CheckoutRoute,
   ContactRoute: ContactRoute,
+  FaqRoute: FaqRoute,
+  FaqsRoute: FaqsRoute,
+  FrameSizeGuideRoute: FrameSizeGuideRoute,
   GlassesRoute: GlassesRoute,
+  HealthRoute: HealthRoute,
+  LensGuideRoute: LensGuideRoute,
   LensesRoute: LensesRoute,
+  NotFoundRoute: NotFoundRoute,
   OrderConfirmationRoute: OrderConfirmationRoute,
   OrderStatusRoute: OrderStatusRoute,
+  PrescriptionGuideRoute: PrescriptionGuideRoute,
+  PrivacyPolicyRoute: PrivacyPolicyRoute,
+  RefundPolicyRoute: RefundPolicyRoute,
+  ReturnsPolicyRoute: ReturnsPolicyRoute,
+  ShippingPolicyRoute: ShippingPolicyRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
+  TermsRoute: TermsRoute,
+  TermsOfServiceRoute: TermsOfServiceRoute,
+  WarrantyRoute: WarrantyRoute,
+  BlogSlugRoute: BlogSlugRoute,
   CategorySlugRoute: CategorySlugRoute,
   ProductSlugRoute: ProductSlugRoute,
+  BlogIndexRoute: BlogIndexRoute,
+  ApiV1OrdersRoute: ApiV1OrdersRouteWithChildren,
+  ApiV1AdminLoginRoute: ApiV1AdminLoginRoute,
+  ApiV1MetaEventsRoute: ApiV1MetaEventsRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

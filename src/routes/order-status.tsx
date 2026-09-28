@@ -1,6 +1,16 @@
-import { useState } from "react";
+/* eslint-disable @typescript-eslint/no-explicit-any -- Public RPC order rows are normalized at this route boundary. */
+import { useState, useEffect } from "react";
 import { createFileRoute, useSearch } from "@tanstack/react-router";
-import { Check, CheckCircle2, Copy, ExternalLink, Mail, PackageSearch, Phone, Truck } from "lucide-react";
+import {
+  Check,
+  Copy,
+  ExternalLink,
+  Loader2,
+  Mail,
+  PackageSearch,
+  Phone,
+  Truck,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { SiteLayout } from "@/components/site/SiteLayout";
@@ -31,7 +41,8 @@ export const Route = createFileRoute("/order-status")({
       { property: "og:title", content: "Track Your Order — OPTIQUE" },
       {
         property: "og:description",
-        content: "Look up an OPTIQUE order reference to check its status, live courier tracking, and reach our team.",
+        content:
+          "Look up an OPTIQUE order reference to check its status, live courier tracking, and reach our team.",
       },
       { property: "og:type", content: "website" },
       { property: "og:url", content: CANONICAL },
@@ -41,38 +52,39 @@ export const Route = createFileRoute("/order-status")({
   component: OrderStatusPage,
 });
 
-const statusCopy: Record<OrderStatus, { label: string; note: string; tone: string; step: number }> = {
-  New: {
-    label: "Order Received",
-    note: "We have received your order. Our optician team is preparing your frames.",
-    tone: "bg-blue-50 text-blue-700 border-blue-200",
-    step: 1,
-  },
-  Contacted: {
-    label: "Order Confirmed",
-    note: "Your order and prescription details have been confirmed.",
-    tone: "bg-amber-50 text-amber-700 border-amber-200",
-    step: 2,
-  },
-  Dispatched: {
-    label: "Dispatched",
-    note: "Your parcel is on its way via our trusted courier partner.",
-    tone: "bg-indigo-50 text-indigo-700 border-indigo-200",
-    step: 3,
-  },
-  Completed: {
-    label: "Delivered & Completed",
-    note: "This order has been fulfilled. Thank you for choosing OPTIQUE.",
-    tone: "bg-emerald-50 text-emerald-700 border-emerald-200",
-    step: 4,
-  },
-  Cancelled: {
-    label: "Cancelled",
-    note: "This order was cancelled. Message us on WhatsApp if that looks incorrect.",
-    tone: "bg-destructive/10 text-destructive border-destructive/20",
-    step: 0,
-  },
-};
+const statusCopy: Record<OrderStatus, { label: string; note: string; tone: string; step: number }> =
+  {
+    New: {
+      label: "Order Received",
+      note: "We have received your order. Our optician team is preparing your frames.",
+      tone: "bg-blue-50 text-blue-700 border-blue-200",
+      step: 1,
+    },
+    Contacted: {
+      label: "Order Confirmed",
+      note: "Your order and prescription details have been confirmed.",
+      tone: "bg-amber-50 text-amber-700 border-amber-200",
+      step: 2,
+    },
+    Dispatched: {
+      label: "Dispatched",
+      note: "Your parcel is on its way via our trusted courier partner.",
+      tone: "bg-indigo-50 text-indigo-700 border-indigo-200",
+      step: 3,
+    },
+    Completed: {
+      label: "Delivered & Completed",
+      note: "This order has been fulfilled. Thank you for choosing OPTIQUE.",
+      tone: "bg-emerald-50 text-emerald-700 border-emerald-200",
+      step: 4,
+    },
+    Cancelled: {
+      label: "Cancelled",
+      note: "This order was cancelled. Message us on WhatsApp if that looks incorrect.",
+      tone: "bg-destructive/10 text-destructive border-destructive/20",
+      step: 0,
+    },
+  };
 
 const getStatusInfo = (status?: string) => {
   if (!status) return statusCopy.New;
@@ -80,28 +92,109 @@ const getStatusInfo = (status?: string) => {
   return statusCopy[key] || statusCopy.New;
 };
 
+/** Map a raw Supabase order row to the Order store type */
+function mapRawToOrder(o: any): Order {
+  return {
+    id: o.id,
+    reference:
+      o.reference ||
+      o.items?.[0]?.reference ||
+      (o.id ? `OPT-${String(o.id).slice(0, 6).toUpperCase()}` : "OPT-ORDER"),
+    createdAt: o.createdAt || o.created_at || new Date().toISOString(),
+    customerName: o.customerName || o.customer_name || "Customer",
+    contact: o.contact || o.phone || "",
+    productId: o.productId || o.items?.[0]?.productId || null,
+    productName: o.productName || o.items?.[0]?.productName || "Glasses",
+    variantId: o.variantId || o.items?.[0]?.variantId || null,
+    variantLabel: o.variantLabel || o.items?.[0]?.variantLabel || null,
+    message: o.message || o.address || "",
+    source: (o.source ||
+      o.items?.[0]?.source ||
+      ((o.productName || o.items?.[0]?.productName || "").toLowerCase().includes("whatsapp")
+        ? "whatsapp"
+        : "cart")) as any,
+    status: (o.status
+      ? o.status.charAt(0).toUpperCase() + o.status.slice(1).toLowerCase()
+      : "New") as OrderStatus,
+    stockDeducted: o.stockDeducted ?? true,
+    courierName: o.courier_name || o.courierName || o.items?.[0]?.courierName || null,
+    trackingNumber: o.tracking_number || o.trackingNumber || o.items?.[0]?.trackingNumber || null,
+    dispatchedAt: o.dispatched_at || o.dispatchedAt || null,
+  };
+}
+
+/**
+ * Order tracking uses the versioned API so validation, CORS, rate limiting,
+ * logging, and the narrow database RPC remain server-side.
+ */
+async function fetchOrdersByRef(reference: string): Promise<Order[]> {
+  const trimmed = reference.trim();
+  if (!trimmed) return [];
+
+  const response = await fetch(`/api/v1/orders/track/${encodeURIComponent(trimmed)}`, {
+    credentials: "same-origin",
+  });
+  if (!response.ok) throw new Error("Order lookup failed");
+
+  const payload = (await response.json()) as { data?: unknown[] };
+  return (payload.data ?? []).map(mapRawToOrder);
+}
 function OrderStatusPage() {
   const search = useSearch({ from: "/order-status" });
-  const { getOrdersByReference, settings } = useStore();
+
+  // ✅ SECURITY FIX: Only pull `settings` from the global store.
+  //    Previously `orders: allOrders` was also destructured here which loaded
+  //    ALL customer orders into client JavaScript memory — any user could
+  //    inspect them via browser DevTools. That exposure is now fully removed.
+  const { settings } = useStore();
 
   const [value, setValue] = useState(search.ref ?? "");
   const [query, setQuery] = useState(search.ref?.trim() ?? "");
-  const [error, setError] = useState<string | null>(null);
+  const [results, setResults] = useState<Order[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [inputError, setInputError] = useState<string | null>(null);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [copiedTracking, setCopiedTracking] = useState(false);
+  const [searched, setSearched] = useState(false);
 
-  const results: Order[] = query ? getOrdersByReference(query) : [];
-  const searched = query.length > 0;
+  // Auto-search when page loads with ?ref= in URL
+  useEffect(() => {
+    if (search.ref?.trim()) {
+      const ref = search.ref.trim();
+      setValue(ref);
+      setQuery(ref);
+      runSearch(ref);
+    }
+  }, [search.ref]);
 
-  const submit = (event: React.FormEvent) => {
+  async function runSearch(ref: string) {
+    setLoading(true);
+    setSearched(true);
+    setFetchError(null);
+    setResults([]);
+    try {
+      const found = await fetchOrdersByRef(ref);
+      setResults(found);
+    } catch {
+      setFetchError("Could not reach the server. Please try again in a moment.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const submit = async (event: React.FormEvent) => {
     event.preventDefault();
     const next = value.trim();
     if (!next) {
-      setError("Enter the order reference from your confirmation, e.g. OPT-204118.");
+      setInputError("Enter the order reference from your confirmation, e.g. OPT-204118.");
       setQuery("");
+      setResults([]);
+      setSearched(false);
       return;
     }
-    setError(null);
+    setInputError(null);
     setQuery(next);
+    await runSearch(next);
   };
 
   const primaryOrder = results[0];
@@ -130,7 +223,8 @@ function OrderStatusPage() {
         <h1 className="mt-2 font-display text-4xl sm:text-5xl">Check Your Order Status</h1>
         <p className="mt-3 max-w-xl text-sm text-ink-muted">
           Enter your order reference code (e.g.{" "}
-          <span className="font-semibold text-ink">OPT-204118</span>) to view live progress, courier details, and dispatch updates.
+          <span className="font-semibold text-ink">OPT-204118</span>) to view live progress, courier
+          details, and dispatch updates.
         </p>
 
         <form onSubmit={submit} noValidate className="mt-8 flex flex-col gap-3 sm:flex-row">
@@ -143,29 +237,47 @@ function OrderStatusPage() {
               placeholder="OPT-204118"
               autoComplete="off"
               className="min-h-11"
-              aria-describedby={error ? "order-ref-error" : undefined}
-              aria-invalid={error ? true : undefined}
+              aria-describedby={inputError ? "order-ref-error" : undefined}
+              aria-invalid={inputError ? true : undefined}
             />
-            {error && (
+            {inputError && (
               <p id="order-ref-error" role="alert" className="text-xs text-destructive">
-                {error}
+                {inputError}
               </p>
             )}
           </div>
-          <Button type="submit" className="min-h-11 rounded-full sm:mt-8 sm:px-8">
-            Track order
+          <Button
+            type="submit"
+            disabled={loading}
+            className="min-h-11 rounded-full sm:mt-8 sm:px-8"
+          >
+            {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+            {loading ? "Searching…" : "Track order"}
           </Button>
         </form>
 
         <div aria-live="polite" className="mt-10">
-          {searched && results.length === 0 && (
+          {loading && (
+            <div className="flex items-center justify-center gap-3 rounded-xl border border-stone bg-card p-8 text-sm text-ink-muted">
+              <Loader2 className="h-5 w-5 animate-spin" />
+              Looking up your order…
+            </div>
+          )}
+
+          {fetchError && !loading && (
+            <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-6 text-center text-sm text-destructive">
+              {fetchError}
+            </div>
+          )}
+
+          {searched && !loading && !fetchError && results.length === 0 && (
             <div className="rounded-xl border border-stone bg-card p-8 text-center">
               <PackageSearch className="mx-auto h-8 w-8 text-ink-muted" aria-hidden="true" />
               <h2 className="mt-4 font-display text-2xl">No order found</h2>
               <p className="mx-auto mt-2 max-w-md text-sm text-ink-muted">
                 We couldn't find an order with reference{" "}
-                <span className="font-semibold text-ink">{query}</span>. Check the code from your
-                confirmation, or message us on WhatsApp and we'll help locate your order.
+                <span className="font-semibold text-ink">{query}</span>. Double-check the code from
+                your confirmation email or WhatsApp receipt, or contact us below and we'll help.
               </p>
             </div>
           )}
@@ -178,7 +290,9 @@ function OrderStatusPage() {
               {/* Header */}
               <div className="flex flex-wrap items-center justify-between gap-3 border-b border-stone/50 pb-4">
                 <div>
-                  <h2 className="font-display text-2xl sm:text-3xl font-bold">Order {primaryOrder.reference}</h2>
+                  <h2 className="font-display text-2xl sm:text-3xl font-bold">
+                    Order {primaryOrder.reference}
+                  </h2>
                   <p className="text-xs text-ink-muted mt-1">
                     Placed on{" "}
                     {new Date(primaryOrder.createdAt).toLocaleDateString("en-GB", {
@@ -229,7 +343,11 @@ function OrderStatusPage() {
                           </div>
                           <span
                             className={`text-xs font-semibold ${
-                              isCurrent ? "text-black font-bold" : isDone ? "text-zinc-700" : "text-zinc-400"
+                              isCurrent
+                                ? "text-black font-bold"
+                                : isDone
+                                  ? "text-zinc-700"
+                                  : "text-zinc-400"
                             }`}
                           >
                             {st.label}
@@ -323,7 +441,10 @@ function OrderStatusPage() {
                 </p>
                 <ul className="divide-y divide-stone border-t border-b border-stone">
                   {results.map((order) => (
-                    <li key={order.id} className="flex flex-wrap justify-between gap-2 py-3.5 text-sm">
+                    <li
+                      key={order.id}
+                      className="flex flex-wrap justify-between gap-2 py-3.5 text-sm"
+                    >
                       <span className="font-medium text-zinc-900">
                         {order.productName}
                         {order.variantLabel ? ` — ${order.variantLabel}` : ""}
@@ -347,7 +468,8 @@ function OrderStatusPage() {
             Need help with this order?
           </h2>
           <p className="mt-2 text-sm text-ink-muted">
-            Our opticians answer during showroom hours ({settings.hours}).
+            Our opticians answer during showroom hours (
+            {settings.hours || "Mon – Sat: 11:00 AM – 9:00 PM"}).
           </p>
           <div className="mt-5 flex flex-wrap gap-3">
             <a
@@ -359,10 +481,10 @@ function OrderStatusPage() {
               <WhatsAppIcon className="h-4 w-4 text-white" /> WhatsApp us
             </a>
             <a
-              href={`tel:${settings.phone.replace(/[^0-9+]/g, "")}`}
+              href={`tel:${(settings.phone ?? "").replace(/[^0-9+]/g, "")}`}
               className="inline-flex min-h-11 items-center gap-2 rounded-full border border-stone px-6 text-xs font-semibold tracking-[0.16em] uppercase text-ink transition-all duration-200 hover:bg-[#444444] hover:border-[#444444] hover:text-white"
             >
-              <Phone className="h-4 w-4" aria-hidden="true" /> {settings.phone}
+              <Phone className="h-4 w-4" aria-hidden="true" /> {settings.phone || "+92 300 0000000"}
             </a>
             <a
               href={`mailto:${settings.email}`}

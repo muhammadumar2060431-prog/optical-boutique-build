@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
+import { toast } from "sonner";
 import { z } from "zod";
 
 import { SiteLayout } from "@/components/site/SiteLayout";
@@ -10,6 +11,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { useCart } from "@/lib/cart";
 import { formatPrice, newOrderReference, useStore } from "@/lib/store";
 import { saveOrderReceipt } from "@/lib/last-order";
+import {
+  createMetaEventId,
+  splitMetaName,
+  trackMetaBrowserEvent,
+  trackMetaEvent,
+} from "@/lib/meta-events";
 import { getSiteUrl } from "@/lib/utils";
 
 export const Route = createFileRoute("/checkout")({
@@ -69,13 +76,34 @@ type FieldName = "name" | "email" | "phone" | "address" | "notes";
 type Errors = Partial<Record<FieldName, string>>;
 
 function CheckoutPage() {
-  const { items, subtotal, clearCart } = useCart();
-  const { addOrder, getStockFor, adjustStock } = useStore();
+  const { items, subtotal, clearCart, hydrated } = useCart();
+  const { addOrders, getStockFor } = useStore();
   const navigate = useNavigate();
 
   const [values, setValues] = useState({ name: "", email: "", phone: "", address: "", notes: "" });
   const [errors, setErrors] = useState<Errors>({});
   const [touched, setTouched] = useState<Partial<Record<FieldName, boolean>>>({});
+  const [submitting, setSubmitting] = useState(false);
+  const submittingRef = useRef(false);
+  const idempotencyKeyRef = useRef("checkout:" + crypto.randomUUID());
+  const purchaseEventIdRef = useRef(createMetaEventId("purchase"));
+  const initiateCheckoutTrackedRef = useRef(false);
+
+  useEffect(() => {
+    if (!hydrated || items.length === 0 || initiateCheckoutTrackedRef.current) return;
+    initiateCheckoutTrackedRef.current = true;
+    trackMetaEvent({
+      eventName: "InitiateCheckout",
+      customData: {
+        value: subtotal,
+        currency: "PKR",
+        contentIds: items.map((item) => item.productId),
+        contentType: "product",
+        contentName: "Shopping bag checkout",
+        numItems: items.reduce((total, item) => total + item.qty, 0),
+      },
+    });
+  }, [hydrated, items, subtotal]);
 
   const stockLines = items.map((item) => ({
     item,
@@ -106,20 +134,42 @@ function CheckoutPage() {
     setErrors(validate());
   };
 
-  const placeOrder = (event: React.FormEvent) => {
+  const placeOrder = async (event: React.FormEvent) => {
     event.preventDefault();
     const found = validate();
     setErrors(found);
     setTouched({ name: true, email: true, phone: true, address: true, notes: true });
     if (Object.keys(found).length > 0 || items.length === 0 || stockBlocked) return;
+    if (submittingRef.current) return;
+    submittingRef.current = true;
+    setSubmitting(true);
 
     const reference = newOrderReference();
+    const { firstName, lastName } = splitMetaName(values.name);
+    const purchaseEvent = {
+      eventName: "Purchase" as const,
+      eventId: purchaseEventIdRef.current,
+      eventSourceUrl: window.location.href,
+      userData: {
+        email: values.email,
+        phone: values.phone,
+        firstName,
+        ...(lastName ? { lastName } : {}),
+        externalId: reference,
+      },
+      customData: {
+        value: subtotal,
+        currency: "PKR",
+        contentIds: items.map((item) => item.productId),
+        contentType: "product",
+        contentName: "Order " + reference,
+        numItems: items.reduce((total, item) => total + item.qty, 0),
+      },
+    };
     const contact = [values.phone.trim(), values.email.trim()].filter(Boolean).join(" · ");
 
-    for (const item of items) {
-      // Inventory comes down immediately so the item shows as unavailable right away.
-      adjustStock(item.productId, item.variantId, -item.qty);
-      addOrder({
+    const savedOrders = await addOrders(
+      items.map((item) => ({
         customerName: values.name.trim(),
         contact,
         productId: item.productId,
@@ -135,8 +185,17 @@ function CheckoutPage() {
           .join("\n"),
         reference,
         source: "cart",
-        stockDeducted: true,
-      });
+        stockDeducted: false,
+      })),
+      idempotencyKeyRef.current,
+      purchaseEvent,
+    );
+
+    if (!savedOrders) {
+      submittingRef.current = false;
+      setSubmitting(false);
+      toast.error("Your order could not be saved. Please try again.");
+      return;
     }
     saveOrderReceipt({
       reference,
@@ -154,6 +213,7 @@ function CheckoutPage() {
       })),
       subtotal,
     });
+    trackMetaBrowserEvent(purchaseEvent);
     clearCart();
     void navigate({ to: "/order-confirmation", search: { ref: reference } });
   };
@@ -285,10 +345,10 @@ function CheckoutPage() {
             <Button
               type="submit"
               size="lg"
-              disabled={stockBlocked}
+              disabled={stockBlocked || submitting}
               className="min-h-12 w-full rounded-full sm:w-auto sm:px-10"
             >
-              Place order
+              {submitting ? "Saving order..." : "Place order"}
             </Button>
             <p className="text-xs text-ink-muted">
               No payment is taken online — our team confirms your order and arranges payment on

@@ -1,4 +1,6 @@
+/* eslint-disable @typescript-eslint/no-explicit-any, no-empty -- Legacy Supabase schema variants are normalized at this boundary. */
 import { supabase } from "./supabase";
+import type { MetaEventInput } from "./meta-events.types";
 import { escapePostgrestFilter, sanitizeDbInput } from "./security";
 import type {
   AnnouncementSettings,
@@ -19,64 +21,110 @@ import type {
   VideoSettings,
 } from "./types";
 
-// ── Database Schema Mappers (Frontend Store <-> Supabase DB) ──
+// -- Database Schema Mappers (Frontend Store <-> Supabase DB) --
 
-// ── Supabase Storage Image Upload ──────────────────────────────────────────
+// -- Supabase Storage Image Upload ------------------------------------------
 const STORAGE_BUCKET = "optique-images";
+const MAX_STORAGE_IMAGE_BYTES = 5 * 1024 * 1024;
+const STORAGE_IMAGE_MIME_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/avif"]);
 
-/** Creates the optique-images storage bucket if it does not exist yet. */
-async function ensureBucket() {
-  try {
-    const { data: buckets } = await supabase.storage.listBuckets();
-    const exists = buckets?.some((b: any) => b.name === STORAGE_BUCKET);
-    if (!exists) {
-      await supabase.storage.createBucket(STORAGE_BUCKET, {
-        public: true,
-        fileSizeLimit: 10485760, // 10 MB
-        allowedMimeTypes: ["image/jpeg", "image/png", "image/webp", "image/avif", "image/gif"],
-      });
-    }
-  } catch {
-    // Bucket may already exist or permissions may differ — safe to ignore
+function imageExtension(mimeType: string): string {
+  if (mimeType.includes("webp")) return "webp";
+  if (mimeType.includes("png")) return "png";
+  if (mimeType.includes("avif")) return "avif";
+  return "jpg";
+}
+
+function sanitizeStorageFolder(folder: string): string {
+  const cleanFolder = folder
+    .split("/")
+    .map((part) => part.replace(/[^A-Za-z0-9_-]/g, ""))
+    .filter(Boolean)
+    .join("/");
+  return cleanFolder || "uploads";
+}
+
+function createStorageId(): string {
+  if (typeof globalThis.crypto?.randomUUID === "function") {
+    return globalThis.crypto.randomUUID();
   }
+  if (typeof globalThis.crypto?.getRandomValues === "function") {
+    const bytes = globalThis.crypto.getRandomValues(new Uint8Array(16));
+    return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+  }
+  throw new Error("Secure random number generation is unavailable in this browser.");
 }
 
 /**
- * Uploads a base64 data URL to Supabase Storage and returns the permanent public URL.
- * Falls back gracefully (returns null) so the caller can use base64 instead.
+ * Uploads an optimized image to the pre-provisioned public storage bucket.
+ * Bucket creation belongs in database migrations, not in the browser.
  */
 export async function uploadImageToStorage(
-  base64DataUrl: string,
+  image: Blob | string,
   folder = "products",
+  options: { throwOnError?: boolean } = {},
 ): Promise<string | null> {
-  if (!base64DataUrl || !base64DataUrl.startsWith("data:")) return null;
+  if (typeof image === "string" && !image.startsWith("data:image/")) return null;
+
   try {
-    await ensureBucket();
-    const res = await fetch(base64DataUrl);
-    const blob = await res.blob();
-    const ext = blob.type.includes("webp")
-      ? "webp"
-      : blob.type.includes("png")
-        ? "png"
-        : "jpg";
-    const fileName = `${folder}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-    const { data, error } = await supabase.storage
-      .from(STORAGE_BUCKET)
-      .upload(fileName, blob, { upsert: true, contentType: blob.type });
-    if (error) {
-      console.warn("[uploadImageToStorage] Upload failed:", error.message);
-      return null;
+    const blob = typeof image === "string" ? await (await fetch(image)).blob() : image;
+    if (!STORAGE_IMAGE_MIME_TYPES.has(blob.type)) {
+      throw new Error("Use a JPG, PNG, WebP, or AVIF image.");
     }
-    const { data: urlData } = supabase.storage
-      .from(STORAGE_BUCKET)
-      .getPublicUrl(data.path);
-    return urlData?.publicUrl ?? null;
-  } catch (e) {
-    console.warn("[uploadImageToStorage] Exception:", e);
+    if (blob.size > MAX_STORAGE_IMAGE_BYTES) {
+      throw new Error("The processed image exceeds the 5 MB storage limit.");
+    }
+
+    if (options.throwOnError) {
+      const { data: auth, error: authError } = await supabase.auth.getSession();
+      if (authError || !auth.session) {
+        throw new Error("Your admin session has expired. Sign in again and retry the upload.");
+      }
+    }
+
+    const extension = imageExtension(blob.type);
+    const fileName = `${sanitizeStorageFolder(folder)}/${createStorageId()}.${extension}`;
+    const storage = supabase.storage.from(STORAGE_BUCKET);
+    let { data, error } = await storage.upload(fileName, blob, {
+      upsert: false,
+      contentType: blob.type,
+      cacheControl: "31536000",
+    });
+
+    if (options.throwOnError && error && Number(error.status) === 401) {
+      const { error: refreshError } = await supabase.auth.refreshSession();
+      if (!refreshError) {
+        ({ data, error } = await storage.upload(fileName, blob, {
+          upsert: false,
+          contentType: blob.type,
+          cacheControl: "31536000",
+        }));
+      }
+    }
+
+    if (error) {
+      const status = Number(error.status);
+      if (status === 401 || status === 403) {
+        throw new Error(
+          "Storage denied this upload (" +
+            status +
+            "). Sign in again; if it persists, check the optique-images upload policy.",
+        );
+      }
+      throw new Error(
+        "Storage upload failed" + (status ? " (" + status + ")" : "") + ": " + error.message,
+      );
+    }
+    if (!data) throw new Error("Storage did not return an uploaded image path.");
+
+    return storage.getPublicUrl(data.path).data.publicUrl;
+  } catch (error) {
+    console.warn("[uploadImageToStorage] Exception:", error);
+    if (options.throwOnError) throw error;
     return null;
   }
 }
-// ────────────────────────────────────────────────────────────────────────────
+// ----------------------------------------------------------------------------
 
 // Supabase PostgREST caches old table shapes; retry with legacy payloads when a column is missing.
 function isMissingColumnError(error: any, column: string) {
@@ -98,18 +146,21 @@ export function mapStoreProductToDb(product: Product): any {
   );
 
   // Merge existing details with subImages so the JSONB column always has them
-  const existingDetails = (typeof product.details === "object" && product.details !== null)
-    ? product.details as Record<string, any>
-    : {};
+  const existingDetails =
+    typeof product.details === "object" && product.details !== null
+      ? (product.details as Record<string, any>)
+      : {};
 
   return {
     id: product.id,
     name: product.name || "Untitled Product",
     slug: product.slug || product.id,
+    sku: product.sku || null,
     price: Math.round(Math.max(0, Number(product.price) || 0)),
-    compare_at: product.salePrice && Number(product.salePrice) > 0
-      ? Math.round(Number(product.salePrice))
-      : null,
+    compare_at:
+      product.salePrice && Number(product.salePrice) > 0
+        ? Math.round(Number(product.salePrice))
+        : null,
     category_id: product.categoryId || null,
     collection_ids: product.collectionId ? [product.collectionId] : [],
     images: images.length > 0 ? images : ["/placeholder.svg"],
@@ -161,6 +212,7 @@ export function mapDbProductToStore(raw: any): Product {
     id: raw.id,
     name: raw.name || "Product",
     slug: raw.slug || raw.id,
+    sku: raw.sku || null,
     price: Number(raw.price) || 0,
     salePrice: raw.compare_at
       ? Number(raw.compare_at)
@@ -222,6 +274,8 @@ export function mapStoreCollectionToDb(collection: Collection): any {
     slug: collection.slug,
     category_id: collection.categoryId || null,
     banner: collection.banner || null,
+    description: collection.description || "",
+    show_in_nav: collection.showInNav ?? true,
     sort_order: collection.sortOrder ?? 0,
   };
 }
@@ -234,7 +288,7 @@ export function mapDbCollectionToStore(raw: any): Collection {
     categoryId: raw.category_id || raw.categoryId || "",
     banner: raw.banner || null,
     sortOrder: raw.sort_order ?? raw.sortOrder ?? 0,
-    showInNav: raw.showInNav ?? true,
+    showInNav: raw.show_in_nav ?? raw.showInNav ?? true,
     description: raw.description || "",
   };
 }
@@ -326,12 +380,13 @@ export function mapStoreTestimonialToDb(t: Testimonial): any {
   const img = t.reviewImage || t.photo || "";
   return {
     id: t.id,
+    source: t.source || "manual",
     name: t.name,
     review: t.quote || "",
     rating: t.rating || 5,
     avatar: img,
     verified: t.verified ?? true,
-    // Product association fields — saved so product pages filter correctly
+    // Product association fields - saved so product pages filter correctly
     email: t.email || null,
     product_id: t.productId || null,
     product_name: t.productName || null,
@@ -346,6 +401,10 @@ export function mapDbTestimonialToStore(raw: any): Testimonial {
   const img = raw.review_image || raw.reviewImage || raw.avatar || raw.photo || null;
   return {
     id: raw.id,
+    source:
+      raw.source === "customer" || String(raw.id || "").startsWith("review-")
+        ? "customer"
+        : "manual",
     // Support both 'name' and legacy 'author' column names
     name: raw.name || raw.author || "Customer",
     // Support both 'review'/'text' and 'quote' column names
@@ -371,6 +430,7 @@ export function mapStoreFaqToDb(f: FAQItem): any {
     answer: f.answer,
     category: f.category || "General",
     enabled: f.enabled ?? true,
+    show_on_home: f.showOnHome ?? false,
     sort_order: f.sortOrder ?? 0,
   };
 }
@@ -382,6 +442,7 @@ export function mapDbFaqToStore(raw: any): FAQItem {
     answer: raw.answer,
     category: raw.category || "General",
     enabled: raw.enabled ?? true,
+    showOnHome: raw.show_on_home ?? raw.showOnHome ?? false,
     sortOrder: raw.sort_order ?? raw.sortOrder ?? 0,
   };
 }
@@ -416,7 +477,9 @@ export function mapDbQueryToStore(raw: any): ContactQuery {
 /**
  * Fetch all storefront data from Supabase.
  */
-export async function fetchInitialSupabaseData() {
+export async function fetchInitialSupabaseData(options: { includePrivate?: boolean } = {}) {
+  const includePrivate = options.includePrivate === true;
+
   try {
     const [
       productsRes,
@@ -437,14 +500,28 @@ export async function fetchInitialSupabaseData() {
       supabase.from("products").select("*"),
       supabase.from("categories").select("*").order("sort_order", { ascending: true }),
       supabase.from("collections").select("*").order("sort_order", { ascending: true }),
-      supabase.from("orders").select("*").order("created_at", { ascending: false }),
-      supabase.from("queries").select("*").order("created_at", { ascending: false }),
+      includePrivate
+        ? supabase
+            .from("orders")
+            .select("*")
+            .is("deleted_at", null)
+            .order("created_at", { ascending: false })
+        : Promise.resolve({ data: null, error: null }),
+      includePrivate
+        ? supabase
+            .from("queries")
+            .select("*")
+            .is("deleted_at", null)
+            .order("created_at", { ascending: false })
+        : Promise.resolve({ data: null, error: null }),
       supabase.from("hero_slides").select("*").order("sort_order", { ascending: true }),
       supabase.from("brands").select("*").order("sort_order", { ascending: true }),
       supabase.from("social_reels").select("*").order("sort_order", { ascending: true }),
       supabase.from("testimonials").select("*").order("sort_order", { ascending: true }),
       supabase.from("faqs").select("*").order("sort_order", { ascending: true }),
-      supabase.from("subscribers").select("*").order("created_at", { ascending: false }),
+      includePrivate
+        ? supabase.from("subscribers").select("*").order("created_at", { ascending: false })
+        : Promise.resolve({ data: null, error: null }),
       supabase.from("store_settings").select("*").eq("id", "default").single(),
       supabase.from("announcements").select("*").eq("id", "default").single(),
       supabase.from("video_settings").select("*").eq("id", "default").single(),
@@ -461,9 +538,13 @@ export async function fetchInitialSupabaseData() {
           hours: settingsRaw.hours || "",
           logo: settingsRaw.logo || null,
           lowStockThreshold: settingsRaw.low_stock_threshold || settingsRaw.lowStockThreshold || 3,
-          adminEmail: settingsRaw.adminEmail || import.meta.env.VITE_ADMIN_EMAIL || "",
-          aboutHeadline: settingsRaw.aboutHeadline || "",
-          aboutBody: settingsRaw.aboutBody || "",
+          adminEmail:
+            settingsRaw.admin_email ||
+            settingsRaw.adminEmail ||
+            import.meta.env.VITE_ADMIN_EMAIL ||
+            "",
+          aboutHeadline: settingsRaw.about_headline || settingsRaw.aboutHeadline || "",
+          aboutBody: settingsRaw.about_body || settingsRaw.aboutBody || "",
         }
       : null;
 
@@ -565,7 +646,7 @@ export async function fetchInitialSupabaseData() {
               status: (o.status
                 ? o.status.charAt(0).toUpperCase() + o.status.slice(1).toLowerCase()
                 : "New") as OrderStatus,
-              stockDeducted: o.stockDeducted ?? true,
+              stockDeducted: o.stock_deducted ?? o.stockDeducted ?? false,
               courierName: o.courier_name || o.courierName || o.items?.[0]?.courierName || null,
               trackingNumber:
                 o.tracking_number || o.trackingNumber || o.items?.[0]?.trackingNumber || null,
@@ -626,8 +707,7 @@ export async function fetchInitialSupabaseData() {
       announcement,
       video,
     };
-  } catch (err) {
-    console.error("Failed to fetch initial data from Supabase:", err);
+  } catch {
     return null;
   }
 }
@@ -675,7 +755,6 @@ export async function autoSeedSupabaseIfEmpty(seed: {
       .from("categories")
       .select("*", { count: "exact", head: true });
     if (!catCount) {
-      console.log("Seeding categories into Supabase...");
       const payload = seed.categories.map((c) => ({
         id: c.id,
         name: c.name,
@@ -691,7 +770,6 @@ export async function autoSeedSupabaseIfEmpty(seed: {
       .from("collections")
       .select("*", { count: "exact", head: true });
     if (!colCount) {
-      console.log("Seeding collections into Supabase...");
       const payload = seed.collections.map(mapStoreCollectionToDb);
       await supabase.from("collections").upsert(payload);
     }
@@ -701,7 +779,6 @@ export async function autoSeedSupabaseIfEmpty(seed: {
       .from("products")
       .select("*", { count: "exact", head: true });
     if (!prodCount) {
-      console.log("Seeding products into Supabase...");
       const payload = seed.products.map(mapStoreProductToDb);
       const { error } = await supabase.from("products").upsert(payload);
       if (error) console.error("Error seeding products to Supabase:", error);
@@ -712,7 +789,6 @@ export async function autoSeedSupabaseIfEmpty(seed: {
       .from("hero_slides")
       .select("*", { count: "exact", head: true });
     if (!heroCount) {
-      console.log("Seeding hero slides into Supabase...");
       const payload = seed.heroSlides.map(mapStoreHeroSlideToDb);
       await supabase.from("hero_slides").upsert(payload);
     }
@@ -722,7 +798,6 @@ export async function autoSeedSupabaseIfEmpty(seed: {
       .from("brands")
       .select("*", { count: "exact", head: true });
     if (!brandCount) {
-      console.log("Seeding brands into Supabase...");
       const payload = seed.brands.map(mapStoreBrandToDb);
       await supabase.from("brands").upsert(payload);
     }
@@ -732,7 +807,6 @@ export async function autoSeedSupabaseIfEmpty(seed: {
       .from("social_reels")
       .select("*", { count: "exact", head: true });
     if (!reelCount) {
-      console.log("Seeding social reels into Supabase...");
       const payload = seed.socialReels.map(mapStoreSocialReelToDb);
       await supabase.from("social_reels").upsert(payload);
     }
@@ -742,9 +816,12 @@ export async function autoSeedSupabaseIfEmpty(seed: {
       .from("testimonials")
       .select("*", { count: "exact", head: true });
     if (!testCount) {
-      console.log("Seeding testimonials into Supabase...");
       const payload = seed.testimonials.map(mapStoreTestimonialToDb);
-      await supabase.from("testimonials").upsert(payload);
+      const { error } = await supabase.from("testimonials").upsert(payload);
+      if (error && isMissingColumnError(error, "source")) {
+        const { source: _source, ...legacyPayload } = payload as any;
+        await supabase.from("testimonials").upsert(legacyPayload);
+      }
     }
 
     // 8. FAQs
@@ -752,7 +829,6 @@ export async function autoSeedSupabaseIfEmpty(seed: {
       .from("faqs")
       .select("*", { count: "exact", head: true });
     if (!faqCount) {
-      console.log("Seeding FAQs into Supabase...");
       const payload = seed.faqs.map(mapStoreFaqToDb);
       await supabase.from("faqs").upsert(payload);
     }
@@ -761,139 +837,56 @@ export async function autoSeedSupabaseIfEmpty(seed: {
   }
 }
 
-// ── CRUD Sync Functions ──
+// -- CRUD Sync Functions --
 
-// ── Convert base64 images to Supabase Storage URLs ────────────────────────
+// -- Convert base64 images to Supabase Storage URLs ------------------------
 export async function uploadProductImageData(product: Product): Promise<Product> {
-  let updated = false;
-  let image = product.image;
-  let hoverImage = product.hoverImage;
-  let subImages = product.subImages ? [...product.subImages] : [];
+  const uploadIfNeeded = async (image: string | null | undefined): Promise<string | null> => {
+    if (!image) return null;
+    if (!image.startsWith("data:image/")) return image;
+    return (await uploadImageToStorage(image, "products")) ?? image;
+  };
 
-  if (image && image.startsWith("data:")) {
-    const url = await uploadImageToStorage(image, "products");
-    if (url) {
-      image = url;
-      updated = true;
-    }
-  }
+  const sourceSubImages = Array.isArray(product.subImages) ? product.subImages : [];
+  const [image, hoverImage, subImages] = await Promise.all([
+    uploadIfNeeded(product.image),
+    uploadIfNeeded(product.hoverImage),
+    Promise.all(sourceSubImages.map((subImage) => uploadIfNeeded(subImage))),
+  ]);
 
-  if (hoverImage && hoverImage.startsWith("data:")) {
-    const url = await uploadImageToStorage(hoverImage, "products");
-    if (url) {
-      hoverImage = url;
-      updated = true;
-    }
-  }
+  const normalizedSubImages = subImages.filter((value): value is string => Boolean(value));
+  const changed =
+    image !== product.image ||
+    hoverImage !== (product.hoverImage ?? null) ||
+    normalizedSubImages.some((value, index) => value !== sourceSubImages[index]);
 
-  if (Array.isArray(subImages)) {
-    const newSubImages: string[] = [];
-    for (const sub of subImages) {
-      if (sub && sub.startsWith("data:")) {
-        const url = await uploadImageToStorage(sub, "products");
-        if (url) {
-          newSubImages.push(url);
-          updated = true;
-        } else {
-          newSubImages.push(sub);
-        }
-      } else {
-        newSubImages.push(sub);
+  return changed
+    ? {
+        ...product,
+        image: image ?? product.image,
+        hoverImage,
+        subImages: normalizedSubImages,
       }
-    }
-    subImages = newSubImages;
-  }
-
-  return updated ? { ...product, image, hoverImage: hoverImage ?? null, subImages } : product;
+    : product;
 }
 
 export async function dbUpsertProduct(product: Product) {
   try {
-    // Automatically convert any base64 images to Supabase Storage URLs before saving
-    product = await uploadProductImageData(product);
-    const payload = mapStoreProductToDb(product);
+    const storedProduct = await uploadProductImageData(product);
+    const payload = sanitizeDbInput(mapStoreProductToDb(storedProduct));
+    const { error } = await supabase.from("products").upsert(payload);
 
-    // Remove columns that may not exist in older schema versions
-    // to avoid PGRST204 errors. We'll add them back if schema supports them.
-    const safePayload = { ...payload };
-
-    const { error: firstError } = await supabase.from("products").upsert(safePayload);
-
-    if (!firstError) {
-      return { success: true };
-    }
-
-    console.warn("[dbUpsertProduct] First upsert failed:", firstError.code, firstError.message);
-
-    // Handle slug uniqueness conflict
-    if (firstError.code === "23505" || String(firstError.message).toLowerCase().includes("slug")) {
-      safePayload.slug = `${safePayload.slug || product.id}-${String(product.id).slice(-6)}`;
-    }
-
-    // Strip columns that the schema doesn't have yet (PGRST204 = column not found)
-    if (firstError.code === "PGRST204" || String(firstError.message).includes("column")) {
-      const msg = String(firstError.message);
-      // Dynamically extract missing column name if present in PostgREST error message
-      const colMatch = msg.match(/'([^']+)' column/i);
-      if (colMatch && colMatch[1]) {
-        delete safePayload[colMatch[1]];
-      }
-      if (msg.includes("new_arrival_image")) delete safePayload.new_arrival_image;
-      if (msg.includes("is_new_arrival")) delete safePayload.is_new_arrival;
-      if (msg.includes("is_bestseller")) delete safePayload.is_bestseller;
-      if (msg.includes("hover_image")) delete safePayload.hover_image;
-      if (msg.includes("frame_fit")) delete safePayload.frame_fit;
-      if (msg.includes("updated_at")) delete safePayload.updated_at;
-      if (msg.includes("featured")) delete safePayload.featured;
-    }
-
-    const { error: retryError } = await supabase.from("products").upsert(safePayload);
-
-    if (!retryError) {
-      return { success: true };
-    }
-
-    // If retry also failed due to another missing column, strip that too
-    if (retryError.code === "PGRST204" || String(retryError.message).includes("column")) {
-      const colMatch2 = String(retryError.message).match(/'([^']+)' column/i);
-      if (colMatch2 && colMatch2[1]) {
-        delete safePayload[colMatch2[1]];
-        const { error: retry2Error } = await supabase.from("products").upsert(safePayload);
-        if (!retry2Error) return { success: true };
-      }
-    }
-
-    // Final fallback: strip ALL optional columns, keep only core ones
-    console.error("[dbUpsertProduct] Retry failed:", retryError.code, retryError.message);
-    const corePayload: any = {
-      id: safePayload.id,
-      name: safePayload.name,
-      slug: safePayload.slug,
-      price: safePayload.price,
-      compare_at: safePayload.compare_at,
-      category_id: safePayload.category_id,
-      images: safePayload.images,
-      description: safePayload.description,
-      details: safePayload.details,
-      variants: safePayload.variants,
-      stock: safePayload.stock,
-      enabled: safePayload.enabled,
-      created_at: safePayload.created_at,
-    };
-
-    const { error: fallbackError } = await supabase.from("products").upsert(corePayload);
-    if (fallbackError) {
-      console.error("[dbUpsertProduct] Final fallback failed:", fallbackError);
-      return { success: false, error: fallbackError };
+    if (error) {
+      console.error("[dbUpsertProduct] Upsert failed:", error);
+      return { success: false, error };
     }
 
     return { success: true };
-  } catch (e) {
-    console.error("[dbUpsertProduct] Exception:", e);
-    return { success: false, error: e };
+  } catch (error) {
+    console.error("[dbUpsertProduct] Exception:", error);
+    return { success: false, error };
   }
 }
-
 export async function dbDeleteProduct(id: string) {
   try {
     const cleanId = escapePostgrestFilter(id);
@@ -907,7 +900,7 @@ export async function dbDeleteProduct(id: string) {
 export async function dbUpsertCategory(category: Category) {
   try {
     let image = category.image ?? null;
-    let banner = category.banner ? { ...category.banner } : null;
+    const banner = category.banner ? { ...category.banner } : null;
     if (image && image.startsWith("data:")) {
       image = (await uploadImageToStorage(image, "categories")) || image;
     }
@@ -934,7 +927,7 @@ export async function dbDeleteCategory(id: string) {
 
 export async function dbUpsertCollection(collection: Collection) {
   try {
-    let banner = collection.banner ? { ...collection.banner } : null;
+    const banner = collection.banner ? { ...collection.banner } : null;
     if (banner?.image && banner.image.startsWith("data:")) {
       const bannerUrl = await uploadImageToStorage(banner.image, "collections");
       if (bannerUrl) banner.image = bannerUrl;
@@ -956,37 +949,59 @@ export async function dbDeleteCollection(id: string) {
   }
 }
 
-export async function dbInsertOrder(order: Order) {
+async function postOrdersToApi(
+  orders: Order[],
+  idempotencyKey: string,
+  metaEvent?: MetaEventInput,
+): Promise<boolean> {
+  if (orders.length === 0) return false;
   try {
-    const payload: any = sanitizeDbInput({
-      id: order.id,
-      customer_name: order.customerName || "Customer",
-      phone: order.contact || "N/A",
-      address: order.message || "N/A",
-      city: "N/A",
-      source: order.source || "cart",
-      courier_name: order.courierName || null,
-      tracking_number: order.trackingNumber || null,
-      dispatched_at: order.dispatchedAt || null,
-      items: [
-        {
-          reference: order.reference,
-          productId: order.productId,
-          productName: order.productName,
-          variantId: order.variantId,
-          variantLabel: order.variantLabel,
-          source: order.source || "cart",
-          courierName: order.courierName || null,
-          trackingNumber: order.trackingNumber || null,
-        },
-      ],
-      total: 0,
-      status: order.status || "New",
-      created_at: order.createdAt || new Date().toISOString(),
+    const response = await fetch("/api/v1/orders", {
+      method: "POST",
+      credentials: "same-origin",
+      headers: {
+        "Content-Type": "application/json",
+        "Idempotency-Key": idempotencyKey,
+      },
+      body: JSON.stringify({ orders, ...(metaEvent ? { metaEvent } : {}) }),
     });
-    await supabase.from("orders").upsert(payload);
-  } catch (e) {
-    console.error("Failed to save order to Supabase:", e);
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
+
+export async function dbInsertOrder(order: Order, metaEvent?: MetaEventInput): Promise<boolean> {
+  return postOrdersToApi([order], `order:${order.reference}`, metaEvent);
+}
+
+export async function dbInsertOrders(
+  orders: Order[],
+  idempotencyKey = `checkout:${orders[0]?.reference ?? "invalid"}`,
+  metaEvent?: MetaEventInput,
+): Promise<boolean> {
+  return postOrdersToApi(orders, idempotencyKey, metaEvent);
+}
+async function patchOrderViaApi(orderId: string, payload: Record<string, unknown>) {
+  try {
+    const cleanOrderId = escapePostgrestFilter(orderId);
+    if (!cleanOrderId) return false;
+    const { data } = await supabase.auth.getSession();
+    const token = data.session?.access_token;
+    if (!token) return false;
+
+    const response = await fetch(`/api/v1/orders/${encodeURIComponent(cleanOrderId)}`, {
+      method: "PATCH",
+      credentials: "same-origin",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+    return response.ok;
+  } catch {
+    return false;
   }
 }
 
@@ -1000,18 +1015,12 @@ export async function dbUpdateOrderStatus(
     dispatchedAt?: string | null;
   },
 ) {
-  try {
-    const cleanOrderId = escapePostgrestFilter(orderId);
-    if (!cleanOrderId) return;
-    const updatePayload: any = sanitizeDbInput({ status });
-    if (extra?.courierName !== undefined) updatePayload.courier_name = extra.courierName;
-    if (extra?.trackingNumber !== undefined) updatePayload.tracking_number = extra.trackingNumber;
-    if (extra?.dispatchedAt !== undefined) updatePayload.dispatched_at = extra.dispatchedAt;
-
-    await supabase.from("orders").update(updatePayload).eq("id", cleanOrderId);
-  } catch (e) {
-    console.error("Failed to update order status in Supabase:", e);
-  }
+  return patchOrderViaApi(orderId, {
+    status,
+    stockDeducted,
+    ...(extra?.courierName !== undefined ? { courierName: extra.courierName } : {}),
+    ...(extra?.trackingNumber !== undefined ? { trackingNumber: extra.trackingNumber } : {}),
+  });
 }
 
 export async function dbUpdateOrderCourier(
@@ -1019,38 +1028,24 @@ export async function dbUpdateOrderCourier(
   courierName: string | null,
   trackingNumber: string | null,
   status: string = "Dispatched",
-  dispatchedAt: string = new Date().toISOString(),
+  _dispatchedAt: string = new Date().toISOString(),
 ) {
-  try {
-    const cleanOrderId = escapePostgrestFilter(orderId);
-    if (!cleanOrderId) return;
-    const cleanPayload = sanitizeDbInput({
-      status,
-      courier_name: courierName,
-      tracking_number: trackingNumber,
-      dispatched_at: dispatchedAt,
-    });
-    await supabase
-      .from("orders")
-      .update(cleanPayload)
-      .eq("id", cleanOrderId);
-  } catch (e) {
-    console.error("Failed to update order courier in Supabase:", e);
-  }
+  return patchOrderViaApi(orderId, { status, courierName, trackingNumber });
 }
-
 function mapStoreHeroSlideToLegacyDb(slide: HeroSlide, index = 0): any {
   return {
     id: slide.id,
     image: slide.image || "",
-    headline: slide.headline || "",
-    subtext: slide.subtext || "",
+    title: slide.headline || "",
+    subtitle: slide.subtext || "",
+    button_text: slide.ctaText || "",
+    link: slide.ctaLink || "",
     enabled: slide.enabled ?? true,
     sort_order: index,
   };
 }
 
-export async function dbUpsertHeroSlide(slide: HeroSlide) {
+export async function dbUpsertHeroSlide(slide: HeroSlide): Promise<boolean> {
   try {
     let image = slide.image;
     if (image && image.startsWith("data:")) {
@@ -1059,27 +1054,25 @@ export async function dbUpsertHeroSlide(slide: HeroSlide) {
     const updatedSlide = { ...slide, image };
     const payload = mapStoreHeroSlideToDb(updatedSlide);
     const { error } = await supabase.from("hero_slides").upsert(payload);
-    if (!error) return;
+    if (!error) return true;
 
-    if (
-      isMissingColumnError(error, "cta_link") ||
-      isMissingColumnError(error, "cta_text") ||
-      isMissingColumnError(error, "eyebrow")
-    ) {
+    if (error.code === "PGRST204") {
       const { error: legacyError } = await supabase
         .from("hero_slides")
-        .upsert(mapStoreHeroSlideToLegacyDb(updatedSlide));
-      if (!legacyError) return;
+        .upsert(mapStoreHeroSlideToLegacyDb(updatedSlide, slide.sortOrder ?? 0));
+      if (!legacyError) return true;
       throw legacyError;
     }
 
     throw error;
   } catch (e) {
     console.error("Failed to sync hero slide to Supabase:", e);
+    return false;
   }
 }
 
-export async function dbUpsertHeroSlides(slides: HeroSlide[]) {
+export async function dbUpsertHeroSlides(slides: HeroSlide[]): Promise<boolean> {
+  if (slides.length === 0) return true;
   try {
     const updatedSlides = await Promise.all(
       slides.map(async (slide) => {
@@ -1092,31 +1085,31 @@ export async function dbUpsertHeroSlides(slides: HeroSlide[]) {
     );
     const payload = updatedSlides.map((slide, i) => mapStoreHeroSlideToDb(slide, i));
     const { error } = await supabase.from("hero_slides").upsert(payload);
-    if (!error) return;
+    if (!error) return true;
 
-    if (
-      isMissingColumnError(error, "cta_link") ||
-      isMissingColumnError(error, "cta_text") ||
-      isMissingColumnError(error, "eyebrow")
-    ) {
+    if (error.code === "PGRST204") {
       const legacyPayload = updatedSlides.map((slide, i) => mapStoreHeroSlideToLegacyDb(slide, i));
       const { error: legacyError } = await supabase.from("hero_slides").upsert(legacyPayload);
-      if (!legacyError) return;
+      if (!legacyError) return true;
       throw legacyError;
     }
 
     throw error;
   } catch (e) {
     console.error("Failed to sync hero slides to Supabase:", e);
+    return false;
   }
 }
-export async function dbDeleteHeroSlide(id: string) {
+export async function dbDeleteHeroSlide(id: string): Promise<boolean> {
   try {
     const cleanId = escapePostgrestFilter(id);
-    if (!cleanId) return;
-    await supabase.from("hero_slides").delete().eq("id", cleanId);
+    if (!cleanId) return false;
+    const { error } = await supabase.from("hero_slides").delete().eq("id", cleanId);
+    if (error) throw error;
+    return true;
   } catch (e) {
     console.error("Failed to delete hero slide from Supabase:", e);
+    return false;
   }
 }
 
@@ -1193,7 +1186,11 @@ export async function dbUpsertTestimonial(t: Testimonial) {
     }
     const updated: Testimonial = { ...t, photo, reviewImage };
     const payload = sanitizeDbInput(mapStoreTestimonialToDb(updated));
-    await supabase.from("testimonials").upsert(payload);
+    const { error } = await supabase.from("testimonials").upsert(payload);
+    if (error && isMissingColumnError(error, "source")) {
+      const { source: _source, ...legacyPayload } = payload as any;
+      await supabase.from("testimonials").upsert(legacyPayload);
+    }
   } catch (e) {
     console.error("Failed to sync testimonial to Supabase:", e);
   }
@@ -1212,7 +1209,20 @@ export async function dbDeleteTestimonial(id: string) {
 export async function dbUpsertFaq(faq: FAQItem) {
   try {
     const payload = sanitizeDbInput(mapStoreFaqToDb(faq));
-    await supabase.from("faqs").upsert(payload);
+    const { error } = await supabase.from("faqs").upsert(payload);
+    if (error) {
+      if (
+        isMissingColumnError(error, "show_on_home") ||
+        isMissingColumnError(error, "showOnHome")
+      ) {
+        const legacyPayload = { ...payload };
+        delete legacyPayload.show_on_home;
+        delete legacyPayload.showOnHome;
+        await supabase.from("faqs").upsert(legacyPayload);
+      } else {
+        console.error("Failed to sync FAQ to Supabase:", error);
+      }
+    }
   } catch (e) {
     console.error("Failed to sync FAQ to Supabase:", e);
   }
@@ -1234,7 +1244,11 @@ export async function dbInsertSubscriber(subscriber: Subscriber) {
       id: subscriber.id,
       email: subscriber.email,
     });
-    await supabase.from("subscribers").upsert(payload);
+    const { error } = await supabase.rpc("subscribe_email", {
+      p_id: payload.id,
+      p_email: payload.email,
+    });
+    if (error) throw error;
   } catch (e) {
     console.error("Failed to save subscriber to Supabase:", e);
   }
@@ -1265,7 +1279,10 @@ export async function dbUpsertSettings(settings: StoreSettings) {
       address: settings.address || "",
       hours: settings.hours || "",
       logo: logo || "",
-      low_stock_threshold: settings.lowStockThreshold || 3,
+      low_stock_threshold: settings.lowStockThreshold ?? 3,
+      admin_email: settings.adminEmail || "",
+      about_headline: settings.aboutHeadline || "",
+      about_body: settings.aboutBody || "",
       updated_at: new Date().toISOString(),
     };
     await supabase.from("store_settings").upsert(payload);
@@ -1274,102 +1291,56 @@ export async function dbUpsertSettings(settings: StoreSettings) {
   }
 }
 
-export async function dbUpsertAnnouncement(announcement: AnnouncementSettings) {
+export async function dbUpsertAnnouncement(announcement: AnnouncementSettings): Promise<boolean> {
   try {
-    const message = (announcement.messages || []).join("\n");
-    const payload: any = {
+    const messages = announcement.messages || [];
+    const { error } = await supabase.from("announcements").upsert({
       id: "default",
-      // Save both the full messages array and a single-text fallback.
-      messages: announcement.messages || [],
-      text: message,
-      message,
+      messages,
+      text: messages.join("\n"),
+      message: messages.join("\n"),
       enabled: announcement.enabled ?? true,
       active: announcement.enabled ?? true,
       background: announcement.background || "#000000",
       text_color: announcement.textColor || "#ffffff",
       updated_at: new Date().toISOString(),
-    };
-    const { error } = await supabase.from("announcements").upsert(payload);
-    if (!error) return;
-
-    if (isMissingColumnError(error, "enabled")) {
-      const { error: activeError } = await supabase.from("announcements").upsert({
-        id: "default",
-        active: announcement.enabled ?? true,
-        messages: announcement.messages || [],
-        text: message,
-        background: announcement.background || "#000000",
-        text_color: announcement.textColor || "#ffffff",
-        updated_at: new Date().toISOString(),
-      });
-      if (!activeError) return;
-      if (!isMissingColumnError(activeError, "messages")) throw activeError;
-    } else if (!isMissingColumnError(error, "messages")) {
-      throw error;
-    }
-
-    const { error: legacyError } = await supabase.from("announcements").upsert({
-      id: "default",
-      active: announcement.enabled ?? true,
-      text: message,
     });
-    if (legacyError) throw legacyError;
-  } catch (e) {
-    console.error("Failed to save announcement to Supabase:", e);
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error("Failed to save announcement to Supabase:", error);
+    return false;
   }
 }
-
 export async function dbUpsertVideo(video: VideoSettings) {
   try {
-    const payload: any = {
+    const { error } = await supabase.from("video_settings").upsert({
       id: "default",
+      locked_channel: video.lockedChannel || "",
       video_url: video.videoUrl || "",
-      url: video.videoUrl || "",
+      video_id: video.videoId || null,
       caption: video.caption || "Crafted With Precision",
-      title: video.caption || "Crafted With Precision",
-      active: true,
       enabled: true,
       updated_at: new Date().toISOString(),
-    };
-    await supabase.from("video_settings").upsert(payload);
-  } catch (e) {
-    console.error("Failed to save video settings to Supabase:", e);
+    });
+    if (error) throw error;
+  } catch (error) {
+    console.error("Failed to save video settings to Supabase:", error);
   }
 }
-
 export async function dbInsertQuery(query: ContactQuery) {
   try {
-    const payload = mapStoreQueryToDb(query);
-    const { error } = await supabase.from("queries").upsert(payload);
-    if (error) {
-      // Fallback to storing in orders table with source = 'form'
-      await supabase.from("orders").upsert({
-        id: query.id,
-        customer_name: query.name,
-        phone: query.contact,
-        address: query.message,
-        city: "N/A",
-        items: [
-          {
-            source: "form",
-            productName: query.productName,
-            productId: query.productId,
-          },
-        ],
-        total: 0,
-        status: query.status,
-        created_at: query.createdAt,
-      });
-    }
-  } catch (e) {
-    console.error("Failed to save query to Supabase:", e);
+    const payload = sanitizeDbInput(mapStoreQueryToDb(query));
+    const { error } = await supabase.from("queries").insert(payload);
+    if (error) throw error;
+  } catch (error) {
+    console.error("Failed to save query to Supabase:", error);
   }
 }
-
 export async function dbUpdateQueryStatus(id: string, status: string) {
   try {
-    await supabase.from("queries").update({ status }).eq("id", id);
-    await supabase.from("orders").update({ status }).eq("id", id);
+    await supabase.from("queries").update({ status }).eq("id", id).is("deleted_at", null);
+    await supabase.from("orders").update({ status }).eq("id", id).is("deleted_at", null);
   } catch (e) {
     console.error("Failed to update query status in Supabase:", e);
   }
@@ -1377,8 +1348,17 @@ export async function dbUpdateQueryStatus(id: string, status: string) {
 
 export async function dbDeleteQuery(id: string) {
   try {
-    await supabase.from("queries").delete().eq("id", id);
-    await supabase.from("orders").delete().eq("id", id);
+    const deletedAt = new Date().toISOString();
+    await supabase
+      .from("queries")
+      .update({ deleted_at: deletedAt })
+      .eq("id", id)
+      .is("deleted_at", null);
+    await supabase
+      .from("orders")
+      .update({ deleted_at: deletedAt })
+      .eq("id", id)
+      .is("deleted_at", null);
   } catch (e) {
     console.error("Failed to delete query from Supabase:", e);
   }

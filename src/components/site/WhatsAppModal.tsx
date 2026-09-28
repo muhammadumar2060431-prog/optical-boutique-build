@@ -8,6 +8,7 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useStore } from "@/lib/store";
+import { createMetaEventId, splitMetaName, trackMetaBrowserEvent } from "@/lib/meta-events";
 import { whatsappLink } from "@/lib/whatsapp";
 
 interface WhatsAppModalOptions {
@@ -43,6 +44,7 @@ export function WhatsAppModalProvider({ children }: { children: ReactNode }) {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
+  const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState<{ name?: string; phone?: string; email?: string }>({});
 
   const openWhatsAppModal = (opts?: WhatsAppModalOptions) => {
@@ -69,14 +71,34 @@ export function WhatsAppModalProvider({ children }: { children: ReactNode }) {
     return Object.keys(errs).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validate()) return;
 
     const prodName = options.productName || "General Enquiry";
+    const eventId = createMetaEventId("lead");
+    const { firstName, lastName } = splitMetaName(name);
+    const leadEvent = {
+      eventName: "Lead" as const,
+      eventId,
+      eventSourceUrl: window.location.href,
+      userData: {
+        email,
+        phone,
+        firstName,
+        ...(lastName ? { lastName } : {}),
+      },
+      customData: {
+        ...(options.productId ? { contentIds: [options.productId] } : {}),
+        contentType: "product",
+        contentName: prodName,
+        numItems: 1,
+      },
+    };
 
     // Save order record to store & database with source = 'whatsapp'
-    const newOrder = addOrder({
+    setSubmitting(true);
+    const newOrder = await addOrder({
       customerName: name.trim(),
       contact: `${phone.trim()} · ${email.trim()}`,
       productName: prodName,
@@ -87,7 +109,13 @@ export function WhatsAppModalProvider({ children }: { children: ReactNode }) {
         options.variantLabel ? ` (${options.variantLabel})` : ""
       }.`,
       source: "whatsapp",
-    });
+    }, leadEvent);
+
+    if (!newOrder) {
+      setSubmitting(false);
+      toast.error("Your request could not be saved. Please try again.");
+      return;
+    }
 
     const waText = `Hello ${settings.storeName}! My name is ${name.trim()} (${email.trim()}). I'd like to order / enquire about "${prodName}"${
       options.variantLabel ? ` (${options.variantLabel})` : ""
@@ -98,12 +126,14 @@ export function WhatsAppModalProvider({ children }: { children: ReactNode }) {
     toast.success("Redirecting to WhatsApp...", {
       description: `Order Ref: ${newOrder.reference}`,
     });
+    trackMetaBrowserEvent(leadEvent);
 
     setIsOpen(false);
     // Reset form fields
     setName("");
     setPhone("");
     setEmail("");
+    setSubmitting(false);
 
     // Redirect user to WhatsApp
     window.open(targetUrl, "_blank", "noopener,noreferrer");
@@ -132,7 +162,8 @@ export function WhatsAppModalProvider({ children }: { children: ReactNode }) {
               </div>
             </div>
             <p className="mt-2 text-xs text-white/80 leading-relaxed">
-              Please enter your contact details below to start chatting on WhatsApp. Your inquiry will be logged in our system.
+              Please enter your contact details below to start chatting on WhatsApp. Your inquiry
+              will be logged in our system.
             </p>
             {options.productName && (
               <div className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1 text-xs font-semibold">
@@ -149,7 +180,10 @@ export function WhatsAppModalProvider({ children }: { children: ReactNode }) {
           <form onSubmit={handleSubmit} className="p-6 space-y-4 bg-card">
             {/* Full Name */}
             <div className="space-y-1.5">
-              <Label htmlFor="wa-name" className="text-xs font-bold uppercase tracking-wider text-ink">
+              <Label
+                htmlFor="wa-name"
+                className="text-xs font-bold uppercase tracking-wider text-ink"
+              >
                 Your Full Name <span className="text-rose-500">*</span>
               </Label>
               <div className="relative">
@@ -168,7 +202,10 @@ export function WhatsAppModalProvider({ children }: { children: ReactNode }) {
 
             {/* Phone Number */}
             <div className="space-y-1.5">
-              <Label htmlFor="wa-phone" className="text-xs font-bold uppercase tracking-wider text-ink">
+              <Label
+                htmlFor="wa-phone"
+                className="text-xs font-bold uppercase tracking-wider text-ink"
+              >
                 Phone Number <span className="text-rose-500">*</span>
               </Label>
               <div className="relative">
@@ -187,7 +224,10 @@ export function WhatsAppModalProvider({ children }: { children: ReactNode }) {
 
             {/* Email Address */}
             <div className="space-y-1.5">
-              <Label htmlFor="wa-email" className="text-xs font-bold uppercase tracking-wider text-ink">
+              <Label
+                htmlFor="wa-email"
+                className="text-xs font-bold uppercase tracking-wider text-ink"
+              >
                 Email Address <span className="text-rose-500">*</span>
               </Label>
               <div className="relative">
@@ -208,10 +248,11 @@ export function WhatsAppModalProvider({ children }: { children: ReactNode }) {
             <div className="pt-3">
               <Button
                 type="submit"
+                disabled={submitting}
                 className="w-full min-h-12 rounded-xl bg-[#25D366] hover:bg-[#20BA5A] text-white font-bold text-sm shadow-md shadow-[#25D366]/25 transition-all flex items-center justify-center gap-2"
               >
                 <WhatsAppIcon className="h-5 w-5 text-white" />
-                Continue to WhatsApp
+                {submitting ? "Saving request..." : "Continue to WhatsApp"}
               </Button>
               <p className="mt-2 text-center text-[11px] text-ink-muted">
                 Your request will be recorded and logged for order tracking.

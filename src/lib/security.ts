@@ -4,10 +4,14 @@
  */
 
 // Regex patterns for platform verification
-const INSTAGRAM_REGEX = /^https?:\/\/(?:www\.)?instagram\.com\/(?:reel|reels|p|tv)\/([A-Za-z0-9_-]+)/i;
-const TIKTOK_REGEX = /^https?:\/\/(?:www\.|vm\.|vt\.)?tiktok\.com\/(?:@[A-Za-z0-9._-]+\/video\/\d+|v\/\d+|[A-Za-z0-9_-]+)/i;
-const YOUTUBE_REGEX = /^https?:\/\/(?:www\.|m\.)?(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([A-Za-z0-9_-]{6,})/i;
-const FACEBOOK_REGEX = /^https?:\/\/(?:www\.|web\.|m\.)?(?:facebook\.com\/(?:reel|reels|watch|videos|\w+\/videos)|fb\.watch)\/([A-Za-z0-9._-]+)/i;
+const INSTAGRAM_REGEX =
+  /^https?:\/\/(?:www\.)?instagram\.com\/(?:reel|reels|p|tv)\/([A-Za-z0-9_-]+)/i;
+const TIKTOK_REGEX =
+  /^https?:\/\/(?:www\.|vm\.|vt\.)?tiktok\.com\/(?:@[A-Za-z0-9._-]+\/video\/\d+|v\/\d+|[A-Za-z0-9_-]+)/i;
+const YOUTUBE_REGEX =
+  /^https?:\/\/(?:www\.|m\.)?(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([A-Za-z0-9_-]{6,})/i;
+const FACEBOOK_REGEX =
+  /^https?:\/\/(?:www\.|web\.|m\.)?(?:facebook\.com\/(?:reel|reels|watch|videos|\w+\/videos)|fb\.watch)\/([A-Za-z0-9._-]+)/i;
 const DIRECT_VIDEO_EXT_REGEX = /\.(mp4|webm|mov|ogg)(\?.*)?$/i;
 const KNOWN_VIDEO_CDNS = [
   "mixkit.co",
@@ -21,15 +25,26 @@ const KNOWN_VIDEO_CDNS = [
 
 /**
  * Strips hidden control characters and whitespace tricks used for XSS evasion.
+ * Preserves tabs (\x09), newlines (\x0A), and carriage returns (\x0D).
  */
 export function sanitizeRawInput(input: string): string {
   if (!input) return "";
-  // Remove ASCII control characters (0-31 and 127) and zero-width spaces
-  return input.replace(/[\x00-\x1F\x7F-\x9F\u200B-\u200D\uFEFF]/g, "").trim();
+
+  const withoutControlCharacters = Array.from(input)
+    .filter((character) => {
+      const code = character.charCodeAt(0);
+      const isAllowedWhitespace = code === 9 || code === 10 || code === 13;
+      const isControlCharacter =
+        (code < 32 && !isAllowedWhitespace) || (code >= 127 && code <= 159);
+      return !isControlCharacter;
+    })
+    .join("");
+
+  return withoutControlCharacters.trim();
 }
 
 /**
- * Validates whether a URL uses safe protocols (http, https, or relative path /).
+ * Validates whether a URL uses HTTPS or a relative path.
  * Strictly blocks javascript:, data:, vbscript:, file:, blob:, about: etc.
  */
 export function isSafeUrl(url: string): boolean {
@@ -48,12 +63,8 @@ export function isSafeUrl(url: string): boolean {
     return false;
   }
 
-  // Must start with http://, https://, or relative path /
-  if (clean.startsWith("http://") || clean.startsWith("https://") || clean.startsWith("/")) {
-    return true;
-  }
-
-  return false;
+  if (clean.startsWith("/") || clean.startsWith("https://")) return true;
+  return /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?(?:\/|$)/i.test(clean);
 }
 
 /**
@@ -104,7 +115,7 @@ export interface VideoUrlValidationResult {
  */
 export function validateSocialVideoUrl(
   url: string,
-  preferredPlatform?: string
+  preferredPlatform?: string,
 ): VideoUrlValidationResult {
   const cleanUrl = sanitizeRawInput(url);
 
@@ -177,7 +188,8 @@ export function validateSocialVideoUrl(
     return {
       valid: false,
       platform: "instagram",
-      error: "Invalid Instagram Reel link. Must be a valid link like https://www.instagram.com/reel/...",
+      error:
+        "Invalid Instagram Reel link. Must be a valid link like https://www.instagram.com/reel/...",
     };
   }
 
@@ -185,7 +197,8 @@ export function validateSocialVideoUrl(
     return {
       valid: false,
       platform: "tiktok",
-      error: "Invalid TikTok video link. Must be a valid link like https://www.tiktok.com/@user/video/...",
+      error:
+        "Invalid TikTok video link. Must be a valid link like https://www.tiktok.com/@user/video/...",
     };
   }
 
@@ -193,7 +206,8 @@ export function validateSocialVideoUrl(
     return {
       valid: false,
       platform: "youtube",
-      error: "Invalid YouTube link. Must be a valid YouTube Shorts or video link like https://www.youtube.com/shorts/...",
+      error:
+        "Invalid YouTube link. Must be a valid YouTube Shorts or video link like https://www.youtube.com/shorts/...",
     };
   }
 
@@ -201,14 +215,16 @@ export function validateSocialVideoUrl(
     return {
       valid: false,
       platform: "facebook",
-      error: "Invalid Facebook Reel link. Must be a valid link like https://www.facebook.com/reel/...",
+      error:
+        "Invalid Facebook Reel link. Must be a valid link like https://www.facebook.com/reel/...",
     };
   }
 
   return {
     valid: false,
     platform: "custom",
-    error: "Invalid video link format. Provide a valid Instagram Reel, TikTok, YouTube Shorts, Facebook Reel, or direct .mp4 URL.",
+    error:
+      "Invalid video link format. Provide a valid Instagram Reel, TikTok, YouTube Shorts, Facebook Reel, or direct .mp4 URL.",
   };
 }
 
@@ -222,7 +238,8 @@ export function validateImageUrl(url: string): { valid: boolean; error?: string 
   }
 
   // Block dangerous protocols
-  if (!isSafeUrl(cleanUrl) && !cleanUrl.startsWith("data:image/")) {
+  const safeRasterData = /^data:image\/(?:png|jpe?g|webp|avif|gif);base64,/i.test(cleanUrl);
+  if (!isSafeUrl(cleanUrl) && !safeRasterData) {
     return {
       valid: false,
       error: "🔒 Security Alert: Unsafe image protocol detected.",
@@ -259,7 +276,8 @@ export function validateDestinationLink(url: string): { valid: boolean; error?: 
   if (!isSafeUrl(cleanUrl)) {
     return {
       valid: false,
-      error: "🔒 Security Alert: Link must start with http://, https://, or / (relative page link).",
+      error:
+        "🔒 Security Alert: Link must start with http://, https://, or / (relative page link).",
     };
   }
 
@@ -273,11 +291,11 @@ export function validateDestinationLink(url: string): { valid: boolean; error?: 
 export function escapePostgrestFilter(term: string): string {
   if (!term) return "";
   return sanitizeRawInput(term)
-    .replace(/\0/g, "")               // null bytes
-    .replace(/['";\\]/g, "")          // quotes and semicolons
-    .replace(/[(),]/g, "")            // PostgREST composite filter tokens
-    .replace(/[%_]/g, "\\$&")         // SQL LIKE wildcard escapes
-    .slice(0, 200);                   // boundary protection
+    .replace(/\0/g, "") // null bytes
+    .replace(/['";\\]/g, "") // quotes and semicolons
+    .replace(/[(),]/g, "") // PostgREST composite filter tokens
+    .replace(/[%_]/g, "\\$&") // SQL LIKE wildcard escapes
+    .slice(0, 200); // boundary protection
 }
 
 /**
@@ -292,7 +310,7 @@ export function sanitizeDbInput<T>(input: T): T {
     return input.map(sanitizeDbInput) as unknown as T;
   }
   if (input !== null && typeof input === "object") {
-    const sanitizedObj: Record<string, any> = {};
+    const sanitizedObj: Record<string, unknown> = {};
     for (const [key, val] of Object.entries(input)) {
       sanitizedObj[key] = sanitizeDbInput(val);
     }

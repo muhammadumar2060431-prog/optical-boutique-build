@@ -7,7 +7,7 @@ export function cn(...inputs: ClassValue[]) {
 
 export function getSiteUrl(path: string = ""): string {
   const base =
-    (typeof import.meta !== "undefined" && (import.meta as any).env?.VITE_SITE_URL) ||
+    import.meta.env["VITE_SITE_URL"] ||
     (typeof window !== "undefined" && window.location.origin ? window.location.origin : "");
   const cleanPath = path.startsWith("/") ? path : `/${path}`;
   return base ? `${base.replace(/\/$/, "")}${cleanPath}` : cleanPath;

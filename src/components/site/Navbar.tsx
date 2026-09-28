@@ -11,6 +11,7 @@ const links = [
   { to: "/glasses", label: "Glasses" },
   { to: "/lenses", label: "Lenses" },
   { to: "/about", label: "About" },
+  { to: "/blog", label: "Journal" },
   { to: "/contact", label: "Contact" },
   { to: "/order-status", label: "Track order" },
 ] as const;
@@ -50,7 +51,7 @@ export function Navbar() {
           />
         </Link>
 
-        {/* Desktop nav links — centred */}
+        {/* Desktop nav links - centred */}
         <ul className="hidden flex-1 items-center justify-center gap-7 lg:flex">
           {links.map((l) => (
             <li key={l.to}>
@@ -86,7 +87,7 @@ export function Navbar() {
             )}
           </Link>
 
-          {/* Hamburger — mobile only */}
+          {/* Hamburger - mobile only */}
           <button
             type="button"
             aria-label={openMenu ? "Close menu" : "Open menu"}

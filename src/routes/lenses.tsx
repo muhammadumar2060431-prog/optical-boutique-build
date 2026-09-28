@@ -39,7 +39,8 @@ function LensesPage() {
         <div className="mx-auto max-w-3xl px-4 py-28 text-center">
           <h1 className="font-display text-3xl">Collection Unavailable</h1>
           <p className="mt-2 text-sm text-ink-muted">
-            The Contact Lenses collection is currently updating. Please explore our other collections or check back shortly.
+            The Contact Lenses collection is currently updating. Please explore our other
+            collections or check back shortly.
           </p>
         </div>
       )}

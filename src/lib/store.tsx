@@ -1,4 +1,6 @@
+/* eslint-disable @typescript-eslint/no-explicit-any, no-empty, react-refresh/only-export-components -- Legacy cached and realtime records are normalized at this boundary. */
 import { isSafeUrl, sanitizeHref, sanitizeImageSrc, sanitizeRawInput } from "./security";
+import { toast } from "sonner";
 import {
   createContext,
   useCallback,
@@ -19,6 +21,7 @@ import {
   dbUpsertCollection,
   dbDeleteCollection,
   dbInsertOrder,
+  dbInsertOrders,
   dbUpdateOrderStatus,
   dbUpdateOrderCourier,
   dbUpsertHeroSlides,
@@ -85,6 +88,7 @@ import type {
   FAQItem,
   Subscriber,
 } from "./types";
+import type { MetaEventInput } from "./meta-events.types";
 
 /**
  * In-memory data layer. Every read/write the UI performs goes through the
@@ -116,18 +120,45 @@ export interface InventoryRow {
   variantId: string | null;
   categoryName: string;
   name: string;
+  image: string;
   stock: number;
   status: StockStatus;
   updatedAt: string;
 }
 
+type NewOrderInput = Omit<Order, "id" | "createdAt" | "status" | "stockDeducted" | "reference"> & {
+  reference?: string;
+  stockDeducted?: boolean;
+};
+
+type ProductSort = "newest" | "price-asc" | "price-desc";
+
+type ProductQueryOptions = {
+  categoryId?: string;
+  collectionId?: string;
+  search?: string;
+  minPrice?: number;
+  maxPrice?: number;
+  sort?: ProductSort;
+};
+
+export type ProductPageResult = {
+  items: Product[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+};
+
 interface StoreApi extends StoreState {
   /* reads */
-  getProducts: (opts?: {
-    categoryId?: string;
-    collectionId?: string;
-    search?: string;
-  }) => Product[];
+  getProducts: (opts?: ProductQueryOptions) => Product[];
+  getProductsPage: (
+    opts?: ProductQueryOptions & {
+      page?: number;
+      pageSize?: number;
+    },
+  ) => ProductPageResult;
   getProductBySlug: (slug: string) => Product | undefined;
   getProductById: (id: string) => Product | undefined;
   getCategoryBySlug: (slug: string) => Category | undefined;
@@ -140,21 +171,21 @@ interface StoreApi extends StoreState {
   productStock: (product: Product) => number;
   stockStatus: (qty: number) => StockStatus;
   /* writes */
-  addOrder: (
-    order: Omit<Order, "id" | "createdAt" | "status" | "stockDeducted" | "reference"> & {
-      reference?: string;
-      stockDeducted?: boolean;
-    },
-  ) => Order;
+  addOrder: (order: NewOrderInput, metaEvent?: MetaEventInput) => Promise<Order | null>;
+  addOrders: (
+    orders: NewOrderInput[],
+    idempotencyKey?: string,
+    metaEvent?: MetaEventInput,
+  ) => Promise<Order[] | null>;
   /** Customer-facing lookup: every order sharing one reference code. */
   getOrdersByReference: (reference: string) => Order[];
-  setOrderStatus: (orderId: string, status: OrderStatus) => void;
+  setOrderStatus: (orderId: string, status: OrderStatus) => Promise<boolean>;
   updateOrderCourier: (
     orderId: string,
     courierName: string | null,
     trackingNumber: string | null,
     status?: OrderStatus,
-  ) => void;
+  ) => Promise<boolean>;
   addQuery: (data: Omit<ContactQuery, "id" | "createdAt" | "status">) => ContactQuery;
   setQueryStatus: (id: string, status: "New" | "Responded" | "Archived") => void;
   deleteQuery: (id: string) => void;
@@ -201,7 +232,7 @@ interface StoreApi extends StoreState {
   login: (
     email: string,
     password: string,
-  ) => Promise<{ success: boolean; error?: string }> | boolean;
+  ) => Promise<{ success: boolean; error?: string; retryAfter?: number }> | boolean;
   logout: () => void;
 }
 
@@ -212,7 +243,11 @@ const nowIso = () => new Date().toISOString();
 
 /** Customer-facing order reference, e.g. "OPT-482915". */
 export function newOrderReference() {
-  return `OPT-${Math.floor(100000 + Math.random() * 900000)}`;
+  const randomPart =
+    typeof globalThis.crypto?.randomUUID === "function"
+      ? globalThis.crypto.randomUUID().replaceAll("-", "").slice(0, 12)
+      : `${Date.now().toString(36)}${Math.random().toString(36).slice(2)}`.slice(0, 12);
+  return `OPT-${randomPart.toUpperCase()}`;
 }
 
 /** Extracts a YouTube video id from most common URL shapes. */
@@ -233,11 +268,30 @@ export function parseYouTubeChannel(url: string): string | null {
   return handle?.[1] ? `@${handle[1]}` : null;
 }
 
+// ── TTL Cache Config ─────────────────────────────────────────────────────────
+// Keys that come from Supabase: expire after 24h to force a fresh fetch.
+// Orders, settings, subscribers: never expire (always synced live from Supabase).
+const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+const NO_EXPIRY_KEYS = new Set(["orders", "queries", "settings", "subscribers", "isAdmin"]);
+// ─────────────────────────────────────────────────────────────────────────────
+
 function getSaved<T>(key: string, fallback: T): T {
   if (typeof window === "undefined") return fallback;
   try {
     const raw = localStorage.getItem(`optique_v1_${key}`);
-    return raw ? JSON.parse(raw) : fallback;
+    if (!raw) return fallback;
+    const parsed = JSON.parse(raw);
+    // Support both legacy (plain value) and new (wrapped with __ts)
+    if (parsed && typeof parsed === "object" && "__ts" in parsed && "__data" in parsed) {
+      const age = Date.now() - parsed.__ts;
+      if (!NO_EXPIRY_KEYS.has(key) && age > CACHE_TTL_MS) {
+        localStorage.removeItem(`optique_v1_${key}`);
+        return fallback;
+      }
+      return parsed.__data as T;
+    }
+    // Legacy plain value — treat as valid
+    return parsed as T;
   } catch {
     return fallback;
   }
@@ -245,8 +299,10 @@ function getSaved<T>(key: string, fallback: T): T {
 
 function saveItem<T>(key: string, val: T) {
   if (typeof window === "undefined") return;
+  // Wrap value with timestamp so TTL can be checked on next load
+  const wrapped = { __ts: Date.now(), __data: val };
   try {
-    localStorage.setItem(`optique_v1_${key}`, JSON.stringify(val));
+    localStorage.setItem(`optique_v1_${key}`, JSON.stringify(wrapped));
   } catch (err: any) {
     // QuotaExceededError: images are too large for localStorage
     // For products, strip base64 image data and retry with URL-only version
@@ -257,7 +313,8 @@ function saveItem<T>(key: string, val: T) {
           // Keep URL-like images (start with / or http), strip base64 blobs
           image: p.image && !p.image.startsWith("data:") ? p.image : "",
           hoverImage: p.hoverImage && !p.hoverImage.startsWith("data:") ? p.hoverImage : null,
-          newArrivalImage: p.newArrivalImage && !p.newArrivalImage.startsWith("data:") ? p.newArrivalImage : null,
+          newArrivalImage:
+            p.newArrivalImage && !p.newArrivalImage.startsWith("data:") ? p.newArrivalImage : null,
           subImages: Array.isArray(p.subImages)
             ? p.subImages.filter((s: string) => s && !s.startsWith("data:"))
             : [],
@@ -268,17 +325,46 @@ function saveItem<T>(key: string, val: T) {
               : [],
           },
         }));
-        localStorage.setItem(`optique_v1_${key}`, JSON.stringify(stripped));
+        localStorage.setItem(
+          `optique_v1_${key}`,
+          JSON.stringify({ __ts: Date.now(), __data: stripped }),
+        );
       } catch {
         // If still failing, clear products from localStorage entirely
         // Supabase will be the source of truth on next load
-        console.warn(`[saveItem] localStorage full for '${key}', clearing cache. Supabase is source of truth.`);
-        try { localStorage.removeItem(`optique_v1_${key}`); } catch {}
+        console.warn(
+          `[saveItem] localStorage full for '${key}', clearing cache. Supabase is source of truth.`,
+        );
+        try {
+          localStorage.removeItem(`optique_v1_${key}`);
+        } catch {}
       }
     } else {
       console.warn(`Failed to save ${key} to localStorage`, err);
     }
   }
+}
+
+function persistWithFeedback(operation: Promise<boolean>, toastId: string, label: string) {
+  void operation
+    .then((ok) => {
+      if (!ok) {
+        toast.error(
+          `${label} database mein save nahi hua. Real admin account se dobara sign in karein.`,
+          {
+            id: toastId,
+          },
+        );
+      }
+    })
+    .catch(() => {
+      toast.error(
+        `${label} database mein save nahi hua. Connection check karke dobara try karein.`,
+        {
+          id: toastId,
+        },
+      );
+    });
 }
 
 function parseOrderRecord(raw: any, existing?: Order): Order {
@@ -320,14 +406,25 @@ function getInitialCached<T>(key: string, fallback: T): T {
   if (typeof window === "undefined") return fallback;
   try {
     const raw = localStorage.getItem(`optique_v1_${key}`);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (parsed !== null && parsed !== undefined) {
-        if (Array.isArray(fallback)) {
-          if (Array.isArray(parsed) && parsed.length > 0) return parsed as unknown as T;
-        } else if (typeof fallback === "object") {
-          return { ...fallback, ...parsed } as T;
-        }
+    if (!raw) return fallback;
+    const parsed = JSON.parse(raw);
+
+    // Unwrap TTL envelope if present
+    let value = parsed;
+    if (parsed && typeof parsed === "object" && "__ts" in parsed && "__data" in parsed) {
+      const age = Date.now() - parsed.__ts;
+      if (!NO_EXPIRY_KEYS.has(key) && age > CACHE_TTL_MS) {
+        localStorage.removeItem(`optique_v1_${key}`);
+        return fallback; // Expired — Supabase will hydrate fresh
+      }
+      value = parsed.__data;
+    }
+
+    if (value !== null && value !== undefined) {
+      if (Array.isArray(fallback)) {
+        if (Array.isArray(value) && value.length > 0) return value as unknown as T;
+      } else if (typeof fallback === "object") {
+        return { ...fallback, ...value } as T;
       }
     }
   } catch {}
@@ -335,48 +432,53 @@ function getInitialCached<T>(key: string, fallback: T): T {
 }
 
 export function StoreProvider({ children }: { children: ReactNode }) {
-  const [categories, setCategories] = useState<Category[]>(() => getInitialCached("categories", seedCategories));
-  const [collections, setCollections] = useState<Collection[]>(() => getInitialCached("collections", seedCollections));
-  const [products, setProducts] = useState<Product[]>(() => getInitialCached("products", seedProducts));
-  const [orders, setOrders] = useState<Order[]>(() => getInitialCached("orders", seedOrders));
-  const [queries, setQueries] = useState<ContactQuery[]>(() => getInitialCached("queries", []));
-  const [heroSlides, setHeroSlidesState] = useState<HeroSlide[]>(() => getInitialCached("heroSlides", seedHeroSlides));
-  const [announcement, setAnnouncement] = useState<AnnouncementSettings>(() => getInitialCached("announcement", seedAnnouncement));
-  const [testimonials, setTestimonials] = useState<Testimonial[]>(() => getInitialCached("testimonials", seedTestimonials));
-  const [video, setVideo] = useState<VideoSettings>(() => getInitialCached("video", seedVideo));
-  const [settings, setSettings] = useState<StoreSettings>(() => getInitialCached("settings", seedSettings));
-  const [brands, setBrands] = useState<Brand[]>(() => getInitialCached("brands", seedBrands));
-  const [socialReels, setSocialReelsState] = useState<SocialReel[]>(() => getInitialCached("socialReels", seedSocialReels));
-  const [faqs, setFaqsState] = useState<FAQItem[]>(() => getInitialCached("faqs", seedFaqs));
-  const [subscribers, setSubscribersState] = useState<Subscriber[]>(() => getInitialCached("subscribers", seedSubscribers));
-  const [isAdmin, setIsAdmin] = useState(() => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("optique_admin_session") === "true";
-    }
-    return false;
-  });
+  // Keep the first browser render identical to SSR; cache is applied after mount.
+  const [categories, setCategories] = useState<Category[]>(seedCategories);
+  const [collections, setCollections] = useState<Collection[]>(seedCollections);
+  const [products, setProducts] = useState<Product[]>(seedProducts);
+  const [orders, setOrders] = useState<Order[]>(seedOrders);
+  const [queries, setQueries] = useState<ContactQuery[]>([]);
+  const [heroSlides, setHeroSlidesState] = useState<HeroSlide[]>(seedHeroSlides);
+  const [announcement, setAnnouncement] = useState<AnnouncementSettings>(seedAnnouncement);
+  const [testimonials, setTestimonials] = useState<Testimonial[]>(seedTestimonials);
+  const [video, setVideo] = useState<VideoSettings>(seedVideo);
+  const [settings, setSettings] = useState<StoreSettings>(seedSettings);
+  const [brands, setBrands] = useState<Brand[]>(seedBrands);
+  const [socialReels, setSocialReelsState] = useState<SocialReel[]>(seedSocialReels);
+  const [faqs, setFaqsState] = useState<FAQItem[]>(seedFaqs);
+  const [subscribers, setSubscribersState] = useState<Subscriber[]>(seedSubscribers);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [hydrated, setHydrated] = useState(false);
-  const localSavedContent = useRef({ announcement: false, brands: false, socialReels: false });
+  const localSavedContent = useRef({ brands: false, socialReels: false });
 
-  // Client-only localStorage hydration to eliminate SSR hydration mismatch
+  // Client-only hydration to eliminate SSR hydration mismatch
   useEffect(() => {
     if (typeof window !== "undefined") {
-      if (localStorage.getItem("optique_admin_session") === "true") {
-        setIsAdmin(true);
-      }
+      sessionStorage.removeItem("optique_admin_session");
+      sessionStorage.removeItem("optique_admin_session_token");
     }
     try {
       // Normal hydration: load whatever the user has saved
       const load = <T,>(key: string, setter: (val: T) => void) => {
         const raw = localStorage.getItem(`optique_v1_${key}`);
-        if (raw) {
-          try {
-            setter(JSON.parse(raw));
-            if (key === "announcement" || key === "brands" || key === "socialReels") {
-              localSavedContent.current[key] = true;
+        if (!raw) return;
+        try {
+          const parsed = JSON.parse(raw);
+          // Unwrap TTL envelope
+          let value = parsed;
+          if (parsed && typeof parsed === "object" && "__ts" in parsed && "__data" in parsed) {
+            const age = Date.now() - parsed.__ts;
+            if (!NO_EXPIRY_KEYS.has(key) && age > CACHE_TTL_MS) {
+              localStorage.removeItem(`optique_v1_${key}`);
+              return; // Expired — skip, Supabase will hydrate
             }
-          } catch {}
-        }
+            value = parsed.__data;
+          }
+          setter(value);
+          if (key === "brands" || key === "socialReels") {
+            localSavedContent.current[key as keyof typeof localSavedContent.current] = true;
+          }
+        } catch {}
       };
       load<Category[]>("categories", setCategories);
       load<Collection[]>("collections", setCollections);
@@ -417,36 +519,51 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!isSupabaseConfigured) return;
 
-    // Check initial Supabase Auth session
-    supabase.auth.getSession().then(({ data }) => {
-      if (data.session?.user) {
+    const applySession = async (session: { access_token: string } | null) => {
+      const { data, error } = session
+        ? await supabase.rpc("is_admin")
+        : { data: false, error: null };
+      if (session && !error && data === true) {
         setIsAdmin(true);
         if (typeof window !== "undefined") {
-          localStorage.setItem("optique_admin_session", "true");
+          sessionStorage.setItem("optique_admin_session", "true");
         }
-      }
-    });
-
-    // Listen to live Auth state changes (login, logout, token refresh)
-    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === "SIGNED_IN" || session?.user) {
-        setIsAdmin(true);
-        if (typeof window !== "undefined") {
-          localStorage.setItem("optique_admin_session", "true");
-        }
-      } else if (event === "SIGNED_OUT") {
+      } else {
         setIsAdmin(false);
         if (typeof window !== "undefined") {
-          localStorage.removeItem("optique_admin_session");
-          localStorage.removeItem("optique_admin_session_token");
+          sessionStorage.removeItem("optique_admin_session");
+          sessionStorage.removeItem("optique_admin_session_token");
         }
       }
+    };
+
+    supabase.auth.getSession().then(({ data }) => void applySession(data.session));
+
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+      void applySession(session);
     });
 
     return () => {
       authListener.subscription?.unsubscribe();
     };
   }, []);
+  useEffect(() => {
+    if (!isSupabaseConfigured || !isAdmin) return;
+
+    let cancelled = false;
+
+    void fetchInitialSupabaseData({ includePrivate: true }).then((data) => {
+      if (cancelled || !data) return;
+      if (data.orders) setOrders(data.orders);
+      if (data.queries) setQueries(data.queries);
+      if (data.subscribers) setSubscribersState(data.subscribers);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isAdmin]);
+
   const [stockTouched, setStockTouched] = useState<Record<string, string>>({});
 
   // ── Auto-persist to localStorage on every change (after initial mount) ──
@@ -496,6 +613,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   // Track IDs that were JUST saved by this client so the real-time echo
   // doesn't overwrite the freshly-saved local state with stale DB payload.
   const recentlySavedRef = useRef<Set<string>>(new Set());
+  // Track whether the browser is online
+  const isOnlineRef = useRef(typeof navigator !== "undefined" ? navigator.onLine : true);
+  // Track whether a re-sync is needed after coming back online
+  const needsResyncRef = useRef(false);
+  // Queue of products saved while offline that need to be synced to DB when back online
+  const pendingSyncRef = useRef<Map<string, Product>>(new Map());
 
   // ── Supabase Real-Time Sync & Initial Hydration ──
   useEffect(() => {
@@ -521,30 +644,40 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           const mergedProducts = data.products!.map((dbProd) => {
             const localProd = localMap.get(dbProd.id);
 
-            // Ensure subImages come from DB or local fallback
+            // Resolve subImages: prefer DB → local fallback (NEVER lose local images)
             const dbSubImages = (
               Array.isArray(dbProd.subImages) && dbProd.subImages.length > 0
                 ? dbProd.subImages
-                : Array.isArray((dbProd.details as any)?.subImages) && (dbProd.details as any).subImages.length > 0
+                : Array.isArray((dbProd.details as any)?.subImages) &&
+                    (dbProd.details as any).subImages.length > 0
                   ? (dbProd.details as any).subImages
                   : Array.isArray((dbProd as any).images) && (dbProd as any).images.length > 0
                     ? (dbProd as any).images
                     : []
             ).filter((s: any) => typeof s === "string" && s.trim().length > 0);
 
-            const localSubImages = localProd?.subImages || [];
+            const localSubImages = (localProd?.subImages || []).filter(
+              (s: string) => s && s.trim().length > 0,
+            );
+            // Always prefer DB subImages; fallback to local only if DB has none
             const resolvedSubImages = dbSubImages.length > 0 ? dbSubImages : localSubImages;
 
-            // Resolve primary image from dbProd, localProd, or subImages
-            const dbImageValid = dbProd.image && dbProd.image !== "/placeholder.svg" && dbProd.image.trim().length > 0;
-            const localImageValid = localProd?.image && localProd.image !== "/placeholder.svg" && localProd.image.trim().length > 0;
-            const subImageValid = resolvedSubImages.find((s: string) => s && s !== "/placeholder.svg" && s.trim().length > 0);
+            // Resolve primary image — NEVER lose a valid local image
+            const dbImageValid =
+              dbProd.image && dbProd.image !== "/placeholder.svg" && dbProd.image.trim().length > 0;
+            const localImageValid =
+              localProd?.image &&
+              localProd.image !== "/placeholder.svg" &&
+              localProd.image.trim().length > 0;
+            const subImageFallback = resolvedSubImages.find(
+              (s: string) => s && s !== "/placeholder.svg" && s.trim().length > 0,
+            );
 
             const resolvedImage = dbImageValid
               ? dbProd.image
               : localImageValid
-                ? localProd.image
-                : subImageValid || dbProd.image || "/placeholder.svg";
+                ? localProd!.image
+                : subImageFallback || dbProd.image || "/placeholder.svg";
 
             const finalProd = {
               ...dbProd,
@@ -556,7 +689,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
               },
             };
 
-            // If we restored a local image that DB was missing, push it back to Supabase!
+            // If the DB is missing a valid image that we have locally, push it back!
             if (!dbImageValid && localImageValid) {
               dbUpsertProduct(finalProd);
             }
@@ -564,8 +697,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             return finalProd;
           });
 
-          saveItem("products", mergedProducts);
-          return mergedProducts;
+          // Keep any local-only products (not yet in DB) that aren't in the DB response
+          const dbIds = new Set(data.products!.map((p) => p.id));
+          const localOnlyProducts = prevLocalProducts.filter((p) => !dbIds.has(p.id));
+
+          const combined = [...mergedProducts, ...localOnlyProducts];
+          saveItem("products", combined);
+          return combined;
         });
       }
       if (data.orders !== null) {
@@ -609,13 +747,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       if (data.subscribers !== null) setSubscribersState(data.subscribers);
       if (data.settings) setSettings((prev) => ({ ...prev, ...data.settings }));
       if (data.announcement) {
-        setAnnouncement((prev) => {
-          if (localSavedContent.current.announcement) {
-            dbUpsertAnnouncement(prev);
-            return prev;
-          }
-          return { ...prev, ...data.announcement };
-        });
+        setAnnouncement((prev) => ({ ...prev, ...data.announcement }));
       }
       if (data.video) setVideo((prev) => ({ ...prev, ...data.video }));
     }
@@ -648,7 +780,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
                   ? (mapped.details as any).subImages
                   : []
             ).filter((s: any) => typeof s === "string" && s.trim().length > 0);
-            const fullMapped = { ...mapped, subImages, details: { ...(mapped.details || {}), subImages } };
+            const fullMapped = {
+              ...mapped,
+              subImages,
+              details: { ...(mapped.details || {}), subImages },
+            };
             setProducts((prev) => {
               const next = [fullMapped, ...prev.filter((p) => p.id !== fullMapped.id)];
               saveItem("products", next);
@@ -656,21 +792,48 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             });
           } else if (eventType === "UPDATE") {
             // Skip real-time echo for products we JUST saved ourselves
-            // (prevents the DB echo from overwriting our clean local state)
             if (recentlySavedRef.current.has(newRecord.id)) {
               recentlySavedRef.current.delete(newRecord.id);
               return;
             }
             const mapped = mapDbProductToStore(newRecord);
-            const subImages = (
+            const dbSubImages = (
               Array.isArray(mapped.subImages) && mapped.subImages.length > 0
                 ? mapped.subImages
                 : Array.isArray((mapped.details as any)?.subImages)
                   ? (mapped.details as any).subImages
                   : []
             ).filter((s: any) => typeof s === "string" && s.trim().length > 0);
-            const fullMapped = { ...mapped, subImages, details: { ...(mapped.details || {}), subImages } };
+
             setProducts((prev) => {
+              // Merge with local state: preserve local subImages if DB has none
+              const localProd = prev.find((p) => p.id === mapped.id);
+              const localSubImages = (localProd?.subImages || []).filter(
+                (s: string) => s && s.trim().length > 0,
+              );
+              const resolvedSubImages = dbSubImages.length > 0 ? dbSubImages : localSubImages;
+
+              // Preserve local image if DB image is missing/placeholder
+              const dbImageValid =
+                mapped.image &&
+                mapped.image !== "/placeholder.svg" &&
+                mapped.image.trim().length > 0;
+              const localImageValid =
+                localProd?.image &&
+                localProd.image !== "/placeholder.svg" &&
+                localProd.image.trim().length > 0;
+              const resolvedImage = dbImageValid
+                ? mapped.image
+                : localImageValid
+                  ? localProd!.image
+                  : mapped.image || "/placeholder.svg";
+
+              const fullMapped = {
+                ...mapped,
+                image: resolvedImage,
+                subImages: resolvedSubImages,
+                details: { ...(mapped.details || {}), subImages: resolvedSubImages },
+              };
               const next = prev.map((p) => (p.id === fullMapped.id ? fullMapped : p));
               saveItem("products", next);
               return next;
@@ -753,7 +916,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         } else if (table === "store_settings") {
           if (newRecord) setSettings((prev) => ({ ...prev, ...newRecord }));
         } else if (table === "announcements") {
-          if (localSavedContent.current.announcement) return;
           if (newRecord) {
             setAnnouncement((prev) => ({
               ...prev,
@@ -824,6 +986,143 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     };
   }, [hydrated]);
 
+  // ── Network Online/Offline Reconnection Handler ──
+  // When internet comes back after being offline, do a smart re-sync
+  // that preserves locally-cached images and doesn't wipe the local state.
+  useEffect(() => {
+    if (!isSupabaseConfigured) return;
+
+    const handleOffline = () => {
+      isOnlineRef.current = false;
+      needsResyncRef.current = true;
+    };
+
+    const handleOnline = async () => {
+      isOnlineRef.current = true;
+      if (!needsResyncRef.current) return;
+      needsResyncRef.current = false;
+
+      // Small delay to let Supabase WebSocket reconnect first
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+
+      try {
+        // STEP 1: Push any products saved while offline to Supabase FIRST
+        if (pendingSyncRef.current.size > 0) {
+          const pendingEntries = Array.from(pendingSyncRef.current.entries());
+          for (const [id, product] of pendingEntries) {
+            const result = await dbUpsertProduct(product);
+            if (result.success) {
+              pendingSyncRef.current.delete(id);
+            } else {
+              console.warn("[store] Failed to sync pending product:", id, result.error);
+            }
+          }
+        }
+
+        // STEP 2: Fetch fresh data from DB and merge — NEVER lose local images or local-only products
+        const data = await fetchInitialSupabaseData();
+        if (!data || !data.products) return;
+
+        setProducts((prevLocalProducts) => {
+          const localMap = new Map(prevLocalProducts.map((p) => [p.id, p]));
+
+          const mergedProducts = data.products!.map((dbProd) => {
+            const localProd = localMap.get(dbProd.id);
+
+            const dbSubImages = (
+              Array.isArray(dbProd.subImages) && dbProd.subImages.length > 0
+                ? dbProd.subImages
+                : Array.isArray((dbProd.details as any)?.subImages) &&
+                    (dbProd.details as any).subImages.length > 0
+                  ? (dbProd.details as any).subImages
+                  : []
+            ).filter((s: any) => typeof s === "string" && s.trim().length > 0);
+
+            const localSubImages = (localProd?.subImages || []).filter(
+              (s: string) => s && s.trim().length > 0 && !s.startsWith("data:"),
+            );
+            const resolvedSubImages = dbSubImages.length > 0 ? dbSubImages : localSubImages;
+
+            const dbImageValid =
+              dbProd.image && dbProd.image !== "/placeholder.svg" && dbProd.image.trim().length > 0;
+            const localImageValid =
+              localProd?.image &&
+              localProd.image !== "/placeholder.svg" &&
+              localProd.image.trim().length > 0;
+
+            return {
+              ...dbProd,
+              image: dbImageValid
+                ? dbProd.image
+                : localImageValid
+                  ? localProd!.image
+                  : dbProd.image || "/placeholder.svg",
+              subImages: resolvedSubImages,
+              details: { ...(dbProd.details || {}), subImages: resolvedSubImages },
+            };
+          });
+
+          const dbIds = new Set(data.products!.map((p) => p.id));
+          // Keep local-only products (those saved offline that aren't in DB yet)
+          const localOnlyProducts = prevLocalProducts.filter((p) => !dbIds.has(p.id));
+
+          const combined = [...mergedProducts, ...localOnlyProducts];
+          saveItem("products", combined);
+          return combined;
+        });
+      } catch (e) {
+        console.warn("[store] Online re-sync failed:", e);
+      }
+    };
+
+    window.addEventListener("offline", handleOffline);
+    window.addEventListener("online", handleOnline);
+
+    return () => {
+      window.removeEventListener("offline", handleOffline);
+      window.removeEventListener("online", handleOnline);
+    };
+  }, []);
+
+  const productById = useMemo(
+    () => new Map(products.map((product) => [product.id, product])),
+    [products],
+  );
+  const publishedProductBySlug = useMemo(
+    () =>
+      new Map(
+        products
+          .filter((product) => product.status !== "Draft")
+          .map((product) => [product.slug, product]),
+      ),
+    [products],
+  );
+  const categoryById = useMemo(
+    () => new Map(categories.map((category) => [category.id, category])),
+    [categories],
+  );
+  const categoryBySlug = useMemo(
+    () => new Map(categories.map((category) => [category.slug, category])),
+    [categories],
+  );
+  const collectionById = useMemo(
+    () => new Map(collections.map((collection) => [collection.id, collection])),
+    [collections],
+  );
+  const collectionBySlug = useMemo(
+    () => new Map(collections.map((collection) => [collection.slug, collection])),
+    [collections],
+  );
+  const collectionsByCategory = useMemo(() => {
+    const index = new Map<string, Collection[]>();
+    for (const collection of collections) {
+      const group = index.get(collection.categoryId);
+      if (group) group.push(collection);
+      else index.set(collection.categoryId, [collection]);
+    }
+    return index;
+  }, [collections]);
+
   const productStock = useCallback(
     (product: Product) =>
       product.variants.length
@@ -842,42 +1141,71 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   );
 
   const getProducts = useCallback<StoreApi["getProducts"]>(
-    (opts) =>
-      products.filter((p) => {
+    (opts) => {
+      const filtered = products.filter((p) => {
+        // CRITICAL: Never show Draft products on the storefront
+        if (p.status === "Draft") return false;
         if (opts?.categoryId && p.categoryId !== opts.categoryId) return false;
         if (opts?.collectionId && p.collectionId !== opts.collectionId) return false;
         if (opts?.search && !p.name.toLowerCase().includes(opts.search.toLowerCase())) return false;
+        const price = p.salePrice ?? p.price;
+        if (opts?.minPrice !== undefined && price < opts.minPrice) return false;
+        if (opts?.maxPrice !== undefined && price > opts.maxPrice) return false;
         return true;
-      }),
+      });
+
+      if (!opts?.sort) return filtered;
+
+      return [...filtered].sort((a, b) => {
+        const priceA = a.salePrice ?? a.price;
+        const priceB = b.salePrice ?? b.price;
+        if (opts.sort === "price-asc") return priceA - priceB;
+        if (opts.sort === "price-desc") return priceB - priceA;
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      });
+    },
     [products],
   );
 
+  const getProductsPage = useCallback<StoreApi["getProductsPage"]>(
+    (opts) => {
+      const pageSize = Math.max(1, Math.floor(opts?.pageSize ?? 12));
+      const totalItems = getProducts(opts);
+      const total = totalItems.length;
+      const totalPages = Math.max(1, Math.ceil(total / pageSize));
+      const page = Math.min(Math.max(1, Math.floor(opts?.page ?? 1)), totalPages);
+      const start = (page - 1) * pageSize;
+
+      return {
+        items: totalItems.slice(start, start + pageSize),
+        total,
+        page,
+        pageSize,
+        totalPages,
+      };
+    },
+    [getProducts],
+  );
+
   const getProductBySlug = useCallback(
-    (slug: string) => products.find((p) => p.slug === slug),
-    [products],
+    (slug: string) => publishedProductBySlug.get(slug),
+    [publishedProductBySlug],
   );
-  const getProductById = useCallback((id: string) => products.find((p) => p.id === id), [products]);
+  const getProductById = useCallback((id: string) => productById.get(id), [productById]);
   const getCategoryBySlug = useCallback(
-    (slug: string) => categories.find((c) => c.slug === slug),
-    [categories],
+    (slug: string) => categoryBySlug.get(slug),
+    [categoryBySlug],
   );
-  const getCategoryById = useCallback(
-    (id: string) => categories.find((c) => c.id === id),
-    [categories],
-  );
+  const getCategoryById = useCallback((id: string) => categoryById.get(id), [categoryById]);
   const getCollections = useCallback<StoreApi["getCollections"]>(
-    (categoryId) =>
-      categoryId ? collections.filter((col) => col.categoryId === categoryId) : collections,
-    [collections],
+    (categoryId) => (categoryId ? (collectionsByCategory.get(categoryId) ?? []) : collections),
+    [collections, collectionsByCategory],
   );
   const getCollectionBySlug = useCallback(
-    (slug: string) => collections.find((c) => c.slug === slug),
-    [collections],
+    (slug: string) => collectionBySlug.get(slug),
+    [collectionBySlug],
   );
-  const getCollectionById = useCallback(
-    (id: string) => collections.find((c) => c.id === id),
-    [collections],
-  );
+  const getCollectionById = useCallback((id: string) => collectionById.get(id), [collectionById]);
 
   const getRelatedProducts = useCallback(
     (product: Product, limit = 4) =>
@@ -890,7 +1218,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const getInventoryRows = useCallback<StoreApi["getInventoryRows"]>(() => {
     const rows: InventoryRow[] = [];
     for (const p of products) {
-      const catName = categories.find((c) => c.id === p.categoryId)?.name ?? "—";
+      const catName = categoryById.get(p.categoryId)?.name ?? "-";
       if (p.variants.length) {
         for (const v of p.variants) {
           const key = `${p.id}:${v.id}`;
@@ -899,7 +1227,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             productId: p.id,
             variantId: v.id,
             categoryName: catName,
-            name: `${p.name} — ${v.label}`,
+            name: `${p.name} - ${v.label}`,
+            image: p.image,
             stock: v.stock,
             status: stockStatus(v.stock),
             updatedAt: stockTouched[key] ?? p.createdAt,
@@ -913,6 +1242,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           variantId: null,
           categoryName: catName,
           name: p.name,
+          image: p.image,
           stock: p.stock,
           status: stockStatus(p.stock),
           updatedAt: stockTouched[key] ?? p.createdAt,
@@ -920,7 +1250,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       }
     }
     return rows;
-  }, [products, categories, stockStatus, stockTouched]);
+  }, [products, categoryById, stockStatus, stockTouched]);
 
   const applyStockDelta = useCallback(
     (productId: string, variantId: string | null, delta: number) => {
@@ -980,7 +1310,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     [products],
   );
 
-  const addOrder = useCallback<StoreApi["addOrder"]>((data) => {
+  const addOrder = useCallback<StoreApi["addOrder"]>(async (data, metaEvent) => {
     const { stockDeducted = false, ...rest } = data;
     const order: Order = {
       ...rest,
@@ -990,10 +1320,33 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       status: "New",
       stockDeducted,
     };
+    const saved = await dbInsertOrder(order, metaEvent);
+    if (!saved) return null;
     setOrders((prev) => [order, ...prev]);
-    dbInsertOrder(order);
     return order;
   }, []);
+
+  const addOrders = useCallback<StoreApi["addOrders"]>(
+    async (data, idempotencyKey, metaEvent) => {
+    const orders = data.map((entry) => {
+      const { stockDeducted = false, ...rest } = entry;
+      return {
+        ...rest,
+        reference: rest.reference?.trim() || newOrderReference(),
+        id: uid("ord"),
+        createdAt: nowIso(),
+        status: "New" as const,
+        stockDeducted,
+      };
+    });
+
+      const saved = await dbInsertOrders(orders, idempotencyKey, metaEvent);
+      if (!saved) return null;
+      setOrders((prev) => [...orders, ...prev]);
+      return orders;
+    },
+    [],
+  );
 
   const getOrdersByReference = useCallback<StoreApi["getOrdersByReference"]>(
     (reference) => {
@@ -1006,32 +1359,44 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   );
 
   const setOrderStatus = useCallback<StoreApi["setOrderStatus"]>(
-    (orderId, status) => {
-      let nextDeducted = false;
+    async (orderId, status) => {
+      const order = orders.find((item) => item.id === orderId);
+      if (!order) return false;
+
+      const shouldDeduct = status === "Completed" && !order.stockDeducted && !!order.productId;
+      const shouldReturn = status === "Cancelled" && order.stockDeducted && !!order.productId;
+      const nextDeducted = shouldDeduct ? true : shouldReturn ? false : order.stockDeducted;
+
+      const saved = await dbUpdateOrderStatus(orderId, status, nextDeducted);
+      if (!saved) return false;
+
       setOrders((prev) =>
-        prev.map((o) => {
-          if (o.id !== orderId) return o;
-          let stockDeducted = o.stockDeducted;
-          if (status === "Completed" && !o.stockDeducted && o.productId) {
-            applyStockDelta(o.productId, o.variantId, -1);
-            stockDeducted = true;
-          }
-          if (status === "Cancelled" && o.stockDeducted && o.productId) {
-            applyStockDelta(o.productId, o.variantId, 1);
-            stockDeducted = false;
-          }
-          nextDeducted = stockDeducted;
-          return { ...o, status, stockDeducted };
-        }),
+        prev.map((item) =>
+          item.id === orderId ? { ...item, status, stockDeducted: nextDeducted } : item,
+        ),
       );
-      dbUpdateOrderStatus(orderId, status, nextDeducted);
+
+      if (shouldDeduct && order.productId) {
+        applyStockDelta(order.productId, order.variantId, -1);
+      } else if (shouldReturn && order.productId) {
+        applyStockDelta(order.productId, order.variantId, 1);
+      }
+      return true;
     },
-    [applyStockDelta],
+    [applyStockDelta, orders],
   );
 
   const updateOrderCourier = useCallback<StoreApi["updateOrderCourier"]>(
-    (orderId, courierName, trackingNumber, status = "Dispatched") => {
+    async (orderId, courierName, trackingNumber, status = "Dispatched") => {
       const dispatchedAt = nowIso();
+      const saved = await dbUpdateOrderCourier(
+        orderId,
+        courierName,
+        trackingNumber,
+        status,
+        dispatchedAt,
+      );
+      if (!saved) return false;
       setOrders((prev) =>
         prev.map((o) => {
           if (o.id !== orderId) return o;
@@ -1044,7 +1409,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           };
         }),
       );
-      dbUpdateOrderCourier(orderId, courierName, trackingNumber, status, dispatchedAt);
+      return true;
     },
     [],
   );
@@ -1079,7 +1444,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     const finalSlug = product.slug?.trim()
       ? product.slug.trim()
       : product.name?.trim()
-        ? product.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || finalId
+        ? product.name
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, "-")
+            .replace(/^-|-$/g, "") || finalId
         : finalId;
 
     const cleanSubImages = (
@@ -1097,9 +1465,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       id: finalId,
       slug: finalSlug,
       price: Math.max(0, Number(product.price) || 0),
-      salePrice: product.salePrice != null && !isNaN(Number(product.salePrice)) && Number(product.salePrice) > 0
-        ? Number(product.salePrice)
-        : null,
+      salePrice:
+        product.salePrice != null &&
+        !isNaN(Number(product.salePrice)) &&
+        Number(product.salePrice) > 0
+          ? Number(product.salePrice)
+          : null,
       stock: Math.max(0, Math.round(Number(product.stock) || 0)),
       subImages: cleanSubImages,
       details: {
@@ -1123,9 +1494,19 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     });
 
     // 2. Persist to Supabase
-    const result = await dbUpsertProduct(fullProduct);
-    if (!result.success) {
-      console.error("[saveProduct] Supabase sync failed:", result.error);
+    if (!isOnlineRef.current) {
+      // Offline: queue this product for sync when internet returns
+      pendingSyncRef.current.set(fullProduct.id, fullProduct);
+    } else {
+      const result = await dbUpsertProduct(fullProduct);
+      if (!result.success) {
+        // DB save failed even though we appear online — also queue for retry
+        pendingSyncRef.current.set(fullProduct.id, fullProduct);
+        console.error("[saveProduct] Supabase sync failed, queued for retry:", result.error);
+      } else {
+        // Successful save — remove from pending queue if it was there
+        pendingSyncRef.current.delete(fullProduct.id);
+      }
     }
   }, []);
 
@@ -1304,7 +1685,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       const next = prev.map((s) => (s.id === id ? { ...s, ...patch } : s));
       saveItem("heroSlides", next);
       const target = next.find((s) => s.id === id);
-      if (target) dbUpsertHeroSlide(target);
+      if (target) {
+        persistWithFeedback(dbUpsertHeroSlide(target), "hero-save-error", "Hero slide");
+      }
       return next;
     });
   }, []);
@@ -1315,7 +1698,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       saveItem("heroSlides", next);
       return next;
     });
-    dbDeleteHeroSlide(id);
+    persistWithFeedback(dbDeleteHeroSlide(id), "hero-save-error", "Hero slide");
   }, []);
 
   const moveHeroSlide = useCallback<StoreApi["moveHeroSlide"]>((id, dir) => {
@@ -1330,16 +1713,15 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       copy[next] = a;
       const ordered = copy.map((s, i) => ({ ...s, sortOrder: i }));
       saveItem("heroSlides", ordered);
-      dbUpsertHeroSlides(ordered);
+      persistWithFeedback(dbUpsertHeroSlides(ordered), "hero-save-error", "Hero slides");
       return ordered;
     });
   }, []);
 
   const updateAnnouncement = useCallback<StoreApi["updateAnnouncement"]>((patch) => {
-    localSavedContent.current.announcement = true;
     setAnnouncement((prev) => {
       const next = { ...prev, ...patch };
-      dbUpsertAnnouncement(next);
+      persistWithFeedback(dbUpsertAnnouncement(next), "announcement-save-error", "Announcement");
       return next;
     });
   }, []);
@@ -1608,103 +1990,69 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     dbDeleteSubscriber(id);
   }, []);
 
-  // Helper: generate a secure session token from credentials
-  const makeSessionToken = useCallback(async (email: string, password: string): Promise<string> => {
-    const secret = `optique::${email.toLowerCase()}::${password}::${Date.now().toString().slice(0, 8)}`;
-    const encoder = new TextEncoder();
-    const data = encoder.encode(secret);
-    const hashBuffer = await crypto.subtle.digest("SHA-256", data);
-    return Array.from(new Uint8Array(hashBuffer))
-      .map((b) => b.toString(16).padStart(2, "0"))
-      .join("");
-  }, []);
+  const login = useCallback<StoreApi["login"]>(async (email, password) => {
+    const trimmedEmail = email.trim();
+    const trimmedPassword = password.trim();
 
-  const login = useCallback<StoreApi["login"]>(
-    async (email, password) => {
-      const trimmedEmail = email.trim();
-      const trimmedPassword = password.trim();
+    if (isSupabaseConfigured) {
+      try {
+        const response = await fetch("/api/v1/admin/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: trimmedEmail, password: trimmedPassword }),
+        });
+        const payload = (await response.json()) as {
+          accessToken?: string;
+          refreshToken?: string;
+          error?: { message?: string; retryAfter?: number };
+        };
+        if (!response.ok || !payload.accessToken || !payload.refreshToken) {
+          return {
+            success: false,
+            error: payload.error?.message ?? "Incorrect email or password.",
+            ...(payload.error?.retryAfter ? { retryAfter: payload.error.retryAfter } : {}),
+          };
+        }
 
-      const isDefaultPrimaryAdmin =
-        trimmedEmail.toLowerCase() === "admin@optique.com" ||
-        trimmedEmail.toLowerCase() === (settings.adminEmail || "").toLowerCase();
-
-      const isFallbackValid =
-        isDefaultPrimaryAdmin &&
-        (trimmedPassword === "optique123" || password === "optique123");
-
-      const persistAdminSession = async () => {
+        const { error } = await supabase.auth.setSession({
+          access_token: payload.accessToken,
+          refresh_token: payload.refreshToken,
+        });
+        if (error) return { success: false, error: "Authentication is temporarily unavailable." };
         setIsAdmin(true);
-        if (typeof window !== "undefined") {
-          localStorage.setItem("optique_admin_session", "true");
-          const token = await makeSessionToken(trimmedEmail, trimmedPassword);
-          localStorage.setItem("optique_admin_session_token", token);
-          localStorage.setItem("optique_admin_attempts", "0");
-          localStorage.setItem("optique_admin_locked_until", "0");
-        }
-      };
-
-      if (isSupabaseConfigured) {
-        try {
-          const { data, error } = await supabase.auth.signInWithPassword({
-            email: trimmedEmail,
-            password: trimmedPassword,
-          });
-
-          if (!error && data?.session) {
-            await persistAdminSession();
-            return { success: true };
-          }
-
-          if (error) {
-            console.warn("[AdminLogin] Supabase signIn error:", error.message);
-
-            // Fallback for primary admin email
-            if (isFallbackValid) {
-              await persistAdminSession();
-              return { success: true };
-            }
-
-            // Auto-provision if user doesn't exist
-            try {
-              const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-                email: trimmedEmail,
-                password: trimmedPassword,
-              });
-
-              if (!signUpError && (signUpData?.session || (signUpData?.user && isDefaultPrimaryAdmin))) {
-                await persistAdminSession();
-                return { success: true };
-              }
-            } catch {}
-
-            return { success: false, error: "Galt email ya password. Please check your credentials." };
-          }
-        } catch (err: any) {
-          console.warn("[AdminLogin] Supabase auth exception:", err);
-          if (isFallbackValid) {
-            await persistAdminSession();
-            return { success: true };
-          }
-          return { success: false, error: err?.message || "Authentication error." };
-        }
-      }
-
-      // Offline / local mode
-      if (isFallbackValid) {
-        await persistAdminSession();
         return { success: true };
+      } catch {
+        return { success: false, error: "Authentication is temporarily unavailable." };
       }
+    }
 
-      return { success: false, error: "Galt email ya password." };
-    },
-    [isSupabaseConfigured, settings.adminEmail, makeSessionToken],
-  );
+    const developmentEmail = import.meta.env["VITE_DEV_ADMIN_EMAIL"];
+    const developmentPassword = import.meta.env["VITE_DEV_ADMIN_PASSWORD"];
+    const developmentLoginEnabled =
+      import.meta.env.DEV && Boolean(developmentEmail && developmentPassword);
+
+    if (
+      developmentLoginEnabled &&
+      trimmedEmail.toLowerCase() === developmentEmail.toLowerCase() &&
+      trimmedPassword === developmentPassword
+    ) {
+      setIsAdmin(true);
+      return { success: true };
+    }
+
+    return {
+      success: false,
+      error: import.meta.env.DEV
+        ? "Configure Supabase Auth or the development-only admin credentials."
+        : "Admin authentication is not configured.",
+    };
+  }, []);
 
   const logout = useCallback(async () => {
     setIsAdmin(false);
     if (typeof window !== "undefined") {
-      localStorage.removeItem("optique_admin_session");
-      localStorage.removeItem("optique_admin_session_token");
+      sessionStorage.removeItem("optique_admin_session");
+      sessionStorage.removeItem("optique_admin_session_token");
       localStorage.removeItem("optique_admin_fp");
       localStorage.setItem("optique_admin_attempts", "0");
       localStorage.setItem("optique_admin_locked_until", "0");
@@ -1714,13 +2062,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         await supabase.auth.signOut();
       } catch {}
     }
-  }, [isSupabaseConfigured]);
+  }, []);
 
   const setHeroSlides = useCallback<StoreApi["setHeroSlides"]>((slides) => {
     const ordered = slides.map((slide, i) => ({ ...slide, sortOrder: i }));
     setHeroSlidesState(ordered);
     saveItem("heroSlides", ordered);
-    dbUpsertHeroSlides(ordered);
+    persistWithFeedback(dbUpsertHeroSlides(ordered), "hero-save-error", "Hero slides");
   }, []);
 
   const setSocialReels = useCallback<StoreApi["setSocialReels"]>((reels) => {
@@ -1756,6 +2104,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       subscribers,
       isAdmin,
       getProducts,
+      getProductsPage,
       getProductBySlug,
       getProductById,
       getCategoryBySlug,
@@ -1768,6 +2117,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       productStock,
       stockStatus,
       addOrder,
+      addOrders,
       getOrdersByReference,
       setOrderStatus,
       updateOrderCourier,
@@ -1830,6 +2180,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       socialReels,
       isAdmin,
       getProducts,
+      getProductsPage,
       getProductBySlug,
       getProductById,
       getCategoryBySlug,
@@ -1842,6 +2193,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       productStock,
       stockStatus,
       addOrder,
+      addOrders,
       getOrdersByReference,
       setOrderStatus,
       updateOrderCourier,

@@ -1,5 +1,11 @@
 import { createStart, createCsrfMiddleware, createMiddleware } from "@tanstack/react-start";
+import {
+  captureException,
+  sentryGlobalFunctionMiddleware,
+  sentryGlobalRequestMiddleware,
+} from "@sentry/tanstackstart-react";
 
+import { logger } from "./lib/api/logger.server";
 import { renderErrorPage } from "./lib/error-page";
 
 const errorMiddleware = createMiddleware().server(async ({ next }) => {
@@ -9,7 +15,8 @@ const errorMiddleware = createMiddleware().server(async ({ next }) => {
     if (error != null && typeof error === "object" && "statusCode" in error) {
       throw error;
     }
-    console.error(error);
+    captureException(error, { tags: { source: "ssr-middleware" } });
+    logger.error("ssr.middleware.failed", { error });
     return new Response(renderErrorPage(), {
       status: 500,
       headers: { "content-type": "text/html; charset=utf-8" },
@@ -37,5 +44,11 @@ const csrfMiddleware = createCsrfMiddleware({
 });
 
 export const startInstance = createStart(() => ({
-  requestMiddleware: [securityHeadersMiddleware, errorMiddleware, csrfMiddleware],
+  requestMiddleware: [
+    sentryGlobalRequestMiddleware,
+    securityHeadersMiddleware,
+    errorMiddleware,
+    csrfMiddleware,
+  ],
+  functionMiddleware: [sentryGlobalFunctionMiddleware],
 }));

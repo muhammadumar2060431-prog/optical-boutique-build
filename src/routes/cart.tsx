@@ -13,7 +13,8 @@ export const Route = createFileRoute("/cart")({
       { title: "Shopping Bag — OPTIQUE Eyewear" },
       {
         name: "description",
-        content: "Review your selected frames, prescription sunglasses, and contact lenses before checkout.",
+        content:
+          "Review your selected frames, prescription sunglasses, and contact lenses before checkout.",
       },
       { property: "og:title", content: "Shopping Bag — OPTIQUE Eyewear" },
       {
@@ -53,7 +54,8 @@ function CartPage() {
           <div className="mt-10 rounded-xl border border-dashed border-stone bg-card px-6 py-20 text-center">
             <ShoppingBag className="mx-auto h-8 w-8 text-ink-muted" />
             <p className="mt-4 text-sm text-ink-muted">
-              Your shopping bag is empty. Explore our collection to select your ideal frames or lenses.
+              Your shopping bag is empty. Explore our collection to select your ideal frames or
+              lenses.
             </p>
             <Link
               to="/glasses"
@@ -74,7 +76,7 @@ function CartPage() {
                     className="h-24 w-24 shrink-0 rounded-lg bg-jet object-cover"
                   />
                   <div className="min-w-0 flex-1">
-                    <h2 className="font-display text-xl leading-tight">{item.name}</h2>
+                    <p className="text-sm font-medium text-foreground leading-snug">{item.name}</p>
                     {item.variantLabel && (
                       <p className="text-xs tracking-[0.14em] uppercase text-ink-muted">
                         {item.variantLabel}

@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useStore } from "@/lib/store";
+import { splitMetaName, trackMetaEvent } from "@/lib/meta-events";
 import { whatsappLink } from "@/lib/whatsapp";
 
 import { getSiteUrl } from "@/lib/utils";
@@ -29,7 +30,8 @@ export const Route = createFileRoute("/contact")({
       { property: "og:title", content: "Contact OPTIQUE — Expert Optician Support & Inquiries" },
       {
         property: "og:description",
-        content: "Connect with our optical specialists for personalized frame fittings and lens advice.",
+        content:
+          "Connect with our optical specialists for personalized frame fittings and lens advice.",
       },
       { property: "og:type", content: "website" },
       { property: "og:url", content: getSiteUrl("/contact") },
@@ -80,6 +82,22 @@ function ContactPage() {
       productId: matched?.id ?? null,
       productName: productRef.trim() || "General enquiry",
       message: message.trim(),
+    });
+    const { firstName, lastName } = splitMetaName(name);
+    const contactValue = contact.trim();
+    const isEmail = contactValue.includes("@");
+    trackMetaEvent({
+      eventName: "Lead",
+      userData: {
+        ...(isEmail ? { email: contactValue } : { phone: contactValue }),
+        firstName,
+        ...(lastName ? { lastName } : {}),
+      },
+      customData: {
+        ...(matched ? { contentIds: [matched.id] } : {}),
+        contentType: matched ? "product" : "service",
+        contentName: productRef.trim() || "General enquiry",
+      },
     });
     setSent(true);
   };

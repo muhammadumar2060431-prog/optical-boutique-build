@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+﻿import { useCallback, useEffect, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 import { useStore } from "@/lib/store";
@@ -34,7 +34,7 @@ export function Hero() {
 
   return (
     <section
-      className="relative isolate h-[62vh] min-h-[380px] overflow-hidden bg-jet sm:h-[70vh] lg:h-[78vh]"
+      className="relative isolate h-[230px] w-full overflow-hidden bg-jet sm:h-[330px] md:h-[400px] lg:h-[460px] xl:h-[480px]"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
       onTouchStart={() => setPaused(true)}
@@ -43,9 +43,9 @@ export function Hero() {
       {slides.map((slide, i) => {
         const hasText = Boolean(
           slide.eyebrow?.trim() ||
-            slide.headline?.trim() ||
-            slide.subtext?.trim() ||
-            slide.ctaText?.trim(),
+          slide.headline?.trim() ||
+          slide.subtext?.trim() ||
+          slide.ctaText?.trim(),
         );
 
         const imageSrc = failedImages.has(slide.id)
@@ -58,7 +58,7 @@ export function Hero() {
             src={imageSrc}
             alt={slide.headline || "Store banner"}
             width={1920}
-            height={1080}
+            height={960}
             loading={i === 0 ? "eager" : "lazy"}
             decoding="async"
             fetchPriority={i === 0 ? "high" : "auto"}

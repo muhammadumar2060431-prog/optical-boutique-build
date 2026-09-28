@@ -79,7 +79,9 @@ function QueryDetailsModal({
     `Hello ${query.name}, thank you for contacting ${storeName} regarding "${query.productName}". How can we assist you today?`,
   );
   const waUrl = waNumber.length >= 7 ? `https://wa.me/${waNumber}?text=${waMessage}` : null;
-  const mailUrl = isEmail ? `mailto:${query.contact}?subject=RE: ${query.productName} Enquiry` : null;
+  const mailUrl = isEmail
+    ? `mailto:${query.contact}?subject=RE: ${query.productName} Enquiry`
+    : null;
 
   return (
     <div className="flex flex-col max-h-[85vh]">
@@ -263,12 +265,12 @@ function AdminQueries() {
   };
 
   const handleDelete = (query: ContactQuery) => {
-    if (!window.confirm(`Aap query from "${query.name}" ko permanently delete karna chahte hain?`)) {
+    if (!window.confirm(`Archive and remove the inquiry from "${query.name}"?`)) {
       return;
     }
     deleteQuery(query.id);
     setSelected(null);
-    toast.success("Query permanently deleted");
+    toast.success("Inquiry archived");
   };
 
   return (
@@ -280,7 +282,9 @@ function AdminQueries() {
         </div>
         <div className="flex items-center gap-2 rounded-xl border border-stone/30 bg-zinc-50 px-4 py-2 text-xs font-medium text-zinc-600">
           <MessageSquare className="h-4 w-4 text-gold shrink-0" />
-          <span>Total Queries: <strong>{queries.length}</strong></span>
+          <span>
+            Total Queries: <strong>{queries.length}</strong>
+          </span>
         </div>
       </header>
 
@@ -311,7 +315,8 @@ function AdminQueries() {
 
       {filtered.length === 0 ? (
         <p className="rounded-xl border border-dashed border-[#666666] bg-[#f9f9f9] px-6 py-16 text-center text-sm text-ink-muted">
-          No queries found — form submissions sent by users through the Contact form will show up here.
+          No queries found — form submissions sent by users through the Contact form will show up
+          here.
         </p>
       ) : (
         <div className="overflow-x-auto rounded-xl border border-[#666666] bg-[#f9f9f9] shadow-sm">
@@ -343,9 +348,7 @@ function AdminQueries() {
                   <td className="px-4 py-3 font-medium text-zinc-900">
                     {q.productName || "General enquiry"}
                   </td>
-                  <td className="px-4 py-3 text-zinc-700 max-w-xs truncate">
-                    {q.message}
-                  </td>
+                  <td className="px-4 py-3 text-zinc-700 max-w-xs truncate">{q.message}</td>
                   <td className="px-4 py-3">
                     <Badge
                       className={`text-xs font-semibold px-2.5 py-0.5 rounded-full border ${

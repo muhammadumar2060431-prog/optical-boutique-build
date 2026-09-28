@@ -50,9 +50,7 @@ export function CategoryBestsellersShowcase() {
 
   // Featured collection banner for the active category (if any)
   const categoryBannerCollection = useMemo(() => {
-    return activeCategoryCollections.find(
-      (c) => c.banner && (c.banner.image || c.banner.heading),
-    );
+    return activeCategoryCollections.find((c) => c.banner && (c.banner.image || c.banner.heading));
   }, [activeCategoryCollections]);
 
   if (!categories || categories.length === 0) return null;
@@ -164,7 +162,8 @@ export function CategoryBestsellersShowcase() {
                 No featured or best seller products in {activeCategory?.name} yet
               </p>
               <p className="mt-1 text-xs text-ink-muted">
-                Admin Panel me product edit karke <strong>"Homepage Bestsellers Grid"</strong> ya <strong>"Best Seller Badge"</strong> on karein taake woh yahan show ho sake.
+                Admin Panel me product edit karke <strong>"Homepage Bestsellers Grid"</strong> ya{" "}
+                <strong>"Best Seller Badge"</strong> on karein taake woh yahan show ho sake.
               </p>
             </div>
           ) : (
@@ -186,7 +185,7 @@ export function CategoryBestsellersShowcase() {
                             src={col.banner!.image}
                             alt={col.name}
                             loading="lazy"
-                            className="w-full h-auto max-h-[460px] min-h-[260px] sm:min-h-[340px] object-cover block"
+                            className="block h-auto w-full max-w-full object-contain sm:max-h-[460px] sm:min-h-[340px] sm:object-cover"
                           />
                         </div>
                       );
@@ -232,7 +231,6 @@ export function CategoryBestsellersShowcase() {
                   })()}
                 </div>
               )}
-
 
               {/* 4-Column Grid for ALL Products */}
               <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
