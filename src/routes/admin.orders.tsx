@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { toast } from "sonner";
 import {
-  Calendar,
   Check,
   CheckCircle2,
   Clock,
@@ -15,17 +14,14 @@ import {
   Package,
   Phone,
   Receipt,
-  Send,
   ShoppingCart,
   Sparkles,
   Truck,
-  User,
-  XCircle,
 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -35,7 +31,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { WhatsAppIcon } from "@/components/site/WhatsAppIcon";
-import { SUPPORTED_COURIERS, getCourierById, getCourierTrackingUrl } from "@/lib/couriers";
+import { SUPPORTED_COURIERS, getCourierTrackingUrl } from "@/lib/couriers";
 import { useStore } from "@/lib/store";
 import type { Order, OrderStatus } from "@/lib/types";
 

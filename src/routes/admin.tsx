@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Link, Outlet, createFileRoute } from "@tanstack/react-router";
 import {
   Boxes,
@@ -17,12 +17,9 @@ import {
   X,
 } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { AdminAuthPanel } from "@/components/admin/AdminAuthPanel";
 import { useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
-import { AdminDashboard } from "@/components/admin/AdminDashboard";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({
@@ -34,7 +31,6 @@ export const Route = createFileRoute("/admin")({
       { property: "og:description", content: "Internal control panel for the OPTIQUE store." },
     ],
   }),
-  notFoundComponent: AdminDashboard,
   component: AdminLayout,
 });
 
@@ -56,7 +52,7 @@ function AdminLayout() {
   const { isAdmin, logout, settings } = useStore();
   const [open, setOpen] = useState(false);
 
-  if (!isAdmin) return <AdminLogin />;
+  if (!isAdmin) return <AdminAuthPanel />;
 
   return (
     <div className="admin-portal flex min-h-screen flex-col bg-white lg:flex-row">
@@ -119,235 +115,9 @@ function AdminLayout() {
 
       <div className="min-w-0 flex-1">
         <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
-          {/* Double-check auth on every render - prevents stale state bypass */}
-          {isAdmin ? <Outlet /> : <AdminLogin />}
+          <Outlet />
         </div>
       </div>
-    </div>
-  );
-}
-
-function AdminLogin() {
-  const { login } = useStore();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-  const [remaining, setRemaining] = useState(0);
-
-  const LOCKOUT_TIERS = [{ minAttempts: 5, lockSeconds: 900 }] as const;
-
-  const LS_ATTEMPTS_KEY = "optique_admin_attempts";
-  const LS_LOCKED_KEY = "optique_admin_locked_until";
-
-  // Read persisted state from localStorage
-  const getStoredAttempts = () =>
-    typeof window === "undefined" ? 0 : parseInt(localStorage.getItem(LS_ATTEMPTS_KEY) || "0", 10);
-  const getStoredLockedUntil = () =>
-    typeof window === "undefined" ? 0 : parseInt(localStorage.getItem(LS_LOCKED_KEY) || "0", 10);
-
-  const [attempts, setAttempts] = useState<number>(() => getStoredAttempts());
-  const [lockedUntil, setLockedUntil] = useState<number>(() => getStoredLockedUntil());
-
-  const isLocked = lockedUntil > Date.now();
-
-  // Persist whenever state changes
-  const applyLockout = (newAttempts: number, lockSecs: number) => {
-    const until = Date.now() + lockSecs * 1000;
-    if (typeof window !== "undefined") {
-      localStorage.setItem(LS_ATTEMPTS_KEY, String(newAttempts));
-      localStorage.setItem(LS_LOCKED_KEY, String(until));
-    }
-    setAttempts(newAttempts);
-    setLockedUntil(until);
-    setRemaining(lockSecs);
-  };
-
-  const clearLockout = () => {
-    if (typeof window !== "undefined") {
-      localStorage.setItem(LS_ATTEMPTS_KEY, "0");
-      localStorage.setItem(LS_LOCKED_KEY, "0");
-    }
-    setAttempts(0);
-    setLockedUntil(0);
-    setRemaining(0);
-  };
-
-  // Get lockout duration for given attempt count
-  const getLockoutSeconds = (attempt: number): number | null => {
-    // Find highest tier that applies
-    let lockSecs: number | null = null;
-    for (const tier of LOCKOUT_TIERS) {
-      if (attempt >= tier.minAttempts) lockSecs = tier.lockSeconds;
-    }
-    return lockSecs;
-  };
-
-  // Human-readable lockout time
-  const formatTime = (secs: number) => {
-    if (secs >= 3600) return `${Math.ceil(secs / 3600)} ghanta`;
-    if (secs >= 60) return `${Math.ceil(secs / 60)} minute`;
-    return `${secs} second`;
-  };
-
-  // Live countdown timer
-  useEffect(() => {
-    if (!isLocked) return;
-    const interval = setInterval(() => {
-      const left = Math.ceil((lockedUntil - Date.now()) / 1000);
-      if (left <= 0) {
-        setLockedUntil(0);
-        setRemaining(0);
-        clearInterval(interval);
-      } else {
-        setRemaining(left);
-      }
-    }, 500);
-    // Set initial remaining on mount
-    setRemaining(Math.max(0, Math.ceil((lockedUntil - Date.now()) / 1000)));
-    return () => clearInterval(interval);
-  }, [isLocked, lockedUntil]);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (isLocked) return;
-
-    const res = await login(email.trim(), password.trim());
-    const ok = typeof res === "boolean" ? res : res.success;
-    if (ok) {
-      setError("");
-      clearLockout();
-    } else {
-      const newAttempts = attempts + 1;
-      if (typeof window !== "undefined") {
-        localStorage.setItem(LS_ATTEMPTS_KEY, String(newAttempts));
-      }
-      setAttempts(newAttempts);
-
-      const serverRetryAfter = typeof res === "object" ? res.retryAfter : undefined;
-      const lockSecs = serverRetryAfter ?? getLockoutSeconds(newAttempts);
-      if (lockSecs !== null) {
-        applyLockout(newAttempts, lockSecs);
-        setError(`Too many failed attempts. Login has been blocked for ${formatTime(lockSecs)}.`);
-      } else {
-        // Not yet locked - warn with attempts remaining until next tier
-        const nextTier = LOCKOUT_TIERS.find((t) => t.minAttempts > newAttempts);
-        const attemptsUntilLock = nextTier ? nextTier.minAttempts - newAttempts : 1;
-        const customError = typeof res === "object" && res.error ? res.error : null;
-        setError(
-          customError ||
-            `Incorrect email or password. ${attemptsUntilLock} more failed ${
-              attemptsUntilLock === 1 ? "attempt" : "attempts"
-            } will lock login for ${nextTier ? formatTime(nextTier.lockSeconds) : "an extended period"}.`,
-        );
-      }
-    }
-  };
-
-  // Format remaining time nicely
-  const remainingText = () => {
-    if (remaining >= 3600)
-      return `${Math.ceil(remaining / 3600)}h ${Math.ceil((remaining % 3600) / 60)}m`;
-    if (remaining >= 60) return `${Math.floor(remaining / 60)}m ${remaining % 60}s`;
-    return `${remaining}s`;
-  };
-
-  return (
-    <div className="grid min-h-screen place-items-center bg-jet px-4">
-      <form
-        onSubmit={handleSubmit}
-        className="w-full max-w-sm space-y-5 rounded-xl border border-white/10 bg-card p-8"
-        autoComplete="off"
-      >
-        <div className="space-y-1">
-          <p className="eyebrow text-gold-soft">Control panel</p>
-          <h1 className="font-display text-3xl">Sign in</h1>
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="admin-email">Email</Label>
-          <Input
-            id="admin-email"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="min-h-11"
-            disabled={isLocked}
-            required
-            autoComplete="new-email"
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="admin-password">Password</Label>
-          <Input
-            id="admin-password"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="min-h-11"
-            disabled={isLocked}
-            required
-            autoComplete="new-password"
-          />
-        </div>
-
-        {/* Lockout Progress Indicator */}
-        {isLocked && (
-          <div className="rounded-lg border border-destructive/40 bg-destructive/10 p-4 space-y-2">
-            <div className="flex items-center justify-between">
-              <p className="text-xs font-bold text-destructive uppercase tracking-wider">
-                Account Blocked
-              </p>
-              <span className="text-xs font-mono font-bold text-destructive bg-destructive/20 px-2 py-0.5 rounded-full">
-                {remainingText()}
-              </span>
-            </div>
-            <p className="text-xs text-destructive/80">{error}</p>
-            {/* Visual progress bar */}
-            <div className="h-1.5 w-full rounded-full bg-destructive/20 overflow-hidden">
-              <div
-                className="h-full bg-destructive rounded-full transition-all duration-1000"
-                style={{
-                  width: `${Math.max(0, Math.min(100, (remaining / (lockedUntil > 0 ? Math.max(60, Math.ceil((lockedUntil - (lockedUntil - remaining * 1000)) / 1000)) : 60)) * 100))}%`,
-                }}
-              />
-            </div>
-            <p className="text-[10px] text-destructive/60">{attempts} failed login attempts</p>
-          </div>
-        )}
-
-        {/* Normal Error (not locked) */}
-        {error && !isLocked && (
-          <div className="rounded-md border border-amber-400/30 bg-amber-50/10 p-3 space-y-0.5">
-            <p className="text-xs text-amber-700 dark:text-amber-400 font-medium">{error}</p>
-            {/* Attempt indicator dots */}
-            <div className="flex items-center gap-1 pt-1">
-              {Array.from({ length: 12 }).map((_, i) => (
-                <span
-                  key={i}
-                  className={cn(
-                    "h-1.5 w-1.5 rounded-full transition-colors",
-                    i < attempts ? "bg-destructive" : "bg-stone-300/40",
-                  )}
-                />
-              ))}
-            </div>
-          </div>
-        )}
-
-        <Button type="submit" className="min-h-11 w-full rounded-full" disabled={isLocked}>
-          {isLocked ? `Blocked (${remainingText()})` : "Enter"}
-        </Button>
-
-        <div className="text-center pt-1">
-          <Link
-            to="/"
-            className="text-xs text-sidebar-foreground/60 hover:text-white transition-colors"
-          >
-            Return to Store
-          </Link>
-        </div>
-      </form>
     </div>
   );
 }

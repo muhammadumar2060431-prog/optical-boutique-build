@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { Star } from "lucide-react";
 
@@ -28,8 +28,6 @@ export function ProductCard({ product }: { product: Product }) {
     ratingCount > 0
       ? productReviews.reduce((sum, r) => sum + (Number(r.rating) || 5), 0) / ratingCount
       : 5;
-  const displayRating = avgRatingNum % 1 === 0 ? String(avgRatingNum) : avgRatingNum.toFixed(1);
-
   const subImagesList = getProductSubImages(product);
   const [failedImages, setFailedImages] = useState<string[]>([]);
   const [loadedHoverImage, setLoadedHoverImage] = useState<string | null>(null);
@@ -47,6 +45,15 @@ export function ProductCard({ product }: { product: Product }) {
   const markImageFailed = (image: string) => {
     setFailedImages((current) => (current.includes(image) ? current : [...current, image]));
   };
+
+  useEffect(() => {
+    const retryImages = () => {
+      setFailedImages([]);
+      setLoadedHoverImage(null);
+    };
+    window.addEventListener("online", retryImages);
+    return () => window.removeEventListener("online", retryImages);
+  }, []);
 
   return (
     <Link
@@ -70,9 +77,13 @@ export function ProductCard({ product }: { product: Product }) {
             }`}
           />
         ) : (
-          <div className="flex h-full w-full items-center justify-center text-xs text-ink-muted">
-            Image unavailable
-          </div>
+          <img
+            src="/placeholder.svg"
+            alt=""
+            width={800}
+            height={800}
+            className="h-full w-full object-cover"
+          />
         )}
 
         {/* Hover image - crossfade on hover/touch */}

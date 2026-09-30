@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Database, Eye, Lock, ShieldCheck, UserCheck } from "lucide-react";
+import { Eye, Lock, ShieldCheck } from "lucide-react";
 
 import { Reveal } from "@/components/site/Reveal";
 import { SiteLayout } from "@/components/site/SiteLayout";

@@ -1,5 +1,5 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { CheckCircle2, FileText, RefreshCw, RotateCcw, ShieldCheck, XCircle } from "lucide-react";
+import { createFileRoute } from "@tanstack/react-router";
+import { CheckCircle2, RefreshCw, RotateCcw, ShieldCheck, XCircle } from "lucide-react";
 
 import { Reveal } from "@/components/site/Reveal";
 import { SiteLayout } from "@/components/site/SiteLayout";

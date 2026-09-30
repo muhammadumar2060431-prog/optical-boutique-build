@@ -3,7 +3,6 @@ import { createFileRoute } from "@tanstack/react-router";
 import {
   ArrowDown,
   ArrowUp,
-  CheckCircle2,
   Mail,
   Pencil,
   Plus,
@@ -218,7 +217,7 @@ function AdminTestimonials() {
         </p>
       ) : (
         <ul className="space-y-3">
-          {filteredList.map((t, i) => {
+          {filteredList.map((t) => {
             const isBad = t.rating < 4;
             const originalIndex = testimonials.findIndex((x) => x.id === t.id);
 

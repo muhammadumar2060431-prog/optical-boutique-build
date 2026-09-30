@@ -1,6 +1,6 @@
 /** Lightweight receipt of the most recent checkout, kept so the confirmation
  *  page can show line items and totals even after a hard refresh. */
-export interface OrderReceiptLine {
+interface OrderReceiptLine {
   name: string;
   variantLabel: string | null;
   qty: number;

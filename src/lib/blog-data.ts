@@ -21,7 +21,7 @@ function writeCache(posts: BlogPost[]) {
   if (typeof window !== "undefined") localStorage.setItem(CACHE_KEY, JSON.stringify(posts));
 }
 
-export function mapDbBlogPost(raw: any): BlogPost {
+function mapDbBlogPost(raw: any): BlogPost {
   return {
     id: String(raw.id),
     slug: raw.slug || "",

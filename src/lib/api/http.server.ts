@@ -80,7 +80,7 @@ export function json(data: unknown, init: ResponseInit = {}) {
   return Response.json(data, init);
 }
 
-export function getRequestId(request: Request) {
+function getRequestId(request: Request) {
   const supplied = request.headers.get("x-request-id")?.trim();
   return supplied && /^[A-Za-z0-9._-]{8,100}$/.test(supplied) ? supplied : crypto.randomUUID();
 }

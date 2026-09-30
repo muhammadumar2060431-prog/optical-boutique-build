@@ -65,7 +65,7 @@ export const SUPPORTED_COURIERS: CourierConfig[] = [
   },
 ];
 
-export function getCourierById(id?: string | null): CourierConfig | undefined {
+function getCourierById(id?: string | null): CourierConfig | undefined {
   if (!id) return undefined;
   return SUPPORTED_COURIERS.find(
     (c) =>

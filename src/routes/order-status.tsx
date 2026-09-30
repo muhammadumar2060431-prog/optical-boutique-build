@@ -46,6 +46,7 @@ export const Route = createFileRoute("/order-status")({
       },
       { property: "og:type", content: "website" },
       { property: "og:url", content: CANONICAL },
+      { name: "robots", content: "noindex" },
     ],
     links: [{ rel: "canonical", href: CANONICAL }],
   }),

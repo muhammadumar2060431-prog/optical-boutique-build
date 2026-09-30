@@ -22,6 +22,7 @@ export const Route = createFileRoute("/blog/")({
       },
       { property: "og:title", content: "The OPTIQUE Eyewear Journal" },
       { property: "og:type", content: "website" },
+      { property: "og:url", content: getSiteUrl("/blog") },
     ],
     links: [{ rel: "canonical", href: getSiteUrl("/blog") }],
   }),

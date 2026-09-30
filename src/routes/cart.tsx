@@ -2,6 +2,7 @@ import { Link, createFileRoute } from "@tanstack/react-router";
 import { Minus, Plus, ShoppingBag, Trash2 } from "lucide-react";
 
 import { SiteLayout } from "@/components/site/SiteLayout";
+import { ProductImage } from "@/components/site/ProductImage";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/lib/cart";
 import { formatPrice, useStore } from "@/lib/store";
@@ -69,7 +70,7 @@ function CartPage() {
             <ul className="divide-y divide-stone rounded-xl border border-stone bg-card">
               {lines.map(({ item, stock, outOfStock, exceeds }) => (
                 <li key={item.key} className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center">
-                  <img
+                  <ProductImage
                     src={item.image}
                     alt={item.name}
                     loading="lazy"

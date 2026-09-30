@@ -4,8 +4,6 @@ import { toast } from "sonner";
 import {
   Calendar,
   Check,
-  CheckCircle2,
-  Clock,
   ExternalLink,
   FileText,
   Mail,

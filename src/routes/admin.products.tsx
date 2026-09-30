@@ -6,7 +6,6 @@ import {
   ArrowUp,
   ChevronRight,
   FolderTree,
-  Layers,
   Pencil,
   Plus,
   ShieldCheck,

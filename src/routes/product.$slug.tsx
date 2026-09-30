@@ -1,22 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link, createFileRoute, useNavigate, useParams } from "@tanstack/react-router";
-import {
-  Check,
-  CheckCircle2,
-  Info,
-  MessageCircle,
-  Play,
-  Plus,
-  ShieldCheck,
-  ShoppingBag,
-  Sparkles,
-  Star,
-  Upload,
-} from "lucide-react";
+import { Link, createFileRoute, notFound, useNavigate, useParams } from "@tanstack/react-router";
+import { Check, CheckCircle2, Play, Plus, ShoppingBag, Sparkles, Star } from "lucide-react";
 import { toast } from "sonner";
 
 import { ImageUpload } from "@/components/admin/ImageUpload";
 import { ProductCard } from "@/components/site/ProductCard";
+import { ProductImage } from "@/components/site/ProductImage";
 import { Reveal } from "@/components/site/Reveal";
 import { SiteLayout } from "@/components/site/SiteLayout";
 import { WhatsAppIcon } from "@/components/site/WhatsAppIcon";
@@ -26,7 +15,6 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { useCart } from "@/lib/cart";
 import { supabase } from "@/lib/supabase";
@@ -36,11 +24,11 @@ import { trackMetaEvent } from "@/lib/meta-events";
 import type { Product } from "@/lib/types";
 import { formatPrice, newId, useStore } from "@/lib/store";
 import { cn, getSiteUrl } from "@/lib/utils";
-import { productEnquiryMessage, whatsappLink } from "@/lib/whatsapp";
 
 export const Route = createFileRoute("/product/$slug")({
   loader: async ({ params }) => {
     // 1. Fetch real product from Supabase by slug
+    let databaseConfirmedMissing = false;
     try {
       const { data, error } = await supabase
         .from("products")
@@ -51,9 +39,12 @@ export const Route = createFileRoute("/product/$slug")({
       if (data && !error) {
         return { product: mapDbProductToStore(data) };
       }
+      databaseConfirmedMissing = !error;
     } catch {
       // Fall back to cached data when the network is unavailable.
     }
+
+    if (databaseConfirmedMissing) throw notFound();
 
     // 2. Fallback to client localStorage if available
     if (typeof window !== "undefined") {
@@ -130,6 +121,7 @@ export const Route = createFileRoute("/product/$slug")({
 
 function ProductPage() {
   const { slug } = useParams({ from: "/product/$slug" });
+  const { product: loadedProduct } = Route.useLoaderData();
   const {
     getProductBySlug,
     getCategoryById,
@@ -137,17 +129,15 @@ function ProductPage() {
     getRelatedProducts,
     stockStatus,
     productStock,
-    addOrder,
     testimonials,
     saveTestimonial,
     socialReels,
-    settings,
   } = useStore();
 
   const { addItem } = useCart();
   const { openWhatsAppModal } = useWhatsAppModal();
   const navigate = useNavigate();
-  const product = getProductBySlug(slug);
+  const product = getProductBySlug(slug) ?? loadedProduct;
   const trackedViewRef = useRef<string | null>(null);
 
   const [variantId, setVariantId] = useState<string | null>(null);
@@ -232,16 +222,17 @@ function ProductPage() {
     return (
       <SiteLayout>
         <div className="mx-auto max-w-3xl px-4 py-28 text-center">
-          <h1 className="font-display text-3xl">We can't find that product</h1>
+          <h1 className="font-display text-3xl">Product temporarily unavailable</h1>
           <p className="mt-3 text-sm text-ink-muted">
-            It may have been renamed or retired. Browse our current optical collections instead.
+            We could not reach the catalogue. Check your connection and try again.
           </p>
-          <Link
-            to="/glasses"
+          <button
+            type="button"
+            onClick={() => window.location.reload()}
             className="mt-6 inline-flex min-h-11 items-center rounded-full bg-gold px-6 text-xs tracking-[0.18em] uppercase text-primary-foreground"
           >
-            View glasses
-          </Link>
+            Try again
+          </button>
         </div>
       </SiteLayout>
     );
@@ -272,8 +263,6 @@ function ProductPage() {
       typeof item.src === "string" && item.src.trim().length > 0,
   );
 
-  const gallery = galleryItems.map((g) => g.src);
-
   const mainImage =
     (activeImage && activeImage.trim().length > 0 ? activeImage : null) ??
     (variant?.image && variant.image.trim().length > 0 ? variant.image : null) ??
@@ -286,30 +275,6 @@ function ProductPage() {
   const status = stockStatus(stock);
   const outOfStock = status === "Out of stock";
   const related = getRelatedProducts(product);
-
-  const url = typeof window === "undefined" ? "" : window.location.href;
-  const waHref = whatsappLink(
-    settings.whatsapp,
-    productEnquiryMessage({
-      storeName: settings.storeName,
-      productName: product.name,
-      variantLabel: variant?.label,
-      url,
-    }),
-  );
-
-  const recordIntent = () => {
-    void addOrder({
-      customerName: "WhatsApp customer",
-      contact: "Via WhatsApp",
-      productId: product.id,
-      productName: product.name,
-      variantId: variant?.id ?? null,
-      variantLabel: variant?.label ?? null,
-      message: `Started a WhatsApp enquiry for ${product.name} (${variant?.label || "Base"}).`,
-      source: "whatsapp",
-    });
-  };
 
   const handleReviewSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -384,7 +349,7 @@ function ProductPage() {
           {/* Gallery / Images */}
           <div className="min-w-0 space-y-4">
             <div className="lens-ring relative w-full min-w-0 max-w-full overflow-hidden rounded-2xl bg-jet border border-stone">
-              <img
+              <ProductImage
                 key={mainImage}
                 src={mainImage}
                 alt={product.name}
@@ -433,7 +398,7 @@ function ProductPage() {
                         : "border-stone hover:border-gold/60 opacity-80 hover:opacity-100",
                     )}
                   >
-                    <img
+                    <ProductImage
                       src={item.src}
                       alt={`${product.name} - ${item.label}`}
                       loading="lazy"
@@ -968,7 +933,7 @@ function ProductPage() {
 
             {/* Video Cards Grid / Carousel */}
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 sm:gap-6">
-              {productReels.map((reel, idx) => (
+              {productReels.map((reel) => (
                 <div
                   key={reel.id}
                   onClick={() => setSelectedVideoUrl(reel.videoUrl)}

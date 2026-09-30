@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, type ReactNode } from "react";
 import { toast } from "sonner";
-import { Mail, Phone, User, X } from "lucide-react";
+import { Mail, Phone, User } from "lucide-react";
 
 import { WhatsAppIcon } from "./WhatsAppIcon";
 import { Button } from "@/components/ui/button";
@@ -98,18 +98,21 @@ export function WhatsAppModalProvider({ children }: { children: ReactNode }) {
 
     // Save order record to store & database with source = 'whatsapp'
     setSubmitting(true);
-    const newOrder = await addOrder({
-      customerName: name.trim(),
-      contact: `${phone.trim()} · ${email.trim()}`,
-      productName: prodName,
-      productId: options.productId || null,
-      variantId: options.variantId || null,
-      variantLabel: options.variantLabel || null,
-      message: `WhatsApp order enquiry for ${prodName}${
-        options.variantLabel ? ` (${options.variantLabel})` : ""
-      }.`,
-      source: "whatsapp",
-    }, leadEvent);
+    const newOrder = await addOrder(
+      {
+        customerName: name.trim(),
+        contact: `${phone.trim()} · ${email.trim()}`,
+        productName: prodName,
+        productId: options.productId || null,
+        variantId: options.variantId || null,
+        variantLabel: options.variantLabel || null,
+        message: `WhatsApp order enquiry for ${prodName}${
+          options.variantLabel ? ` (${options.variantLabel})` : ""
+        }.`,
+        source: "whatsapp",
+      },
+      leadEvent,
+    );
 
     if (!newOrder) {
       setSubmitting(false);

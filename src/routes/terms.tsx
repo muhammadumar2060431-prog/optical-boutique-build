@@ -1,9 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { AlertCircle, CheckCircle2, FileCheck2, Gavel, Scale, ShieldAlert } from "lucide-react";
+import { FileCheck2, Gavel, Scale } from "lucide-react";
 
 import { Reveal } from "@/components/site/Reveal";
 import { SiteLayout } from "@/components/site/SiteLayout";
-import { useStore } from "@/lib/store";
 import { getSiteUrl } from "@/lib/utils";
 
 export const Route = createFileRoute("/terms")({
@@ -29,8 +28,6 @@ export const Route = createFileRoute("/terms")({
 });
 
 function TermsPage() {
-  const { settings } = useStore();
-
   return (
     <SiteLayout>
       <div className="bg-white py-16 sm:py-24">

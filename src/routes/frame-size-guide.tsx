@@ -1,7 +1,22 @@
 ﻿import { createFileRoute, Link } from "@tanstack/react-router";
 import { SiteLayout } from "@/components/site/SiteLayout";
+import { getSiteUrl } from "@/lib/utils";
 
 export const Route = createFileRoute("/frame-size-guide")({
+  head: () => ({
+    meta: [
+      { title: "Eyeglass Frame Size Guide - OPTIQUE Eyewear" },
+      {
+        name: "description",
+        content:
+          "Find your ideal eyeglass frame size using lens width, bridge width, temple length, and face-shape guidance.",
+      },
+      { property: "og:title", content: "Eyeglass Frame Size Guide - OPTIQUE Eyewear" },
+      { property: "og:type", content: "article" },
+      { property: "og:url", content: getSiteUrl("/frame-size-guide") },
+    ],
+    links: [{ rel: "canonical", href: getSiteUrl("/frame-size-guide") }],
+  }),
   component: FrameSizeGuidePage,
 });
 

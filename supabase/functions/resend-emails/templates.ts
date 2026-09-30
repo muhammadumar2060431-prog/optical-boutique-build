@@ -220,7 +220,7 @@ export function getAdminQueryNotificationTemplate(query: any): string {
 }
 
 // ─── NEWSLETTER WELCOME EMAIL ────────────────────────────────────────────────
-export function getSubscriberEmailTemplate(subscriber: any): string {
+export function getSubscriberEmailTemplate(): string {
   const content = `
     <tr>
       <td style="padding:36px 40px;text-align:center;">

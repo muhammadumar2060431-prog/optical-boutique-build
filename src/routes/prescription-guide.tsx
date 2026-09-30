@@ -1,7 +1,22 @@
 ﻿import { createFileRoute, Link } from "@tanstack/react-router";
 import { SiteLayout } from "@/components/site/SiteLayout";
+import { getSiteUrl } from "@/lib/utils";
 
 export const Route = createFileRoute("/prescription-guide")({
+  head: () => ({
+    meta: [
+      { title: "Eyeglass Prescription Guide - OPTIQUE Eyewear" },
+      {
+        name: "description",
+        content:
+          "Understand SPH, CYL, AXIS, ADD, and PD values before ordering your prescription eyewear.",
+      },
+      { property: "og:title", content: "Eyeglass Prescription Guide - OPTIQUE Eyewear" },
+      { property: "og:type", content: "article" },
+      { property: "og:url", content: getSiteUrl("/prescription-guide") },
+    ],
+    links: [{ rel: "canonical", href: getSiteUrl("/prescription-guide") }],
+  }),
   component: PrescriptionGuidePage,
 });
 

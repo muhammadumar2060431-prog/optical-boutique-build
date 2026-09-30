@@ -6,6 +6,7 @@ User-agent: *
 Allow: /
 Disallow: /admin
 Disallow: /admin/
+Disallow: /api/
 Disallow: /order-confirmation
 Disallow: /order-confirmation/
 Disallow: /order-status
@@ -15,4 +16,4 @@ Disallow: /order-status/
 Crawl-delay: 1
 
 # Sitemap Location
-Sitemap: /sitemap.xml
+Sitemap: https://www.nigah.store/sitemap.xml

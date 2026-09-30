@@ -12,6 +12,7 @@ import {
   type ReactNode,
 } from "react";
 import { supabase, isSupabaseConfigured } from "./supabase";
+import { isAdminActivityExpired } from "./admin-session";
 import {
   fetchInitialSupabaseData,
   dbUpsertProduct,
@@ -96,7 +97,7 @@ import type { MetaEventInput } from "./meta-events.types";
  * re-implementing this file only.
  */
 
-export interface StoreState {
+interface StoreState {
   categories: Category[];
   collections: Collection[];
   products: Product[];
@@ -114,7 +115,7 @@ export interface StoreState {
   isAdmin: boolean;
 }
 
-export interface InventoryRow {
+interface InventoryRow {
   key: string;
   productId: string;
   variantId: string | null;
@@ -142,7 +143,7 @@ type ProductQueryOptions = {
   sort?: ProductSort;
 };
 
-export type ProductPageResult = {
+type ProductPageResult = {
   items: Product[];
   total: number;
   page: number;
@@ -232,11 +233,33 @@ interface StoreApi extends StoreState {
   login: (
     email: string,
     password: string,
-  ) => Promise<{ success: boolean; error?: string; retryAfter?: number }> | boolean;
+  ) => Promise<{ success: boolean; error?: string; retryAfter?: number }>;
   logout: () => void;
 }
 
 const StoreContext = createContext<StoreApi | null>(null);
+
+const ADMIN_ACTIVITY_KEY = "nigah_admin_last_activity";
+
+function readAdminActivity() {
+  if (typeof window === "undefined") return 0;
+  const value = Number(window.localStorage.getItem(ADMIN_ACTIVITY_KEY));
+  return Number.isFinite(value) && value > 0 ? value : 0;
+}
+
+function recordAdminActivity(at = Date.now()) {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(ADMIN_ACTIVITY_KEY, String(at));
+}
+
+function clearAdminActivity() {
+  if (typeof window === "undefined") return;
+  window.localStorage.removeItem(ADMIN_ACTIVITY_KEY);
+}
+
+function isAdminSessionInactive(at = Date.now()) {
+  return isAdminActivityExpired(readAdminActivity(), at);
+}
 
 const uid = (prefix: string) => `${prefix}-${Math.random().toString(36).slice(2, 9)}`;
 const nowIso = () => new Date().toISOString();
@@ -251,7 +274,7 @@ export function newOrderReference() {
 }
 
 /** Extracts a YouTube video id from most common URL shapes. */
-export function parseYouTubeId(url: string): string | null {
+function parseYouTubeId(url: string): string | null {
   const match = url.match(
     /(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([A-Za-z0-9_-]{6,})/,
   );
@@ -263,7 +286,7 @@ export function parseYouTubeId(url: string): string | null {
  * here the channel handle is read from the URL (?channel=@handle) or from
  * a youtube.com/@handle/... style link.
  */
-export function parseYouTubeChannel(url: string): string | null {
+function parseYouTubeChannel(url: string): string | null {
   const handle = url.match(/@([A-Za-z0-9_.-]+)/);
   return handle?.[1] ? `@${handle[1]}` : null;
 }
@@ -274,28 +297,6 @@ export function parseYouTubeChannel(url: string): string | null {
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 const NO_EXPIRY_KEYS = new Set(["orders", "queries", "settings", "subscribers", "isAdmin"]);
 // ─────────────────────────────────────────────────────────────────────────────
-
-function getSaved<T>(key: string, fallback: T): T {
-  if (typeof window === "undefined") return fallback;
-  try {
-    const raw = localStorage.getItem(`optique_v1_${key}`);
-    if (!raw) return fallback;
-    const parsed = JSON.parse(raw);
-    // Support both legacy (plain value) and new (wrapped with __ts)
-    if (parsed && typeof parsed === "object" && "__ts" in parsed && "__data" in parsed) {
-      const age = Date.now() - parsed.__ts;
-      if (!NO_EXPIRY_KEYS.has(key) && age > CACHE_TTL_MS) {
-        localStorage.removeItem(`optique_v1_${key}`);
-        return fallback;
-      }
-      return parsed.__data as T;
-    }
-    // Legacy plain value — treat as valid
-    return parsed as T;
-  } catch {
-    return fallback;
-  }
-}
 
 function saveItem<T>(key: string, val: T) {
   if (typeof window === "undefined") return;
@@ -402,35 +403,6 @@ function parseOrderRecord(raw: any, existing?: Order): Order {
   };
 }
 
-function getInitialCached<T>(key: string, fallback: T): T {
-  if (typeof window === "undefined") return fallback;
-  try {
-    const raw = localStorage.getItem(`optique_v1_${key}`);
-    if (!raw) return fallback;
-    const parsed = JSON.parse(raw);
-
-    // Unwrap TTL envelope if present
-    let value = parsed;
-    if (parsed && typeof parsed === "object" && "__ts" in parsed && "__data" in parsed) {
-      const age = Date.now() - parsed.__ts;
-      if (!NO_EXPIRY_KEYS.has(key) && age > CACHE_TTL_MS) {
-        localStorage.removeItem(`optique_v1_${key}`);
-        return fallback; // Expired — Supabase will hydrate fresh
-      }
-      value = parsed.__data;
-    }
-
-    if (value !== null && value !== undefined) {
-      if (Array.isArray(fallback)) {
-        if (Array.isArray(value) && value.length > 0) return value as unknown as T;
-      } else if (typeof fallback === "object") {
-        return { ...fallback, ...value } as T;
-      }
-    }
-  } catch {}
-  return fallback;
-}
-
 export function StoreProvider({ children }: { children: ReactNode }) {
   // Keep the first browser render identical to SSR; cache is applied after mount.
   const [categories, setCategories] = useState<Category[]>(seedCategories);
@@ -519,31 +491,61 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!isSupabaseConfigured) return;
 
+    let cancelled = false;
+    const withTimeout = <T,>(promise: PromiseLike<T>, timeoutMs: number) =>
+      new Promise<T>((resolve, reject) => {
+        const timer = window.setTimeout(
+          () => reject(new Error("Admin session verification timed out")),
+          timeoutMs,
+        );
+        Promise.resolve(promise).then(
+          (value) => {
+            window.clearTimeout(timer);
+            resolve(value);
+          },
+          (error) => {
+            window.clearTimeout(timer);
+            reject(error);
+          },
+        );
+      });
+
     const applySession = async (session: { access_token: string } | null) => {
-      const { data, error } = session
-        ? await supabase.rpc("is_admin")
-        : { data: false, error: null };
-      if (session && !error && data === true) {
-        setIsAdmin(true);
-        if (typeof window !== "undefined") {
-          sessionStorage.setItem("optique_admin_session", "true");
+      try {
+        if (session && isAdminSessionInactive()) {
+          clearAdminActivity();
+          setIsAdmin(false);
+          window.setTimeout(() => void supabase.auth.signOut(), 0);
+          return;
         }
-      } else {
+        const { data, error } = session
+          ? await withTimeout(supabase.rpc("is_admin"), 5_000)
+          : { data: false, error: null };
+        if (cancelled) return;
+        if (session && !error && data === true) {
+          setIsAdmin(true);
+          return;
+        }
         setIsAdmin(false);
-        if (typeof window !== "undefined") {
-          sessionStorage.removeItem("optique_admin_session");
-          sessionStorage.removeItem("optique_admin_session_token");
-        }
+      } catch {
+        if (cancelled) return;
+        setIsAdmin(false);
       }
     };
 
-    supabase.auth.getSession().then(({ data }) => void applySession(data.session));
+    withTimeout(supabase.auth.getSession(), 5_000)
+      .then(({ data }) => void applySession(data.session))
+      .catch(() => {
+        if (cancelled) return;
+        setIsAdmin(false);
+      });
 
     const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
       void applySession(session);
     });
 
     return () => {
+      cancelled = true;
       authListener.subscription?.unsubscribe();
     };
   }, []);
@@ -1326,8 +1328,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     return order;
   }, []);
 
-  const addOrders = useCallback<StoreApi["addOrders"]>(
-    async (data, idempotencyKey, metaEvent) => {
+  const addOrders = useCallback<StoreApi["addOrders"]>(async (data, idempotencyKey, metaEvent) => {
     const orders = data.map((entry) => {
       const { stockDeducted = false, ...rest } = entry;
       return {
@@ -1340,13 +1341,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       };
     });
 
-      const saved = await dbInsertOrders(orders, idempotencyKey, metaEvent);
-      if (!saved) return null;
-      setOrders((prev) => [...orders, ...prev]);
-      return orders;
-    },
-    [],
-  );
+    const saved = await dbInsertOrders(orders, idempotencyKey, metaEvent);
+    if (!saved) return null;
+    setOrders((prev) => [...orders, ...prev]);
+    return orders;
+  }, []);
 
   const getOrdersByReference = useCallback<StoreApi["getOrdersByReference"]>(
     (reference) => {
@@ -2014,11 +2013,15 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           };
         }
 
+        recordAdminActivity();
         const { error } = await supabase.auth.setSession({
           access_token: payload.accessToken,
           refresh_token: payload.refreshToken,
         });
-        if (error) return { success: false, error: "Authentication is temporarily unavailable." };
+        if (error) {
+          clearAdminActivity();
+          return { success: false, error: "Authentication is temporarily unavailable." };
+        }
         setIsAdmin(true);
         return { success: true };
       } catch {
@@ -2050,6 +2053,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(async () => {
     setIsAdmin(false);
+    clearAdminActivity();
     if (typeof window !== "undefined") {
       sessionStorage.removeItem("optique_admin_session");
       sessionStorage.removeItem("optique_admin_session_token");
@@ -2063,6 +2067,50 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       } catch {}
     }
   }, []);
+
+  useEffect(() => {
+    if (!isAdmin) return;
+
+    let lastRecordedAt = readAdminActivity();
+    const recordActivity = () => {
+      if (!window.location.pathname.startsWith("/admin")) return;
+      const now = Date.now();
+      if (now - lastRecordedAt < 15_000) return;
+      lastRecordedAt = now;
+      recordAdminActivity(now);
+    };
+    const enforceTimeout = () => {
+      if (isAdminSessionInactive()) void logout();
+    };
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible") enforceTimeout();
+    };
+    const onStorage = (event: StorageEvent) => {
+      if (event.key === ADMIN_ACTIVITY_KEY) enforceTimeout();
+    };
+    const activityEvents: Array<keyof WindowEventMap> = [
+      "pointerdown",
+      "keydown",
+      "scroll",
+      "touchstart",
+    ];
+
+    activityEvents.forEach((eventName) =>
+      window.addEventListener(eventName, recordActivity, { passive: true }),
+    );
+    window.addEventListener("focus", enforceTimeout);
+    window.addEventListener("storage", onStorage);
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    const timer = window.setInterval(enforceTimeout, 15_000);
+
+    return () => {
+      activityEvents.forEach((eventName) => window.removeEventListener(eventName, recordActivity));
+      window.removeEventListener("focus", enforceTimeout);
+      window.removeEventListener("storage", onStorage);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+      window.clearInterval(timer);
+    };
+  }, [isAdmin, logout]);
 
   const setHeroSlides = useCallback<StoreApi["setHeroSlides"]>((slides) => {
     const ordered = slides.map((slide, i) => ({ ...slide, sortOrder: i }));

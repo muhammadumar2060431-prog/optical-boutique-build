@@ -1,15 +1,6 @@
 import { useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import {
-  ArrowDown,
-  ArrowUp,
-  HelpCircle,
-  Pencil,
-  Plus,
-  Search,
-  Sparkles,
-  Trash2,
-} from "lucide-react";
+import { ArrowDown, ArrowUp, HelpCircle, Pencil, Plus, Search, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";

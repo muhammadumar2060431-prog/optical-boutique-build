@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
+import { ProductImage } from "@/components/site/ProductImage";
 import { useStore } from "@/lib/store";
 import type { Product } from "@/lib/types";
 
@@ -88,7 +89,7 @@ export function NewArrivalsShowcase() {
                 className="absolute left-1 sm:left-4 md:left-10 lg:left-16 z-10 w-48 sm:w-76 md:w-96 lg:w-[420px] opacity-30 hover:opacity-70 transition-all duration-500 cursor-pointer scale-75 lg:scale-80 blur-[0.2px]"
               >
                 <div className="relative flex flex-col items-center">
-                  <img
+                  <ProductImage
                     src={leftItem.newArrivalImage || leftItem.image}
                     alt={leftItem.name}
                     className="w-full h-44 sm:h-60 md:h-76 lg:h-88 object-contain mix-blend-multiply drop-shadow-lg"
@@ -108,7 +109,7 @@ export function NewArrivalsShowcase() {
               >
                 {/* Huge Floating Eyewear */}
                 <div className="relative w-full h-60 sm:h-80 md:h-[400px] lg:h-[460px] flex items-center justify-center float-bounce-active">
-                  <img
+                  <ProductImage
                     key={centerItem.id}
                     src={centerItem.newArrivalImage || centerItem.image}
                     alt={centerItem.name}
@@ -130,7 +131,7 @@ export function NewArrivalsShowcase() {
                 className="absolute right-1 sm:right-4 md:right-10 lg:right-16 z-10 w-48 sm:w-76 md:w-96 lg:w-[420px] opacity-30 hover:opacity-70 transition-all duration-500 cursor-pointer scale-75 lg:scale-80 blur-[0.2px]"
               >
                 <div className="relative flex flex-col items-center">
-                  <img
+                  <ProductImage
                     src={rightItem.newArrivalImage || rightItem.image}
                     alt={rightItem.name}
                     className="w-full h-44 sm:h-60 md:h-76 lg:h-88 object-contain mix-blend-multiply drop-shadow-lg"

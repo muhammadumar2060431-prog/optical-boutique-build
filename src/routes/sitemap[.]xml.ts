@@ -3,7 +3,7 @@ import type {} from "@tanstack/react-start";
 
 import { supabase } from "@/lib/supabase";
 
-const BASE_URL = import.meta.env["VITE_SITE_URL"]?.replace(/\/$/, "") || "https://optique.pk";
+const BASE_URL = import.meta.env["VITE_SITE_URL"]?.replace(/\/$/, "") || "https://www.nigah.store";
 
 interface SitemapEntry {
   path: string;
@@ -22,7 +22,15 @@ export const Route = createFileRoute("/sitemap.xml")({
           { path: "/about", changefreq: "monthly", priority: "0.6" },
           { path: "/blog", changefreq: "weekly", priority: "0.8" },
           { path: "/contact", changefreq: "monthly", priority: "0.6" },
-          { path: "/order-status", changefreq: "monthly", priority: "0.4" },
+          { path: "/faqs", changefreq: "monthly", priority: "0.6" },
+          { path: "/frame-size-guide", changefreq: "monthly", priority: "0.6" },
+          { path: "/lens-guide", changefreq: "monthly", priority: "0.6" },
+          { path: "/prescription-guide", changefreq: "monthly", priority: "0.6" },
+          { path: "/shipping-policy", changefreq: "yearly", priority: "0.3" },
+          { path: "/returns-policy", changefreq: "yearly", priority: "0.3" },
+          { path: "/warranty", changefreq: "yearly", priority: "0.3" },
+          { path: "/privacy-policy", changefreq: "yearly", priority: "0.2" },
+          { path: "/terms", changefreq: "yearly", priority: "0.2" },
         ];
 
         try {

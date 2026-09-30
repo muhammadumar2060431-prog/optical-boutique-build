@@ -1,4 +1,4 @@
-export const createImage = (url: string): Promise<HTMLImageElement> =>
+const createImage = (url: string): Promise<HTMLImageElement> =>
   new Promise((resolve, reject) => {
     const image = new Image();
     image.addEventListener("load", () => resolve(image));
@@ -7,11 +7,11 @@ export const createImage = (url: string): Promise<HTMLImageElement> =>
     image.src = url;
   });
 
-export function getRadianAngle(degreeValue: number) {
+function getRadianAngle(degreeValue: number) {
   return (degreeValue * Math.PI) / 180;
 }
 
-export function rotateSize(width: number, height: number, rotation: number) {
+function rotateSize(width: number, height: number, rotation: number) {
   const rotRad = getRadianAngle(rotation);
   return {
     width: Math.abs(Math.cos(rotRad) * width) + Math.abs(Math.sin(rotRad) * height),

@@ -267,27 +267,6 @@ export function validateImageUrl(url: string): { valid: boolean; error?: string 
 /**
  * Validates destination/CTA links for slides, banners, and buttons.
  */
-export function validateDestinationLink(url: string): { valid: boolean; error?: string } {
-  const cleanUrl = sanitizeRawInput(url);
-  if (!cleanUrl) {
-    return { valid: true }; // Optional link is allowed if empty
-  }
-
-  if (!isSafeUrl(cleanUrl)) {
-    return {
-      valid: false,
-      error:
-        "🔒 Security Alert: Link must start with http://, https://, or / (relative page link).",
-    };
-  }
-
-  return { valid: true };
-}
-
-/**
- * Escapes special characters used in PostgREST and SQL queries to prevent filter injection.
- * Strips null bytes (\0), unescaped quotes, semi-colons, and PostgREST operators.
- */
 export function escapePostgrestFilter(term: string): string {
   if (!term) return "";
   return sanitizeRawInput(term)

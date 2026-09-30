@@ -60,8 +60,6 @@ export const seedBrands: Brand[] = [];
 
 export const seedSocialReels: SocialReel[] = [];
 
-export const seedBrandsRemaining: Brand[] = [];
-
 export const seedFaqs: FAQItem[] = [];
 
 export const seedSubscribers: Subscriber[] = [];

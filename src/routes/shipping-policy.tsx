@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Clock, HelpCircle, MapPin, PackageCheck, ShieldCheck, Truck } from "lucide-react";
+import { Clock, PackageCheck, Truck } from "lucide-react";
 
 import { Reveal } from "@/components/site/Reveal";
 import { SiteLayout } from "@/components/site/SiteLayout";

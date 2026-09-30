@@ -5,16 +5,10 @@ import { metaEventSchema } from "./meta-event-handler.server.ts";
 const identifier = z.string().trim().min(1).max(100);
 const nullableIdentifier = identifier.nullable();
 
-export const orderSourceSchema = z.enum(["cart", "whatsapp"]);
-export const orderStatusSchema = z.enum([
-  "New",
-  "Contacted",
-  "Dispatched",
-  "Completed",
-  "Cancelled",
-]);
+const orderSourceSchema = z.enum(["cart", "whatsapp"]);
+const orderStatusSchema = z.enum(["New", "Contacted", "Dispatched", "Completed", "Cancelled"]);
 
-export const orderCreateItemSchema = z.object({
+const orderCreateItemSchema = z.object({
   id: identifier,
   reference: z.string().trim().min(9).max(32),
   customerName: z.string().trim().min(2).max(120),
@@ -64,13 +58,4 @@ export const updateOrderSchema = z
     message: "At least one order field is required.",
   });
 
-export type CreateOrdersInput = z.infer<typeof createOrdersSchema>;
 export type UpdateOrderInput = z.infer<typeof updateOrderSchema>;
-
-export interface ApiErrorBody {
-  error: {
-    code: string;
-    message: string;
-    requestId: string;
-  };
-}

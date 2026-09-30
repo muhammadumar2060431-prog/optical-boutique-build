@@ -1,4 +1,4 @@
-﻿export type ID = string;
+﻿type ID = string;
 
 export interface Variant {
   id: ID;
@@ -9,9 +9,9 @@ export interface Variant {
   price?: number;
 }
 
-export type ProductStatus = "Draft" | "Published" | "Archived";
+type ProductStatus = "Draft" | "Published" | "Archived";
 
-export interface ProductSpecs {
+interface ProductSpecs {
   frameMaterial?: string;
   lensMaterial?: string;
   lensType?: string[];
@@ -49,7 +49,7 @@ export interface Product {
   createdAt: string;
 }
 
-export interface CategoryBanner {
+interface CategoryBanner {
   image: string;
   heading: string;
   subtext: string;

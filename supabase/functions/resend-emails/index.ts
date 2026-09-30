@@ -204,7 +204,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
       const subRes = await sendEmail(
         record.email,
         "Welcome to OPTIQUE — You're on the list! 👓",
-        getSubscriberEmailTemplate(record),
+        getSubscriberEmailTemplate(),
       );
       results.push({ target: "subscriber", email: record.email, ...subRes });
 

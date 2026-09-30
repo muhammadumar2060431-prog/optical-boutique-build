@@ -50,7 +50,11 @@ import { Route as BlogSlugRouteImport } from './routes/blog.$slug'
 import { Route as CategorySlugRouteImport } from './routes/category.$slug'
 import { Route as ProductSlugRouteImport } from './routes/product.$slug'
 import { Route as ApiV1OrdersRouteImport } from './routes/api.v1.orders'
+import { Route as ApiV1AdminCredentialsRouteImport } from './routes/api.v1.admin.credentials'
 import { Route as ApiV1AdminLoginRouteImport } from './routes/api.v1.admin.login'
+import { Route as ApiV1AdminRecoverRouteImport } from './routes/api.v1.admin.recover'
+import { Route as ApiV1AdminSignupRouteImport } from './routes/api.v1.admin.signup'
+import { Route as ApiV1AdminStatusRouteImport } from './routes/api.v1.admin.status'
 import { Route as ApiV1MetaEventsRouteImport } from './routes/api.v1.meta.events'
 import { Route as ApiV1OrdersIdRouteImport } from './routes/api.v1.orders.$id'
 import { Route as ApiV1OrdersTrackReferenceRouteImport } from './routes/api.v1.orders.track.$reference'
@@ -260,9 +264,29 @@ const ApiV1OrdersRoute = ApiV1OrdersRouteImport.update({
   path: '/api/v1/orders',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiV1AdminCredentialsRoute = ApiV1AdminCredentialsRouteImport.update({
+  id: '/api/v1/admin/credentials',
+  path: '/api/v1/admin/credentials',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiV1AdminLoginRoute = ApiV1AdminLoginRouteImport.update({
   id: '/api/v1/admin/login',
   path: '/api/v1/admin/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1AdminRecoverRoute = ApiV1AdminRecoverRouteImport.update({
+  id: '/api/v1/admin/recover',
+  path: '/api/v1/admin/recover',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1AdminSignupRoute = ApiV1AdminSignupRouteImport.update({
+  id: '/api/v1/admin/signup',
+  path: '/api/v1/admin/signup',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1AdminStatusRoute = ApiV1AdminStatusRouteImport.update({
+  id: '/api/v1/admin/status',
+  path: '/api/v1/admin/status',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiV1MetaEventsRoute = ApiV1MetaEventsRouteImport.update({
@@ -324,7 +348,11 @@ export interface FileRoutesByFullPath {
   '/admin/': typeof AdminIndexRoute
   '/blog/': typeof BlogIndexRoute
   '/api/v1/orders': typeof ApiV1OrdersRouteWithChildren
+  '/api/v1/admin/credentials': typeof ApiV1AdminCredentialsRoute
   '/api/v1/admin/login': typeof ApiV1AdminLoginRoute
+  '/api/v1/admin/recover': typeof ApiV1AdminRecoverRoute
+  '/api/v1/admin/signup': typeof ApiV1AdminSignupRoute
+  '/api/v1/admin/status': typeof ApiV1AdminStatusRoute
   '/api/v1/meta/events': typeof ApiV1MetaEventsRoute
   '/api/v1/orders/$id': typeof ApiV1OrdersIdRoute
   '/api/v1/orders/track/$reference': typeof ApiV1OrdersTrackReferenceRoute
@@ -370,7 +398,11 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminIndexRoute
   '/blog': typeof BlogIndexRoute
   '/api/v1/orders': typeof ApiV1OrdersRouteWithChildren
+  '/api/v1/admin/credentials': typeof ApiV1AdminCredentialsRoute
   '/api/v1/admin/login': typeof ApiV1AdminLoginRoute
+  '/api/v1/admin/recover': typeof ApiV1AdminRecoverRoute
+  '/api/v1/admin/signup': typeof ApiV1AdminSignupRoute
+  '/api/v1/admin/status': typeof ApiV1AdminStatusRoute
   '/api/v1/meta/events': typeof ApiV1MetaEventsRoute
   '/api/v1/orders/$id': typeof ApiV1OrdersIdRoute
   '/api/v1/orders/track/$reference': typeof ApiV1OrdersTrackReferenceRoute
@@ -418,7 +450,11 @@ export interface FileRoutesById {
   '/admin/': typeof AdminIndexRoute
   '/blog/': typeof BlogIndexRoute
   '/api/v1/orders': typeof ApiV1OrdersRouteWithChildren
+  '/api/v1/admin/credentials': typeof ApiV1AdminCredentialsRoute
   '/api/v1/admin/login': typeof ApiV1AdminLoginRoute
+  '/api/v1/admin/recover': typeof ApiV1AdminRecoverRoute
+  '/api/v1/admin/signup': typeof ApiV1AdminSignupRoute
+  '/api/v1/admin/status': typeof ApiV1AdminStatusRoute
   '/api/v1/meta/events': typeof ApiV1MetaEventsRoute
   '/api/v1/orders/$id': typeof ApiV1OrdersIdRoute
   '/api/v1/orders/track/$reference': typeof ApiV1OrdersTrackReferenceRoute
@@ -467,7 +503,11 @@ export interface FileRouteTypes {
     | '/admin/'
     | '/blog/'
     | '/api/v1/orders'
+    | '/api/v1/admin/credentials'
     | '/api/v1/admin/login'
+    | '/api/v1/admin/recover'
+    | '/api/v1/admin/signup'
+    | '/api/v1/admin/status'
     | '/api/v1/meta/events'
     | '/api/v1/orders/$id'
     | '/api/v1/orders/track/$reference'
@@ -513,7 +553,11 @@ export interface FileRouteTypes {
     | '/admin'
     | '/blog'
     | '/api/v1/orders'
+    | '/api/v1/admin/credentials'
     | '/api/v1/admin/login'
+    | '/api/v1/admin/recover'
+    | '/api/v1/admin/signup'
+    | '/api/v1/admin/status'
     | '/api/v1/meta/events'
     | '/api/v1/orders/$id'
     | '/api/v1/orders/track/$reference'
@@ -560,7 +604,11 @@ export interface FileRouteTypes {
     | '/admin/'
     | '/blog/'
     | '/api/v1/orders'
+    | '/api/v1/admin/credentials'
     | '/api/v1/admin/login'
+    | '/api/v1/admin/recover'
+    | '/api/v1/admin/signup'
+    | '/api/v1/admin/status'
     | '/api/v1/meta/events'
     | '/api/v1/orders/$id'
     | '/api/v1/orders/track/$reference'
@@ -597,7 +645,11 @@ export interface RootRouteChildren {
   ProductSlugRoute: typeof ProductSlugRoute
   BlogIndexRoute: typeof BlogIndexRoute
   ApiV1OrdersRoute: typeof ApiV1OrdersRouteWithChildren
+  ApiV1AdminCredentialsRoute: typeof ApiV1AdminCredentialsRoute
   ApiV1AdminLoginRoute: typeof ApiV1AdminLoginRoute
+  ApiV1AdminRecoverRoute: typeof ApiV1AdminRecoverRoute
+  ApiV1AdminSignupRoute: typeof ApiV1AdminSignupRoute
+  ApiV1AdminStatusRoute: typeof ApiV1AdminStatusRoute
   ApiV1MetaEventsRoute: typeof ApiV1MetaEventsRoute
 }
 
@@ -890,11 +942,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1OrdersRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/v1/admin/credentials': {
+      id: '/api/v1/admin/credentials'
+      path: '/api/v1/admin/credentials'
+      fullPath: '/api/v1/admin/credentials'
+      preLoaderRoute: typeof ApiV1AdminCredentialsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/v1/admin/login': {
       id: '/api/v1/admin/login'
       path: '/api/v1/admin/login'
       fullPath: '/api/v1/admin/login'
       preLoaderRoute: typeof ApiV1AdminLoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/admin/recover': {
+      id: '/api/v1/admin/recover'
+      path: '/api/v1/admin/recover'
+      fullPath: '/api/v1/admin/recover'
+      preLoaderRoute: typeof ApiV1AdminRecoverRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/admin/signup': {
+      id: '/api/v1/admin/signup'
+      path: '/api/v1/admin/signup'
+      fullPath: '/api/v1/admin/signup'
+      preLoaderRoute: typeof ApiV1AdminSignupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/admin/status': {
+      id: '/api/v1/admin/status'
+      path: '/api/v1/admin/status'
+      fullPath: '/api/v1/admin/status'
+      preLoaderRoute: typeof ApiV1AdminStatusRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/v1/meta/events': {
@@ -996,7 +1076,11 @@ const rootRouteChildren: RootRouteChildren = {
   ProductSlugRoute: ProductSlugRoute,
   BlogIndexRoute: BlogIndexRoute,
   ApiV1OrdersRoute: ApiV1OrdersRouteWithChildren,
+  ApiV1AdminCredentialsRoute: ApiV1AdminCredentialsRoute,
   ApiV1AdminLoginRoute: ApiV1AdminLoginRoute,
+  ApiV1AdminRecoverRoute: ApiV1AdminRecoverRoute,
+  ApiV1AdminSignupRoute: ApiV1AdminSignupRoute,
+  ApiV1AdminStatusRoute: ApiV1AdminStatusRoute,
   ApiV1MetaEventsRoute: ApiV1MetaEventsRoute,
 }
 export const routeTree = rootRouteImport

@@ -3,6 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { ExternalLink, Play, ShoppingBag, Sparkles, X } from "lucide-react";
 
 import { Reveal } from "@/components/site/Reveal";
+import { ProductImage } from "@/components/site/ProductImage";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { sanitizeHref } from "@/lib/security";
@@ -226,7 +227,7 @@ export function SocialProofReels() {
                   {product && (
                     <div className="pt-1">
                       <div className="flex items-center gap-2 rounded-lg bg-white/10 backdrop-blur-md p-1.5 border border-white/10 hover:bg-white/20 transition-colors">
-                        <img
+                        <ProductImage
                           src={product.image}
                           alt={product.name}
                           className="h-7 w-7 rounded object-cover border border-white/20"

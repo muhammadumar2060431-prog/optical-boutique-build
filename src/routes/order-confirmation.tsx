@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, createFileRoute, useSearch } from "@tanstack/react-router";
-import { CheckCircle2, MessageCircle, PackageSearch } from "lucide-react";
+import { CheckCircle2, PackageSearch } from "lucide-react";
 
 import { SiteLayout } from "@/components/site/SiteLayout";
 import { WhatsAppIcon } from "@/components/site/WhatsAppIcon";

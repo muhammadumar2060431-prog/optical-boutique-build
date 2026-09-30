@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Award, CheckCircle2, Shield, ShieldCheck, Sparkles, Wrench, XCircle } from "lucide-react";
+import { Award, CheckCircle2, ShieldCheck, Wrench, XCircle } from "lucide-react";
 
 import { Reveal } from "@/components/site/Reveal";
 import { SiteLayout } from "@/components/site/SiteLayout";

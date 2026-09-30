@@ -9,21 +9,12 @@ import {
   Pencil,
   Play,
   Plus,
-  Sparkles,
   Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
 
 import { ImageUpload } from "@/components/admin/ImageUpload";
-import {
-  isSafeUrl,
-  sanitizeHref,
-  sanitizeText,
-  validateDestinationLink,
-  validateImageUrl,
-  validateSocialVideoUrl,
-} from "@/lib/security";
-import { Badge } from "@/components/ui/badge";
+import { sanitizeHref, validateImageUrl, validateSocialVideoUrl } from "@/lib/security";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";

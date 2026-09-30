@@ -11,7 +11,6 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useStore } from "@/lib/store";
 import { splitMetaName, trackMetaEvent } from "@/lib/meta-events";
-import { whatsappLink } from "@/lib/whatsapp";
 
 import { getSiteUrl } from "@/lib/utils";
 
@@ -57,8 +56,6 @@ function ContactPage() {
   const [message, setMessage] = useState("");
   const [errors, setErrors] = useState<Errors>({});
   const [sent, setSent] = useState(false);
-
-  const wa = whatsappLink(settings.whatsapp, `Hello ${settings.storeName}, I'd like some advice.`);
 
   const validate = () => {
     const next: Errors = {};

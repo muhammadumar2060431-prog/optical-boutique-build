@@ -131,7 +131,7 @@ function isMissingColumnError(error: any, column: string) {
   const message = String(error?.message || error || "");
   return error?.code === "PGRST204" && message.includes(`'${column}' column`);
 }
-export function mapStoreProductToDb(product: Product): any {
+function mapStoreProductToDb(product: Product): any {
   const subImages = (
     Array.isArray(product.subImages) && product.subImages.length > 0
       ? product.subImages
@@ -245,7 +245,7 @@ export function mapDbProductToStore(raw: any): Product {
   } as Product;
 }
 
-export function mapStoreCategoryToDb(category: Category, index?: number): any {
+function mapStoreCategoryToDb(category: Category, index?: number): any {
   return {
     id: category.id,
     name: category.name,
@@ -267,7 +267,7 @@ export function mapDbCategoryToStore(raw: any): Category {
   };
 }
 
-export function mapStoreCollectionToDb(collection: Collection): any {
+function mapStoreCollectionToDb(collection: Collection): any {
   return {
     id: collection.id,
     name: collection.name,
@@ -293,7 +293,7 @@ export function mapDbCollectionToStore(raw: any): Collection {
   };
 }
 
-export function mapStoreHeroSlideToDb(slide: HeroSlide, index?: number): any {
+function mapStoreHeroSlideToDb(slide: HeroSlide, index?: number): any {
   return {
     id: slide.id,
     // DB columns: headline, subtext (matching schema)
@@ -322,7 +322,7 @@ export function mapDbHeroSlideToStore(raw: any): HeroSlide {
   };
 }
 
-export function mapStoreBrandToDb(brand: Brand): any {
+function mapStoreBrandToDb(brand: Brand): any {
   return {
     id: brand.id,
     name: brand.name,
@@ -342,7 +342,7 @@ export function mapDbBrandToStore(raw: any): Brand {
   };
 }
 
-export function mapStoreSocialReelToDb(reel: SocialReel): any {
+function mapStoreSocialReelToDb(reel: SocialReel): any {
   return {
     id: reel.id,
     title: reel.title || "Reel",
@@ -376,7 +376,7 @@ export function mapDbSocialReelToStore(raw: any): SocialReel {
   };
 }
 
-export function mapStoreTestimonialToDb(t: Testimonial): any {
+function mapStoreTestimonialToDb(t: Testimonial): any {
   const img = t.reviewImage || t.photo || "";
   return {
     id: t.id,
@@ -423,7 +423,7 @@ export function mapDbTestimonialToStore(raw: any): Testimonial {
   };
 }
 
-export function mapStoreFaqToDb(f: FAQItem): any {
+function mapStoreFaqToDb(f: FAQItem): any {
   return {
     id: f.id,
     question: f.question,
@@ -447,7 +447,7 @@ export function mapDbFaqToStore(raw: any): FAQItem {
   };
 }
 
-export function mapStoreQueryToDb(q: ContactQuery): any {
+function mapStoreQueryToDb(q: ContactQuery): any {
   return {
     id: q.id,
     name: q.name,
@@ -715,132 +715,7 @@ export async function fetchInitialSupabaseData(options: { includePrivate?: boole
 /**
  * Automatically seed individual Supabase tables if they are empty on initial run.
  */
-export async function autoSeedSupabaseIfEmpty(seed: {
-  categories: Category[];
-  collections: Collection[];
-  products: Product[];
-  heroSlides: HeroSlide[];
-  brands: Brand[];
-  socialReels: SocialReel[];
-  testimonials: Testimonial[];
-  faqs: FAQItem[];
-}) {
-  try {
-    // If the database has already been initialized, skip auto-seeding so manual deletions are permanent
-    if (
-      typeof window !== "undefined" &&
-      localStorage.getItem("optique_initial_seeded") === "true"
-    ) {
-      return;
-    }
-
-    const { data: existingSettings } = await supabase
-      .from("store_settings")
-      .select("id")
-      .eq("id", "default")
-      .maybeSingle();
-    const { count: existingProds } = await supabase
-      .from("products")
-      .select("*", { count: "exact", head: true });
-
-    if (existingSettings || (existingProds && existingProds > 0)) {
-      if (typeof window !== "undefined") {
-        localStorage.setItem("optique_initial_seeded", "true");
-      }
-      return;
-    }
-
-    // 1. Categories
-    const { count: catCount } = await supabase
-      .from("categories")
-      .select("*", { count: "exact", head: true });
-    if (!catCount) {
-      const payload = seed.categories.map((c) => ({
-        id: c.id,
-        name: c.name,
-        slug: c.slug,
-        image: c.image || null,
-        banner: c.banner || null,
-      }));
-      await supabase.from("categories").upsert(payload);
-    }
-
-    // 2. Collections
-    const { count: colCount } = await supabase
-      .from("collections")
-      .select("*", { count: "exact", head: true });
-    if (!colCount) {
-      const payload = seed.collections.map(mapStoreCollectionToDb);
-      await supabase.from("collections").upsert(payload);
-    }
-
-    // 3. Products
-    const { count: prodCount } = await supabase
-      .from("products")
-      .select("*", { count: "exact", head: true });
-    if (!prodCount) {
-      const payload = seed.products.map(mapStoreProductToDb);
-      const { error } = await supabase.from("products").upsert(payload);
-      if (error) console.error("Error seeding products to Supabase:", error);
-    }
-
-    // 4. Hero slides
-    const { count: heroCount } = await supabase
-      .from("hero_slides")
-      .select("*", { count: "exact", head: true });
-    if (!heroCount) {
-      const payload = seed.heroSlides.map(mapStoreHeroSlideToDb);
-      await supabase.from("hero_slides").upsert(payload);
-    }
-
-    // 5. Brands
-    const { count: brandCount } = await supabase
-      .from("brands")
-      .select("*", { count: "exact", head: true });
-    if (!brandCount) {
-      const payload = seed.brands.map(mapStoreBrandToDb);
-      await supabase.from("brands").upsert(payload);
-    }
-
-    // 6. Social reels
-    const { count: reelCount } = await supabase
-      .from("social_reels")
-      .select("*", { count: "exact", head: true });
-    if (!reelCount) {
-      const payload = seed.socialReels.map(mapStoreSocialReelToDb);
-      await supabase.from("social_reels").upsert(payload);
-    }
-
-    // 7. Testimonials
-    const { count: testCount } = await supabase
-      .from("testimonials")
-      .select("*", { count: "exact", head: true });
-    if (!testCount) {
-      const payload = seed.testimonials.map(mapStoreTestimonialToDb);
-      const { error } = await supabase.from("testimonials").upsert(payload);
-      if (error && isMissingColumnError(error, "source")) {
-        const { source: _source, ...legacyPayload } = payload as any;
-        await supabase.from("testimonials").upsert(legacyPayload);
-      }
-    }
-
-    // 8. FAQs
-    const { count: faqCount } = await supabase
-      .from("faqs")
-      .select("*", { count: "exact", head: true });
-    if (!faqCount) {
-      const payload = seed.faqs.map(mapStoreFaqToDb);
-      await supabase.from("faqs").upsert(payload);
-    }
-  } catch (err) {
-    console.warn("Auto-seed error:", err);
-  }
-}
-
-// -- CRUD Sync Functions --
-
-// -- Convert base64 images to Supabase Storage URLs ------------------------
-export async function uploadProductImageData(product: Product): Promise<Product> {
+async function uploadProductImageData(product: Product): Promise<Product> {
   const uploadIfNeeded = async (image: string | null | undefined): Promise<string | null> => {
     if (!image) return null;
     if (!image.startsWith("data:image/")) return image;
