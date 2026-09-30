@@ -98,6 +98,7 @@ import type { MetaEventInput } from "./meta-events.types";
  */
 
 interface StoreState {
+  storefrontReady: boolean;
   categories: Category[];
   collections: Collection[];
   products: Product[];
@@ -421,6 +422,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [subscribers, setSubscribersState] = useState<Subscriber[]>(seedSubscribers);
   const [isAdmin, setIsAdmin] = useState(false);
   const [hydrated, setHydrated] = useState(false);
+  const [storefrontReady, setStorefrontReady] = useState(false);
   const localSavedContent = useRef({ brands: false, socialReels: false });
 
   // Client-only hydration to eliminate SSR hydration mismatch
@@ -431,9 +433,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     }
     try {
       // Normal hydration: load whatever the user has saved
-      const load = <T,>(key: string, setter: (val: T) => void) => {
+      const load = <T,>(key: string, setter: (val: T) => void): T | undefined => {
         const raw = localStorage.getItem(`optique_v1_${key}`);
-        if (!raw) return;
+        if (!raw) return undefined;
         try {
           const parsed = JSON.parse(raw);
           // Unwrap TTL envelope
@@ -450,14 +452,18 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           if (key === "brands" || key === "socialReels") {
             localSavedContent.current[key as keyof typeof localSavedContent.current] = true;
           }
-        } catch {}
+          return value as T;
+        } catch {
+          return undefined;
+        }
       };
       load<Category[]>("categories", setCategories);
       load<Collection[]>("collections", setCollections);
       load<Product[]>("products", setProducts);
       load<Order[]>("orders", setOrders);
       load<ContactQuery[]>("queries", setQueries);
-      load<HeroSlide[]>("heroSlides", setHeroSlidesState);
+      const hasCachedHero = load<HeroSlide[]>("heroSlides", setHeroSlidesState);
+      if (hasCachedHero?.some((slide) => slide.enabled)) setStorefrontReady(true);
       load<AnnouncementSettings>("announcement", setAnnouncement);
       load<Testimonial[]>("testimonials", setTestimonials);
       load<VideoSettings>("video", setVideo);
@@ -625,8 +631,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   // ── Supabase Real-Time Sync & Initial Hydration ──
   useEffect(() => {
     // No database configured yet — stay on local demo data
-    if (!isSupabaseConfigured) return;
     if (!hydrated) return;
+    if (!isSupabaseConfigured) {
+      setStorefrontReady(true);
+      return;
+    }
 
     let isSubscribed = true;
 
@@ -754,7 +763,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       if (data.video) setVideo((prev) => ({ ...prev, ...data.video }));
     }
 
-    initSupabaseData();
+    void initSupabaseData()
+      .catch(() => undefined)
+      .finally(() => {
+        if (isSubscribed) setStorefrontReady(true);
+      });
 
     // 3. Real-time WebSocket replication channel
     const channel = supabase
@@ -2136,6 +2149,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<StoreApi>(
     () => ({
+      storefrontReady,
       categories,
       collections,
       products,
@@ -2214,6 +2228,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       logout,
     }),
     [
+      storefrontReady,
       categories,
       collections,
       products,

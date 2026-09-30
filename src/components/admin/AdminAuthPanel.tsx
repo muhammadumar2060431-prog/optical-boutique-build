@@ -82,10 +82,12 @@ export function AdminAuthPanel() {
 
   const changeMode = (nextMode: Mode) => {
     setMode(nextMode);
+    setEmail("");
     setError("");
     setNotice("");
     setPassword("");
     setConfirmPassword("");
+    setSetupCode("");
     setSchool("");
     setFriend("");
     setCity("");
@@ -98,8 +100,7 @@ export function AdminAuthPanel() {
     setError("");
     setNotice("");
 
-    const isPasswordStep =
-      mode === "signup" || (mode === "recover" && recoveryStep === "reset");
+    const isPasswordStep = mode === "signup" || (mode === "recover" && recoveryStep === "reset");
     if (isPasswordStep && password !== confirmPassword) {
       setError("Passwords do not match.");
       return;
@@ -223,15 +224,21 @@ export function AdminAuthPanel() {
           ))}
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4 p-6" autoComplete="on">
+        <form
+          key={`${mode}-${recoveryStep}`}
+          onSubmit={handleSubmit}
+          className="space-y-4 p-6"
+          autoComplete={mode === "login" ? "on" : "off"}
+        >
           <div className="space-y-2">
             <Label htmlFor="admin-email">Admin email</Label>
             <Input
               id="admin-email"
+              name={mode === "login" ? "username" : "admin-recovery-identity"}
               type="email"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
-              autoComplete="email"
+              autoComplete={mode === "login" ? "username" : "off"}
               required
               disabled={busy || (mode === "recover" && recoveryStep === "reset")}
             />
@@ -299,11 +306,18 @@ export function AdminAuthPanel() {
                 <Label htmlFor="security-school">What was the name of your first school?</Label>
                 <Input
                   id="security-school"
-                  type="password"
+                  name={`${mode}-school-response`}
+                  type="text"
                   value={school}
                   onChange={(e) => setSchool(e.target.value)}
                   required
                   autoComplete="off"
+                  autoCapitalize="none"
+                  spellCheck={false}
+                  data-1p-ignore="true"
+                  data-lpignore="true"
+                  data-form-type="other"
+                  className="security-answer-input"
                   disabled={busy}
                 />
               </div>
@@ -313,11 +327,18 @@ export function AdminAuthPanel() {
                 </Label>
                 <Input
                   id="security-friend"
-                  type="password"
+                  name={`${mode}-friend-response`}
+                  type="text"
                   value={friend}
                   onChange={(e) => setFriend(e.target.value)}
                   required
                   autoComplete="off"
+                  autoCapitalize="none"
+                  spellCheck={false}
+                  data-1p-ignore="true"
+                  data-lpignore="true"
+                  data-form-type="other"
+                  className="security-answer-input"
                   disabled={busy}
                 />
               </div>
@@ -325,11 +346,18 @@ export function AdminAuthPanel() {
                 <Label htmlFor="security-city">In which city were you born?</Label>
                 <Input
                   id="security-city"
-                  type="password"
+                  name={`${mode}-city-response`}
+                  type="text"
                   value={city}
                   onChange={(e) => setCity(e.target.value)}
                   required
                   autoComplete="off"
+                  autoCapitalize="none"
+                  spellCheck={false}
+                  data-1p-ignore="true"
+                  data-lpignore="true"
+                  data-form-type="other"
+                  className="security-answer-input"
                   disabled={busy}
                 />
               </div>

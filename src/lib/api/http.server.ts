@@ -167,7 +167,9 @@ export function withApi(handler: ApiHandler, options: ApiOptions) {
       } else {
         try {
           response = await handler({ request, requestId });
-          response.headers.set("X-RateLimit-Remaining", String(rate.remaining));
+          if (!response.headers.has("X-RateLimit-Remaining")) {
+            response.headers.set("X-RateLimit-Remaining", String(rate.remaining));
+          }
         } catch (error) {
           if (
             !(error instanceof ZodError) &&

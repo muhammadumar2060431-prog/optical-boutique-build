@@ -49,6 +49,7 @@ import { Route as BlogIndexRouteImport } from './routes/blog.index'
 import { Route as BlogSlugRouteImport } from './routes/blog.$slug'
 import { Route as CategorySlugRouteImport } from './routes/category.$slug'
 import { Route as ProductSlugRouteImport } from './routes/product.$slug'
+import { Route as ApiV1ContactRouteImport } from './routes/api.v1.contact'
 import { Route as ApiV1OrdersRouteImport } from './routes/api.v1.orders'
 import { Route as ApiV1AdminCredentialsRouteImport } from './routes/api.v1.admin.credentials'
 import { Route as ApiV1AdminLoginRouteImport } from './routes/api.v1.admin.login'
@@ -259,6 +260,11 @@ const ProductSlugRoute = ProductSlugRouteImport.update({
   path: '/product/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiV1ContactRoute = ApiV1ContactRouteImport.update({
+  id: '/api/v1/contact',
+  path: '/api/v1/contact',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiV1OrdersRoute = ApiV1OrdersRouteImport.update({
   id: '/api/v1/orders',
   path: '/api/v1/orders',
@@ -347,6 +353,7 @@ export interface FileRoutesByFullPath {
   '/product/$slug': typeof ProductSlugRoute
   '/admin/': typeof AdminIndexRoute
   '/blog/': typeof BlogIndexRoute
+  '/api/v1/contact': typeof ApiV1ContactRoute
   '/api/v1/orders': typeof ApiV1OrdersRouteWithChildren
   '/api/v1/admin/credentials': typeof ApiV1AdminCredentialsRoute
   '/api/v1/admin/login': typeof ApiV1AdminLoginRoute
@@ -397,6 +404,7 @@ export interface FileRoutesByTo {
   '/product/$slug': typeof ProductSlugRoute
   '/admin': typeof AdminIndexRoute
   '/blog': typeof BlogIndexRoute
+  '/api/v1/contact': typeof ApiV1ContactRoute
   '/api/v1/orders': typeof ApiV1OrdersRouteWithChildren
   '/api/v1/admin/credentials': typeof ApiV1AdminCredentialsRoute
   '/api/v1/admin/login': typeof ApiV1AdminLoginRoute
@@ -449,6 +457,7 @@ export interface FileRoutesById {
   '/product/$slug': typeof ProductSlugRoute
   '/admin/': typeof AdminIndexRoute
   '/blog/': typeof BlogIndexRoute
+  '/api/v1/contact': typeof ApiV1ContactRoute
   '/api/v1/orders': typeof ApiV1OrdersRouteWithChildren
   '/api/v1/admin/credentials': typeof ApiV1AdminCredentialsRoute
   '/api/v1/admin/login': typeof ApiV1AdminLoginRoute
@@ -502,6 +511,7 @@ export interface FileRouteTypes {
     | '/product/$slug'
     | '/admin/'
     | '/blog/'
+    | '/api/v1/contact'
     | '/api/v1/orders'
     | '/api/v1/admin/credentials'
     | '/api/v1/admin/login'
@@ -552,6 +562,7 @@ export interface FileRouteTypes {
     | '/product/$slug'
     | '/admin'
     | '/blog'
+    | '/api/v1/contact'
     | '/api/v1/orders'
     | '/api/v1/admin/credentials'
     | '/api/v1/admin/login'
@@ -603,6 +614,7 @@ export interface FileRouteTypes {
     | '/product/$slug'
     | '/admin/'
     | '/blog/'
+    | '/api/v1/contact'
     | '/api/v1/orders'
     | '/api/v1/admin/credentials'
     | '/api/v1/admin/login'
@@ -644,6 +656,7 @@ export interface RootRouteChildren {
   CategorySlugRoute: typeof CategorySlugRoute
   ProductSlugRoute: typeof ProductSlugRoute
   BlogIndexRoute: typeof BlogIndexRoute
+  ApiV1ContactRoute: typeof ApiV1ContactRoute
   ApiV1OrdersRoute: typeof ApiV1OrdersRouteWithChildren
   ApiV1AdminCredentialsRoute: typeof ApiV1AdminCredentialsRoute
   ApiV1AdminLoginRoute: typeof ApiV1AdminLoginRoute
@@ -935,6 +948,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProductSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/v1/contact': {
+      id: '/api/v1/contact'
+      path: '/api/v1/contact'
+      fullPath: '/api/v1/contact'
+      preLoaderRoute: typeof ApiV1ContactRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/v1/orders': {
       id: '/api/v1/orders'
       path: '/api/v1/orders'
@@ -1075,6 +1095,7 @@ const rootRouteChildren: RootRouteChildren = {
   CategorySlugRoute: CategorySlugRoute,
   ProductSlugRoute: ProductSlugRoute,
   BlogIndexRoute: BlogIndexRoute,
+  ApiV1ContactRoute: ApiV1ContactRoute,
   ApiV1OrdersRoute: ApiV1OrdersRouteWithChildren,
   ApiV1AdminCredentialsRoute: ApiV1AdminCredentialsRoute,
   ApiV1AdminLoginRoute: ApiV1AdminLoginRoute,

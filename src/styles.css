@@ -243,7 +243,7 @@
   width: 100%;
   overflow: hidden;
   background: transparent;
-  padding: 48px 0;
+  padding: 28px 0;
   /* Fade edges left & right */
   -webkit-mask-image: linear-gradient(
     to right,
@@ -253,6 +253,16 @@
     transparent 100%
   );
   mask-image: linear-gradient(to right, transparent 0%, black 6%, black 94%, transparent 100%);
+}
+
+@media (max-width: 639px) {
+  .brands-scroll-outer {
+    padding: 20px 0;
+  }
+}
+
+.security-answer-input {
+  -webkit-text-security: disc;
 }
 
 .brands-track {

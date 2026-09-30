@@ -8,6 +8,26 @@ const nullableIdentifier = identifier.nullable();
 const orderSourceSchema = z.enum(["cart", "whatsapp"]);
 const orderStatusSchema = z.enum(["New", "Contacted", "Dispatched", "Completed", "Cancelled"]);
 
+const contactMethodSchema = z
+  .string()
+  .trim()
+  .min(3)
+  .max(320)
+  .refine(
+    (value) => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(value) || /^[+0-9][0-9\s-]{7,}$/.test(value),
+    "Enter a valid phone number or email address.",
+  );
+
+export const createContactQuerySchema = z.object({
+  name: z.string().trim().min(2).max(120),
+  contact: contactMethodSchema,
+  productId: identifier.nullable().optional().default(null),
+  productName: z.string().trim().min(1).max(200),
+  message: z.string().trim().min(8).max(2_000),
+});
+
+export type CreateContactQueryInput = z.infer<typeof createContactQuerySchema>;
+
 const orderCreateItemSchema = z.object({
   id: identifier,
   reference: z.string().trim().min(9).max(32),

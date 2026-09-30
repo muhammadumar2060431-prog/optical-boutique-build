@@ -38,10 +38,7 @@ const recoveryResetSchema = z.object({
   newPassword: passwordSchema,
 });
 
-const recoverySchema = z.discriminatedUnion("action", [
-  recoveryVerifySchema,
-  recoveryResetSchema,
-]);
+const recoverySchema = z.discriminatedUnion("action", [recoveryVerifySchema, recoveryResetSchema]);
 
 const recoveryTokenClaimsSchema = z.object({
   purpose: z.literal("admin-password-recovery"),
@@ -389,20 +386,12 @@ export async function adminRecoverHandler(request: Request) {
     const user = await findUserByEmail(service, input.email);
     if (!user) {
       await recordSecurityAttempt(service, buckets, false);
-      throw new ApiError(
-        401,
-        "RECOVERY_FAILED",
-        "The email or security answers are incorrect.",
-      );
+      throw new ApiError(401, "RECOVERY_FAILED", "The email or security answers are incorrect.");
     }
     const profile = await getProfile(service, user.id);
     if (!profile || !(await verifyAnswers(profile, input.answers, settings.pepper))) {
       await recordSecurityAttempt(service, buckets, false);
-      throw new ApiError(
-        401,
-        "RECOVERY_FAILED",
-        "The email or security answers are incorrect.",
-      );
+      throw new ApiError(401, "RECOVERY_FAILED", "The email or security answers are incorrect.");
     }
 
     const nonce = randomToken();
@@ -450,7 +439,9 @@ export async function adminRecoverHandler(request: Request) {
     );
   }
 
-  const { data: userResult, error: userError } = await service.auth.admin.getUserById(claims.userId);
+  const { data: userResult, error: userError } = await service.auth.admin.getUserById(
+    claims.userId,
+  );
   const user = userResult.user;
   const storedNonceHash = user?.app_metadata?.[RECOVERY_NONCE_HASH_KEY];
   const storedExpiry = user?.app_metadata?.[RECOVERY_EXPIRES_KEY];

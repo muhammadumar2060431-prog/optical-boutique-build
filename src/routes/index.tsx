@@ -9,6 +9,7 @@ import { SiteLayout } from "@/components/site/SiteLayout";
 import { SocialProofReels } from "@/components/site/SocialProofReels";
 import { Testimonials } from "@/components/site/Testimonials";
 import { VideoSection } from "@/components/site/VideoSection";
+import { useStore } from "@/lib/store";
 import { getSiteUrl } from "@/lib/utils";
 
 export const Route = createFileRoute("/")({
@@ -38,27 +39,38 @@ export const Route = createFileRoute("/")({
 });
 
 function HomePage() {
+  const { storefrontReady } = useStore();
+
   return (
     <SiteLayout>
-      <Hero />
-      <BrandsScrollBar />
+      {!storefrontReady ? (
+        <div aria-busy="true" aria-label="Loading storefront">
+          <div className="h-[230px] w-full animate-pulse bg-jet sm:h-[330px] md:h-[400px] lg:h-[460px] xl:h-[480px]" />
+          <div className="h-16 w-full bg-background sm:h-24" />
+        </div>
+      ) : (
+        <>
+          <Hero />
+          <BrandsScrollBar />
 
-      {/* ── 3D Floating & Bouncing New Arrivals Showcase ── */}
-      <NewArrivalsShowcase />
+          {/* ── 3D Floating & Bouncing New Arrivals Showcase ── */}
+          <NewArrivalsShowcase />
 
-      {/* ── Shop by Category with Dynamic Best Sellers ── */}
-      <CategoryBestsellersShowcase />
+          {/* ── Shop by Category with Dynamic Best Sellers ── */}
+          <CategoryBestsellersShowcase />
 
-      {/* ── Social Proof & Collaboration Reels (Matching Images 1, 2, 3) ── */}
-      <SocialProofReels />
+          {/* ── Social Proof & Collaboration Reels (Matching Images 1, 2, 3) ── */}
+          <SocialProofReels />
 
-      {/* ── Customer Reviews & Proofs (Infinite Scrollable Marquee) ── */}
-      <Testimonials />
+          {/* ── Customer Reviews & Proofs (Infinite Scrollable Marquee) ── */}
+          <Testimonials />
 
-      {/* ── Frequently Asked Questions (Interactive Aesthetic Accordion) ── */}
-      <FaqSection isHomepage={true} />
+          {/* ── Frequently Asked Questions (Interactive Aesthetic Accordion) ── */}
+          <FaqSection isHomepage={true} />
 
-      <VideoSection />
+          <VideoSection />
+        </>
+      )}
     </SiteLayout>
   );
 }

@@ -48,7 +48,7 @@ interface Errors {
 
 function ContactPage() {
   const search = useSearch({ from: "/contact" });
-  const { settings, addQuery, products } = useStore();
+  const { settings, products } = useStore();
   const { openWhatsAppModal } = useWhatsAppModal();
   const [name, setName] = useState("");
   const [contact, setContact] = useState("");
@@ -56,6 +56,8 @@ function ContactPage() {
   const [message, setMessage] = useState("");
   const [errors, setErrors] = useState<Errors>({});
   const [sent, setSent] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
 
   const validate = () => {
     const next: Errors = {};
@@ -69,34 +71,58 @@ function ContactPage() {
     return Object.keys(next).length === 0;
   };
 
-  const onSubmit = (e: React.FormEvent) => {
+  const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validate()) return;
+    if (!validate() || submitting) return;
     const matched = products.find((p) => p.name.toLowerCase() === productRef.trim().toLowerCase());
-    addQuery({
-      name: name.trim(),
-      contact: contact.trim(),
-      productId: matched?.id ?? null,
-      productName: productRef.trim() || "General enquiry",
-      message: message.trim(),
-    });
-    const { firstName, lastName } = splitMetaName(name);
-    const contactValue = contact.trim();
-    const isEmail = contactValue.includes("@");
-    trackMetaEvent({
-      eventName: "Lead",
-      userData: {
-        ...(isEmail ? { email: contactValue } : { phone: contactValue }),
-        firstName,
-        ...(lastName ? { lastName } : {}),
-      },
-      customData: {
-        ...(matched ? { contentIds: [matched.id] } : {}),
-        contentType: matched ? "product" : "service",
-        contentName: productRef.trim() || "General enquiry",
-      },
-    });
-    setSent(true);
+    setSubmitting(true);
+    setSubmitError("");
+
+    try {
+      const response = await fetch("/api/v1/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: name.trim(),
+          contact: contact.trim(),
+          productId: matched?.id ?? null,
+          productName: productRef.trim() || "General enquiry",
+          message: message.trim(),
+        }),
+      });
+      const payload = (await response.json().catch(() => null)) as {
+        error?: { message?: string };
+      } | null;
+      if (!response.ok) {
+        throw new Error(payload?.error?.message || "Your enquiry could not be sent.");
+      }
+
+      const { firstName, lastName } = splitMetaName(name);
+      const contactValue = contact.trim();
+      const isEmail = contactValue.includes("@");
+      trackMetaEvent({
+        eventName: "Lead",
+        userData: {
+          ...(isEmail ? { email: contactValue } : { phone: contactValue }),
+          firstName,
+          ...(lastName ? { lastName } : {}),
+        },
+        customData: {
+          ...(matched ? { contentIds: [matched.id] } : {}),
+          contentType: matched ? "product" : "service",
+          contentName: productRef.trim() || "General enquiry",
+        },
+      });
+      setSent(true);
+    } catch (error) {
+      setSubmitError(
+        error instanceof Error
+          ? error.message
+          : "Your enquiry could not be sent. Please try again.",
+      );
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -177,8 +203,18 @@ function ContactPage() {
                   />
                   {errors.message && <p className="text-xs text-destructive">{errors.message}</p>}
                 </div>
-                <Button type="submit" size="lg" className="min-h-12 rounded-full px-8">
-                  Send enquiry
+                {submitError && (
+                  <p role="alert" className="text-sm text-destructive">
+                    {submitError}
+                  </p>
+                )}
+                <Button
+                  type="submit"
+                  size="lg"
+                  className="min-h-12 rounded-full px-8"
+                  disabled={submitting}
+                >
+                  {submitting ? "Sending..." : "Send enquiry"}
                 </Button>
               </form>
             )}

@@ -52,7 +52,7 @@ export function NewArrivalsShowcase() {
 
   return (
     <section
-      className="relative w-full overflow-hidden bg-white py-14 sm:py-24 select-none"
+      className="relative w-full overflow-hidden bg-white pt-4 pb-10 sm:pt-6 sm:pb-14 lg:pt-8 lg:pb-16 select-none"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       aria-label="New Arrivals 3D Showcase"
@@ -79,7 +79,7 @@ export function NewArrivalsShowcase() {
 
       <div className="w-full max-w-[1600px] mx-auto px-2 sm:px-6 md:px-12">
         {/* Stage Container with extra height for huge 3D frames */}
-        <div className="relative flex items-center justify-center min-h-[440px] sm:min-h-[540px] md:min-h-[640px] w-full mx-auto">
+        <div className="relative flex min-h-[320px] w-full items-center justify-center mx-auto sm:min-h-[400px] md:min-h-[440px] lg:min-h-[480px]">
           {/* 3D Products Stage */}
           <div className="relative w-full flex items-center justify-center">
             {/* Left Product (Extra large, angled, spread to far left with massive gap) */}

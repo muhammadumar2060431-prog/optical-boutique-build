@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, Outlet, createFileRoute } from "@tanstack/react-router";
+import { Link, Outlet, createFileRoute, useLocation } from "@tanstack/react-router";
 import {
   Boxes,
   HelpCircle,
@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 
 import { AdminAuthPanel } from "@/components/admin/AdminAuthPanel";
+import { AdminDashboard } from "@/components/admin/AdminDashboard";
 import { useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
@@ -51,6 +52,8 @@ const nav = [
 function AdminLayout() {
   const { isAdmin, logout, settings } = useStore();
   const [open, setOpen] = useState(false);
+  const pathname = useLocation({ select: (location) => location.pathname });
+  const isDashboardPath = pathname.replace(/\/+$/, "") === "/admin";
 
   if (!isAdmin) return <AdminAuthPanel />;
 
@@ -115,7 +118,7 @@ function AdminLayout() {
 
       <div className="min-w-0 flex-1">
         <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
-          <Outlet />
+          {isDashboardPath ? <AdminDashboard /> : <Outlet />}
         </div>
       </div>
     </div>

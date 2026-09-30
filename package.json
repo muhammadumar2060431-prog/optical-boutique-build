@@ -33,6 +33,8 @@
     "@tanstack/react-query": "^5.101.1",
     "@tanstack/react-router": "1.170.18",
     "@tanstack/react-start": "1.168.32",
+    "@upstash/ratelimit": "^2.2.0",
+    "@upstash/redis": "^1.39.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^0.575.0",

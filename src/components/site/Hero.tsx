@@ -1,6 +1,7 @@
 ﻿import { useCallback, useEffect, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
+import { getOptimizedSupabaseImageSrc } from "@/lib/product-images";
 import { useStore } from "@/lib/store";
 import { sanitizeHref, sanitizeImageSrc } from "@/lib/security";
 import { cn } from "@/lib/utils";
@@ -51,11 +52,20 @@ export function Hero() {
         const imageSrc = failedImages.has(slide.id)
           ? FALLBACK_HERO_IMAGE
           : sanitizeImageSrc(slide.image, FALLBACK_HERO_IMAGE);
+        const optimizedImageSrc = getOptimizedSupabaseImageSrc(imageSrc, 1600);
+        const optimizedSrcSet =
+          optimizedImageSrc === imageSrc
+            ? undefined
+            : [640, 1024, 1600]
+                .map((width) => `${getOptimizedSupabaseImageSrc(imageSrc, width)} ${width}w`)
+                .join(", ");
         const ctaLink = sanitizeHref(slide.ctaLink, "");
 
         const imageElement = (
           <img
-            src={imageSrc}
+            src={optimizedImageSrc}
+            srcSet={optimizedSrcSet}
+            sizes="100vw"
             alt={slide.headline || "Store banner"}
             width={1920}
             height={960}
