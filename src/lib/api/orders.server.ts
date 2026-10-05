@@ -183,12 +183,23 @@ function databaseError(error: { message?: string } | null) {
   if (message.includes("INVALID_ORDER")) {
     throw new ApiError(400, "VALIDATION_ERROR", "The submitted order is invalid.");
   }
+  if (
+    /INSUFFICIENT_STOCK|PRODUCT_UNAVAILABLE|VARIANT_UNAVAILABLE|VARIANT_REQUIRED|LEGACY_QUANTITY_REQUIRED/.test(
+      message,
+    )
+  ) {
+    throw new ApiError(
+      409,
+      "INVENTORY_CONFLICT",
+      "Stock or order quantity needs review. Refresh and try again.",
+    );
+  }
   throw new Error("Database operation failed");
 }
 
 const repository: OrdersRepository = {
   async create(input, idempotencyKey, requestHash, rateKey) {
-    const { data, error } = await serviceClient().rpc("create_checkout_order_v1", {
+    const { data, error } = await serviceClient().rpc("create_checkout_order_v2", {
       p_idempotency_key: idempotencyKey,
       p_request_hash: requestHash,
       p_orders: (input as { orders: unknown[] }).orders,
@@ -225,22 +236,12 @@ const repository: OrdersRepository = {
   async update(request, id, input) {
     const client = await authenticatedClient(request);
     const update = input as UpdateOrderInput;
-    const payload = {
-      ...(update.status !== undefined ? { status: update.status } : {}),
-      ...(update.courierName !== undefined ? { courier_name: update.courierName } : {}),
-      ...(update.trackingNumber !== undefined ? { tracking_number: update.trackingNumber } : {}),
-      ...(update.stockDeducted !== undefined ? { stock_deducted: update.stockDeducted } : {}),
-      ...(update.status === "Dispatched" ? { dispatched_at: new Date().toISOString() } : {}),
-    };
-    const { data, error } = await client
-      .from("orders")
-      .update(payload)
-      .eq("id", id)
-      .is("deleted_at", null)
-      .select("*")
-      .maybeSingle();
+    const { data, error } = await client.rpc("update_order_inventory_v1", {
+      p_order_id: id,
+      p_patch: update,
+    });
     if (error) databaseError(error);
-    return data;
+    return data ? { ...data.order, inventoryProduct: data.product } : null;
   },
 
   async remove(request, id) {

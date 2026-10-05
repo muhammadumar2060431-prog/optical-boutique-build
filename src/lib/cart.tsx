@@ -107,7 +107,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
           name: product.name,
           variantLabel: variant?.label ?? null,
           image: variant?.image ?? product.image,
-          price: product.price,
+          price: variant?.price ?? product.price,
           qty,
         },
       ];

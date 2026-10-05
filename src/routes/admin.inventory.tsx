@@ -25,7 +25,7 @@ function AdminInventory() {
   const [category, setCategory] = useState("all");
   const [status, setStatus] = useState("all");
 
-  const handleStockChange = (
+  const handleStockChange = async (
     productId: string,
     variantId: string | null,
     newQty: number,
@@ -35,8 +35,9 @@ function AdminInventory() {
     if (!window.confirm(`Are you sure you want to set "${productName}" stock to ${safe}?`)) {
       return;
     }
-    updateStock(productId, variantId, safe);
-    toast.success(`"${productName}" stock updated to ${safe}.`);
+    if (await updateStock(productId, variantId, safe)) {
+      toast.success(`"${productName}" stock updated to ${safe}.`);
+    }
   };
 
   const rows = useMemo(

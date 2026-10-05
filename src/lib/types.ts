@@ -38,6 +38,7 @@ export interface Product {
   subImages: string[];
   stock: number;
   variants: Variant[];
+  inventoryRevision?: number;
   details: ProductSpecs;
   featured: boolean;
   isNewArrival?: boolean;
@@ -95,6 +96,10 @@ export interface Order {
   source: OrderSource;
   status: OrderStatus;
   stockDeducted: boolean;
+  quantity?: number | null;
+  unitPrice?: number | null;
+  total?: number;
+  currency?: string;
   courierName?: string | null;
   trackingNumber?: string | null;
   dispatchedAt?: string | null;

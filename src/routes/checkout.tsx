@@ -177,6 +177,7 @@ function CheckoutPage() {
         productName: item.name,
         variantId: item.variantId,
         variantLabel: item.variantLabel,
+        quantity: item.qty,
         message: [
           `Checkout order ${reference} — quantity ${item.qty} (${formatPrice(item.price * item.qty)}).`,
           `Delivery address: ${values.address.trim()}`,

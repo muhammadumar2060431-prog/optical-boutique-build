@@ -67,6 +67,7 @@ const orderCreateItemSchema = z.object({
   variantLabel: z.string().trim().max(200).nullable(),
   message: z.string().trim().min(1).max(2_000),
   source: orderSourceSchema,
+  quantity: z.number().int().min(1).max(999).optional(),
 });
 
 export const createOrdersSchema = z
@@ -100,7 +101,6 @@ export const updateOrderSchema = z
     status: orderStatusSchema.optional(),
     courierName: z.string().trim().max(100).nullable().optional(),
     trackingNumber: z.string().trim().max(150).nullable().optional(),
-    stockDeducted: z.boolean().optional(),
   })
   .refine((value) => Object.keys(value).length > 0, {
     message: "At least one order field is required.",

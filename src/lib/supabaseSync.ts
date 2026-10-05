@@ -172,10 +172,10 @@ function mapStoreProductToDb(product: Product): any {
     name: product.name || "Untitled Product",
     slug: product.slug || product.id,
     sku: product.sku || null,
-    price: Math.round(Math.max(0, Number(product.price) || 0)),
+    price: Math.round(Math.max(0, Number(product.price) || 0) * 100) / 100,
     compare_at:
       product.salePrice && Number(product.salePrice) > 0
-        ? Math.round(Number(product.salePrice))
+        ? Math.round(Number(product.salePrice) * 100) / 100
         : null,
     category_id: product.categoryId || null,
     collection_ids: product.collectionId ? [product.collectionId] : [],
@@ -244,6 +244,7 @@ export function mapDbProductToStore(raw: any): Product {
     description: raw.description || "",
     stock: Number(raw.stock) || 0,
     variants: Array.isArray(raw.variants) ? raw.variants : [],
+    inventoryRevision: Number(raw.inventory_revision) || 0,
     details: {
       ...(typeof rawDetails === "object" && rawDetails !== null ? rawDetails : {}),
       material: rawDetails?.material || raw.frame_fit || "Acetate / Stainless Steel",
@@ -731,6 +732,10 @@ export async function fetchInitialSupabaseData(
                 ? o.status.charAt(0).toUpperCase() + o.status.slice(1).toLowerCase()
                 : "New") as OrderStatus,
               stockDeducted: o.stock_deducted ?? o.stockDeducted ?? false,
+              quantity: o.quantity ?? null,
+              unitPrice: o.unit_price == null ? null : Number(o.unit_price),
+              total: Number(o.total) || 0,
+              currency: o.currency || "PKR",
               courierName: o.courier_name || o.courierName || o.items?.[0]?.courierName || null,
               trackingNumber:
                 o.tracking_number || o.trackingNumber || o.items?.[0]?.trackingNumber || null,
@@ -860,14 +865,17 @@ async function upsertProduct(product: Product) {
   try {
     const storedProduct = await uploadProductImageData(product);
     const payload = sanitizeDbInput(mapStoreProductToDb(storedProduct));
-    const { error } = await supabase.from("products").upsert(payload);
+    const { data, error } = await supabase.rpc("save_product_inventory_v1", {
+      p_payload: payload,
+      p_expected_revision: product.inventoryRevision ?? 0,
+    });
 
     if (error) {
       console.error("[dbUpsertProduct] Upsert failed:", error);
       return { success: false, error };
     }
 
-    return { success: true };
+    return { success: true, product: mapDbProductToStore(data) };
   } catch (error) {
     console.error("[dbUpsertProduct] Exception:", error);
     return { success: false, error };
@@ -931,8 +939,8 @@ async function postOrdersToApi(
   orders: Order[],
   idempotencyKey: string,
   metaEvent?: MetaEventInput,
-): Promise<boolean> {
-  if (orders.length === 0) return false;
+): Promise<Order[] | null> {
+  if (orders.length === 0) return null;
   try {
     const response = await fetch("/api/v1/orders", {
       method: "POST",
@@ -943,13 +951,19 @@ async function postOrdersToApi(
       },
       body: JSON.stringify({ orders, ...(metaEvent ? { metaEvent } : {}) }),
     });
-    return response.ok;
+    const result = await response.json().catch(() => null);
+    return response.ok && Array.isArray(result?.orders) && result.orders.length === orders.length
+      ? result.orders
+      : null;
   } catch {
-    return false;
+    return null;
   }
 }
 
-export async function dbInsertOrder(order: Order, metaEvent?: MetaEventInput): Promise<boolean> {
+export async function dbInsertOrder(
+  order: Order,
+  metaEvent?: MetaEventInput,
+): Promise<Order[] | null> {
   return postOrdersToApi([order], `order:${order.reference}`, metaEvent);
 }
 
@@ -957,7 +971,7 @@ export async function dbInsertOrders(
   orders: Order[],
   idempotencyKey = `checkout:${orders[0]?.reference ?? "invalid"}`,
   metaEvent?: MetaEventInput,
-): Promise<boolean> {
+): Promise<Order[] | null> {
   return postOrdersToApi(orders, idempotencyKey, metaEvent);
 }
 async function patchOrderViaApi(orderId: string, payload: Record<string, unknown>) {
@@ -977,7 +991,8 @@ async function patchOrderViaApi(orderId: string, payload: Record<string, unknown
       },
       body: JSON.stringify(payload),
     });
-    return response.ok;
+    const result = await response.json().catch(() => null);
+    return response.ok ? (result?.data ?? null) : null;
   } catch {
     return false;
   }
@@ -986,7 +1001,6 @@ async function patchOrderViaApi(orderId: string, payload: Record<string, unknown
 export async function dbUpdateOrderStatus(
   orderId: string,
   status: string,
-  stockDeducted: boolean,
   extra?: {
     courierName?: string | null;
     trackingNumber?: string | null;
@@ -995,10 +1009,24 @@ export async function dbUpdateOrderStatus(
 ) {
   return patchOrderViaApi(orderId, {
     status,
-    stockDeducted,
     ...(extra?.courierName !== undefined ? { courierName: extra.courierName } : {}),
     ...(extra?.trackingNumber !== undefined ? { trackingNumber: extra.trackingNumber } : {}),
   });
+}
+
+export async function dbSetInventoryQuantity(
+  product: Product,
+  variantId: string | null,
+  quantity: number,
+) {
+  const { data, error } = await supabase.rpc("set_inventory_quantity_v1", {
+    p_product_id: product.id,
+    p_variant_id: variantId,
+    p_quantity: quantity,
+    p_expected_revision: product.inventoryRevision ?? 0,
+  });
+  if (error) throw new Error("Inventory changed or could not be saved. Refresh and try again.");
+  return mapDbProductToStore(data);
 }
 
 export async function dbUpdateOrderCourier(

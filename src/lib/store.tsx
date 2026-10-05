@@ -28,6 +28,7 @@ import {
   dbInsertOrders,
   dbUpdateOrderStatus,
   dbUpdateOrderCourier,
+  dbSetInventoryQuantity,
   dbUpsertHeroSlides,
   dbUpsertHeroSlide,
   dbDeleteHeroSlide,
@@ -203,11 +204,11 @@ interface StoreApi extends StoreState {
   deleteCollection: (id: string) => Promise<boolean>;
   saveVariant: (productId: string, variant: Variant) => void;
   deleteVariant: (productId: string, variantId: string) => void;
-  updateStock: (productId: string, variantId: string | null, qty: number) => void;
+  updateStock: (productId: string, variantId: string | null, qty: number) => Promise<boolean>;
   /** Current stock for a product or one of its variants. */
   getStockFor: (productId: string, variantId: string | null) => number;
   /** Relative stock change (negative to deduct). */
-  adjustStock: (productId: string, variantId: string | null, delta: number) => void;
+  adjustStock: (productId: string, variantId: string | null, delta: number) => Promise<boolean>;
   setHeroSlides: (slides: HeroSlide[]) => void;
   updateHeroSlide: (id: string, patch: Partial<HeroSlide>) => void;
   deleteHeroSlide: (id: string) => Promise<boolean>;
@@ -429,12 +430,30 @@ function parseOrderRecord(raw: any, existing?: Order): Order {
     createdAt: raw?.createdAt || raw?.created_at || existing?.createdAt || new Date().toISOString(),
     customerName: raw?.customerName || raw?.customer_name || existing?.customerName || "Customer",
     contact: raw?.contact || raw?.phone || existing?.contact || "",
-    productId: raw?.productId || raw?.items?.[0]?.productId || existing?.productId || null,
+    productId:
+      raw?.product_id ??
+      raw?.productId ??
+      raw?.items?.[0]?.productId ??
+      existing?.productId ??
+      null,
     productName:
-      raw?.productName || raw?.items?.[0]?.productName || existing?.productName || "Glasses",
-    variantId: raw?.variantId || raw?.items?.[0]?.variantId || existing?.variantId || null,
+      raw?.product_name ||
+      raw?.productName ||
+      raw?.items?.[0]?.productName ||
+      existing?.productName ||
+      "Glasses",
+    variantId:
+      raw?.variant_id ??
+      raw?.variantId ??
+      raw?.items?.[0]?.variantId ??
+      existing?.variantId ??
+      null,
     variantLabel:
-      raw?.variantLabel || raw?.items?.[0]?.variantLabel || existing?.variantLabel || null,
+      raw?.variant_label ??
+      raw?.variantLabel ??
+      raw?.items?.[0]?.variantLabel ??
+      existing?.variantLabel ??
+      null,
     message: raw?.message || raw?.address || existing?.message || "",
     source:
       raw?.source ||
@@ -446,7 +465,14 @@ function parseOrderRecord(raw: any, existing?: Order): Order {
     status: (raw?.status
       ? raw.status.charAt(0).toUpperCase() + raw.status.slice(1).toLowerCase()
       : existing?.status || "New") as OrderStatus,
-    stockDeducted: raw?.stockDeducted ?? existing?.stockDeducted ?? true,
+    stockDeducted: raw?.stock_deducted ?? raw?.stockDeducted ?? existing?.stockDeducted ?? false,
+    quantity: raw?.quantity ?? existing?.quantity ?? null,
+    unitPrice:
+      raw?.unit_price == null
+        ? (raw?.unitPrice ?? existing?.unitPrice ?? null)
+        : Number(raw.unit_price),
+    total: Number(raw?.total ?? existing?.total ?? 0),
+    currency: raw?.currency ?? existing?.currency ?? "PKR",
     courierName: raw?.courierName || raw?.courier_name || existing?.courierName || null,
     trackingNumber: raw?.trackingNumber || raw?.tracking_number || existing?.trackingNumber || null,
     dispatchedAt: raw?.dispatchedAt || raw?.dispatched_at || existing?.dispatchedAt || null,
@@ -1061,6 +1087,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             const result = await dbUpsertProduct(product);
             if (result.success) {
               pendingSyncRef.current.delete(id);
+              if (result.product)
+                setProducts((prev) =>
+                  prev.map((item) => (item.id === id ? result.product! : item)),
+                );
             } else {
               console.warn("[store] Failed to sync pending product:", id, result.error);
             }
@@ -1277,51 +1307,36 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     return rows;
   }, [products, categoryById, stockStatus, stockTouched]);
 
-  const applyStockDelta = useCallback(
-    (productId: string, variantId: string | null, delta: number) => {
-      setProducts((prev) =>
-        prev.map((p) => {
-          if (p.id !== productId) return p;
-          let updated: Product;
-          if (variantId) {
-            updated = {
-              ...p,
-              variants: p.variants.map((v) =>
-                v.id === variantId ? { ...v, stock: Math.max(0, v.stock + delta) } : v,
-              ),
-            };
-          } else {
-            updated = { ...p, stock: Math.max(0, p.stock + delta) };
-          }
-          dbUpsertProduct(updated);
-          return updated;
-        }),
-      );
-      setStockTouched((prev) => ({ ...prev, [`${productId}:${variantId ?? "base"}`]: nowIso() }));
+  const updateStock = useCallback<StoreApi["updateStock"]>(
+    async (productId, variantId, qty) => {
+      const product = products.find((item) => item.id === productId);
+      if (!product || !Number.isSafeInteger(qty) || qty < 0) return false;
+      try {
+        const updated = await dbSetInventoryQuantity(product, variantId, qty);
+        setProducts((prev) => prev.map((item) => (item.id === productId ? updated : item)));
+        setStockTouched((prev) => ({ ...prev, [`${productId}:${variantId ?? "base"}`]: nowIso() }));
+        void invalidatePublicStorefront(supabase);
+        return true;
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "Stock could not be saved.");
+        return false;
+      }
     },
-    [],
+    [products],
   );
 
-  const updateStock = useCallback<StoreApi["updateStock"]>((productId, variantId, qty) => {
-    const safe = Math.max(0, Math.round(qty) || 0);
-    setProducts((prev) =>
-      prev.map((p) => {
-        if (p.id !== productId) return p;
-        let updated: Product;
-        if (variantId) {
-          updated = {
-            ...p,
-            variants: p.variants.map((v) => (v.id === variantId ? { ...v, stock: safe } : v)),
-          };
-        } else {
-          updated = { ...p, stock: safe };
-        }
-        dbUpsertProduct(updated);
-        return updated;
-      }),
-    );
-    setStockTouched((prev) => ({ ...prev, [`${productId}:${variantId ?? "base"}`]: nowIso() }));
-  }, []);
+  const applyStockDelta = useCallback<StoreApi["adjustStock"]>(
+    (productId, variantId, delta) => {
+      const product = products.find((item) => item.id === productId);
+      const current = variantId
+        ? product?.variants.find((item) => item.id === variantId)?.stock
+        : product?.stock;
+      return current == null
+        ? Promise.resolve(false)
+        : updateStock(productId, variantId, current + delta);
+    },
+    [products, updateStock],
+  );
 
   const getStockFor = useCallback<StoreApi["getStockFor"]>(
     (productId, variantId) => {
@@ -1347,8 +1362,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     };
     const saved = await dbInsertOrder(order, metaEvent);
     if (!saved) return null;
-    setOrders((prev) => [order, ...prev]);
-    return order;
+    const persisted = parseOrderRecord(saved[0]);
+    setOrders((prev) => [persisted, ...prev.filter((item) => item.id !== persisted.id)]);
+    return persisted;
   }, []);
 
   const addOrders = useCallback<StoreApi["addOrders"]>(async (data, idempotencyKey, metaEvent) => {
@@ -1366,8 +1382,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
     const saved = await dbInsertOrders(orders, idempotencyKey, metaEvent);
     if (!saved) return null;
-    setOrders((prev) => [...orders, ...prev]);
-    return orders;
+    const persisted = saved.map((item) => parseOrderRecord(item));
+    setOrders((prev) => [
+      ...persisted,
+      ...prev.filter((item) => !persisted.some((savedOrder) => savedOrder.id === item.id)),
+    ]);
+    return persisted;
   }, []);
 
   const getOrdersByReference = useCallback<StoreApi["getOrdersByReference"]>(
@@ -1385,27 +1405,21 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       const order = orders.find((item) => item.id === orderId);
       if (!order) return false;
 
-      const shouldDeduct = status === "Completed" && !order.stockDeducted && !!order.productId;
-      const shouldReturn = status === "Cancelled" && order.stockDeducted && !!order.productId;
-      const nextDeducted = shouldDeduct ? true : shouldReturn ? false : order.stockDeducted;
-
-      const saved = await dbUpdateOrderStatus(orderId, status, nextDeducted);
+      const saved = await dbUpdateOrderStatus(orderId, status);
       if (!saved) return false;
 
       setOrders((prev) =>
-        prev.map((item) =>
-          item.id === orderId ? { ...item, status, stockDeducted: nextDeducted } : item,
-        ),
+        prev.map((item) => (item.id === orderId ? parseOrderRecord(saved, item) : item)),
       );
 
-      if (shouldDeduct && order.productId) {
-        applyStockDelta(order.productId, order.variantId, -1);
-      } else if (shouldReturn && order.productId) {
-        applyStockDelta(order.productId, order.variantId, 1);
+      if (saved.inventoryProduct) {
+        const product = mapDbProductToStore(saved.inventoryProduct);
+        setProducts((prev) => prev.map((item) => (item.id === product.id ? product : item)));
       }
+      void invalidatePublicStorefront(supabase);
       return true;
     },
-    [applyStockDelta, orders],
+    [orders],
   );
 
   const updateOrderCourier = useCallback<StoreApi["updateOrderCourier"]>(
@@ -1424,13 +1438,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           if (o.id !== orderId) return o;
           return {
             ...o,
-            status,
-            courierName,
-            trackingNumber,
-            dispatchedAt: o.dispatchedAt || dispatchedAt,
+            ...parseOrderRecord(saved, o),
           };
         }),
       );
+      if (saved.inventoryProduct) {
+        const product = mapDbProductToStore(saved.inventoryProduct);
+        setProducts((prev) => prev.map((item) => (item.id === product.id ? product : item)));
+      }
       return true;
     },
     [],
@@ -1511,27 +1526,26 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     // Auto-clear after 5 seconds (in case the real-time event is delayed)
     setTimeout(() => recentlySavedRef.current.delete(finalId), 5000);
 
-    // 1. Update local state immediately
-    setProducts((prev) => {
-      const next = prev.some((p) => p.id === fullProduct.id)
-        ? prev.map((p) => (p.id === fullProduct.id ? fullProduct : p))
-        : [fullProduct, ...prev];
-      saveItem("products", next);
-      return next;
-    });
-
-    // 2. Persist to Supabase
+    // Publish only the database-confirmed inventory revision.
     if (!isOnlineRef.current) {
-      // Offline: queue this product for sync when internet returns
-      pendingSyncRef.current.set(fullProduct.id, fullProduct);
+      recentlySavedRef.current.delete(finalId);
+      throw new Error("Connect to the internet before saving product inventory.");
     } else {
       const result = await dbUpsertProduct(fullProduct);
-      if (!result.success) {
-        // DB save failed even though we appear online ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â also queue for retry
-        pendingSyncRef.current.set(fullProduct.id, fullProduct);
-        console.error("[saveProduct] Supabase sync failed, queued for retry:", result.error);
+      if (result.success && result.product) {
+        setProducts((prev) =>
+          prev.some((item) => item.id === fullProduct.id)
+            ? prev.map((item) => (item.id === fullProduct.id ? result.product! : item))
+            : [result.product!, ...prev],
+        );
+        void invalidatePublicStorefront(supabase);
+      }
+      if (!result.success || !result.product) {
+        recentlySavedRef.current.delete(finalId);
+        pendingSyncRef.current.delete(fullProduct.id);
+        console.error("[saveProduct] Database save failed:", result.error);
+        throw new Error("Product inventory changed or could not be saved. Refresh and retry.");
       } else {
-        // Successful save ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â remove from pending queue if it was there
         pendingSyncRef.current.delete(fullProduct.id);
       }
     }
@@ -1641,33 +1655,44 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  const saveVariant = useCallback<StoreApi["saveVariant"]>((productId, variant) => {
-    setProducts((prev) =>
-      prev.map((p) => {
-        if (p.id !== productId) return p;
-        const exists = p.variants.some((v) => v.id === variant.id);
-        const updated = {
-          ...p,
-          variants: exists
-            ? p.variants.map((v) => (v.id === variant.id ? variant : v))
-            : [...p.variants, { ...variant, id: variant.id || uid("var") }],
-        };
-        dbUpsertProduct(updated);
-        return updated;
-      }),
-    );
-  }, []);
+  const saveVariant = useCallback<StoreApi["saveVariant"]>(
+    async (productId, variant) => {
+      const product = products.find((item) => item.id === productId);
+      if (!product) return;
+      const exists = product.variants.some((item) => item.id === variant.id);
+      const result = await dbUpsertProduct({
+        ...product,
+        variants: exists
+          ? product.variants.map((item) => (item.id === variant.id ? variant : item))
+          : [...product.variants, { ...variant, id: variant.id || uid("var") }],
+      });
+      if (!result.success || !result.product) {
+        toast.error("Variant changed or could not be saved. Refresh and retry.");
+        return;
+      }
+      setProducts((prev) => prev.map((item) => (item.id === productId ? result.product! : item)));
+      void invalidatePublicStorefront(supabase);
+    },
+    [products],
+  );
 
-  const deleteVariant = useCallback<StoreApi["deleteVariant"]>((productId, variantId) => {
-    setProducts((prev) =>
-      prev.map((p) => {
-        if (p.id !== productId) return p;
-        const updated = { ...p, variants: p.variants.filter((v) => v.id !== variantId) };
-        dbUpsertProduct(updated);
-        return updated;
-      }),
-    );
-  }, []);
+  const deleteVariant = useCallback<StoreApi["deleteVariant"]>(
+    async (productId, variantId) => {
+      const product = products.find((item) => item.id === productId);
+      if (!product) return;
+      const result = await dbUpsertProduct({
+        ...product,
+        variants: product.variants.filter((item) => item.id !== variantId),
+      });
+      if (!result.success || !result.product) {
+        toast.error("Variant is in use or changed. Refresh and retry.");
+        return;
+      }
+      setProducts((prev) => prev.map((item) => (item.id === productId ? result.product! : item)));
+      void invalidatePublicStorefront(supabase);
+    },
+    [products],
+  );
 
   const updateHeroSlide = useCallback<StoreApi["updateHeroSlide"]>((id, patch) => {
     setHeroSlidesState((prev) => {

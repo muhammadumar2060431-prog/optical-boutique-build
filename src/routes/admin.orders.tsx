@@ -429,15 +429,17 @@ function OrderDetailsModal({
                       {order.variantLabel}
                     </span>
                   )}
-                  {info.quantity && (
+                  {(order.quantity ?? info.quantity) && (
                     <span className="inline-flex items-center gap-1 rounded-md bg-blue-50 border border-blue-200 px-2 py-0.5 text-xs font-semibold text-blue-700">
                       <ShoppingCart className="h-3 w-3" />
-                      Qty: {info.quantity}
+                      Qty: {order.quantity ?? info.quantity}
                     </span>
                   )}
-                  {info.price && (
+                  {(order.unitPrice != null || info.price) && (
                     <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 border border-emerald-200 px-2 py-0.5 text-xs font-bold text-emerald-700">
-                      {info.price}
+                      {order.unitPrice != null
+                        ? `Rs. ${Number(order.total).toLocaleString("en-PK", { maximumFractionDigits: 2 })}`
+                        : info.price}
                     </span>
                   )}
                 </div>
