@@ -5,6 +5,7 @@ import { Menu, ShoppingBag, X } from "lucide-react";
 import { useCart } from "@/lib/cart";
 import { useStore } from "@/lib/store";
 import { sanitizeImageSrc } from "@/lib/security";
+import { trimLogoPadding } from "@/lib/logo-padding";
 import { cn } from "@/lib/utils";
 
 const links = [
@@ -26,6 +27,17 @@ export function Navbar() {
   const configuredLogo = sanitizeImageSrc(settings.logo);
   const logoSrc =
     configuredLogo && configuredLogo !== failedLogo ? configuredLogo : "/brand-logo.png";
+  const [trimmedLogo, setTrimmedLogo] = useState<{ source: string; url: string } | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    void trimLogoPadding(logoSrc).then((url) => {
+      if (!cancelled) setTrimmedLogo({ source: logoSrc, url });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [logoSrc]);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
@@ -53,12 +65,9 @@ export function Navbar() {
           aria-label={settings.storeName}
         >
           <img
-            src={logoSrc}
+            src={trimmedLogo?.source === logoSrc ? trimmedLogo.url : logoSrc}
             alt={settings.storeName}
-            className={cn(
-              "h-full w-full",
-              logoSrc === "/brand-logo.png" ? "object-cover" : "object-contain",
-            )}
+            className="h-full w-full object-contain"
             onError={() => {
               if (logoSrc !== "/brand-logo.png") setFailedLogo(logoSrc);
             }}

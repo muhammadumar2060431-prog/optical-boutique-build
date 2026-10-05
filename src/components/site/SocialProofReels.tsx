@@ -9,6 +9,60 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { sanitizeHref } from "@/lib/security";
 import { formatPrice, useStore } from "@/lib/store";
 import type { SocialPlatform, SocialReel } from "@/lib/types";
+import { getReelPreview } from "@/lib/reel-preview";
+
+function ReelPreview({ reel }: { reel: SocialReel }) {
+  const [failedThumbnail, setFailedThumbnail] = useState<string | null>(null);
+  const preview = getReelPreview(
+    reel.videoUrl,
+    reel.thumbnail === failedThumbnail ? "" : reel.thumbnail,
+  );
+  if (preview?.kind === "image") {
+    return (
+      <img
+        src={preview.src}
+        alt={reel.title}
+        loading="lazy"
+        className="w-full h-full object-cover object-center transition-transform duration-700 group-hover:scale-105"
+        onError={() => {
+          if (reel.thumbnail) setFailedThumbnail(reel.thumbnail);
+        }}
+      />
+    );
+  }
+  if (preview?.kind === "iframe") {
+    return (
+      <iframe
+        src={preview.src}
+        title={`${reel.title} preview`}
+        loading="lazy"
+        tabIndex={-1}
+        aria-hidden="true"
+        scrolling="no"
+        className="pointer-events-none w-full h-full border-0 bg-white"
+      />
+    );
+  }
+  if (preview?.kind === "video") {
+    return (
+      <video
+        src={preview.src}
+        muted
+        playsInline
+        preload="metadata"
+        aria-hidden="true"
+        className="pointer-events-none w-full h-full object-cover"
+        onLoadedMetadata={(event) => {
+          const video = event.currentTarget;
+          if (Number.isFinite(video.duration) && video.duration > 0) {
+            video.currentTime = Math.min(0.1, video.duration / 2);
+          }
+        }}
+      />
+    );
+  }
+  return <div className="h-full w-full bg-jet" />;
+}
 
 // Platform Icon Badges
 function PlatformBadge({ platform }: { platform: SocialPlatform }) {
@@ -165,19 +219,10 @@ export function SocialProofReels() {
                 className="group relative flex-shrink-0 w-[240px] sm:w-[280px] aspect-[9/16] rounded-2xl overflow-hidden cursor-pointer border border-stone/80 bg-jet shadow-lg transition-all duration-300 hover:-translate-y-1.5 hover:shadow-2xl hover:border-gold/60"
               >
                 {/* Thumbnail Image */}
-                {reel.thumbnail ? (
-                  <img
-                    src={reel.thumbnail}
-                    alt={reel.title}
-                    loading="lazy"
-                    className="w-full h-full object-cover object-center transition-transform duration-700 group-hover:scale-105"
-                  />
-                ) : (
-                  <div className="h-full w-full bg-[radial-gradient(circle_at_50%_30%,rgba(212,175,55,0.22),transparent_34%),linear-gradient(160deg,#191919_0%,#050505_62%,#2f2f2f_100%)]" />
-                )}
+                <ReelPreview reel={reel} />
 
                 {/* Dark Gradient Overlay */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-black/40 group-hover:from-black/95 transition-colors" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-transparent to-black/15 transition-colors" />
 
                 {/* Top Header: Platform Tag */}
                 <div className="absolute top-3.5 left-3.5 right-3.5 flex items-center justify-between z-10">
