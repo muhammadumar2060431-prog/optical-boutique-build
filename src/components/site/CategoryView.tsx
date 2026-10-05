@@ -86,12 +86,14 @@ export function CategoryView({ category }: { category: Category }) {
               <img
                 src={category.banner.image}
                 alt={category.banner.heading || category.name}
-                loading="lazy"
+                loading="eager"
+                fetchPriority="high"
+                decoding="async"
                 className={cn(
-                  "w-full object-cover transition-all",
+                  "w-full object-fill transition-all",
                   hasText
                     ? "absolute inset-0 h-full opacity-65"
-                    : "h-auto max-h-none object-contain opacity-100 block sm:max-h-[440px] sm:object-cover",
+                    : "h-auto max-h-none opacity-100 block sm:max-h-[440px]",
                 )}
               />
               {hasText && (
@@ -120,12 +122,12 @@ export function CategoryView({ category }: { category: Category }) {
 
       {/* 2. Filter & Sort Bar */}
       <section className="mx-auto max-w-7xl px-4 pt-8 sm:px-6">
-        <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-[#666666] p-5 sm:p-7 text-white shadow-lg border border-white/20 ring-1 ring-black/5">
+        <div className="flex min-w-0 flex-wrap items-center justify-between gap-4 rounded-2xl bg-[#666666] p-4 text-white shadow-lg border border-white/20 ring-1 ring-black/5 sm:p-7">
           <div>
-            <h2 className="font-display text-2xl sm:text-3xl text-white font-normal">
+            <h2 className="font-display text-xl leading-tight text-white font-normal sm:text-3xl">
               {category.name} Range
             </h2>
-            <p className="text-xs text-white/80 mt-1">
+            <p className="mt-1 max-w-full break-words text-xs leading-snug text-white/80">
               Showing {shownFrom}-{shownTo} of {pageResult.total} curated frames & items across{" "}
               {collections.length} collections
             </p>
@@ -137,7 +139,7 @@ export function CategoryView({ category }: { category: Category }) {
                 Price Range (Rs.)
               </span>
 
-              <div className="flex items-center gap-1.5">
+              <div className="flex min-w-0 items-center gap-1.5">
                 <span className="text-gray-500 text-[11px] font-medium">Min</span>
                 <input
                   type="number"
@@ -145,14 +147,14 @@ export function CategoryView({ category }: { category: Category }) {
                   value={minPrice}
                   onChange={(e) => setMinPrice(e.target.value)}
                   onFocus={(e) => e.target.select()}
-                  className="h-7 w-14 rounded-lg border border-gray-300 bg-gray-50 px-2 text-xs font-semibold text-black focus:bg-white focus:outline-none focus:ring-2 focus:ring-black sm:w-16"
+                  className="h-7 min-w-0 flex-1 rounded-lg border border-gray-300 bg-gray-50 px-2 text-xs font-semibold text-black focus:bg-white focus:outline-none focus:ring-2 focus:ring-black sm:w-16 sm:flex-none"
                   placeholder="0"
                 />
               </div>
 
               <span className="text-gray-400 font-bold">-</span>
 
-              <div className="flex items-center gap-1.5">
+              <div className="flex min-w-0 items-center gap-1.5">
                 <span className="text-gray-500 text-[11px] font-medium">Max</span>
                 <input
                   type="number"
@@ -160,7 +162,7 @@ export function CategoryView({ category }: { category: Category }) {
                   value={maxPrice}
                   onChange={(e) => setMaxPrice(e.target.value)}
                   onFocus={(e) => e.target.select()}
-                  className="h-7 w-16 rounded-lg border border-gray-300 bg-gray-50 px-2 text-xs font-semibold text-black focus:bg-white focus:outline-none focus:ring-2 focus:ring-black sm:w-20"
+                  className="h-7 min-w-0 flex-1 rounded-lg border border-gray-300 bg-gray-50 px-2 text-xs font-semibold text-black focus:bg-white focus:outline-none focus:ring-2 focus:ring-black sm:w-20 sm:flex-none"
                   placeholder="Max"
                 />
               </div>
@@ -198,7 +200,7 @@ export function CategoryView({ category }: { category: Category }) {
       <div className="mx-auto max-w-7xl px-4 pb-20 sm:px-6 mt-10">
         {pageResult.items.length > 0 ? (
           <>
-            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 sm:gap-6 md:grid-cols-4">
               {pageResult.items.map((p, i) => (
                 <Reveal key={p.id} delay={i * 50}>
                   <ProductCard product={p} />
@@ -214,7 +216,7 @@ export function CategoryView({ category }: { category: Category }) {
                       type="button"
                       onClick={() => setPage((current) => Math.max(1, current - 1))}
                       disabled={pageResult.page === 1}
-                      className="min-h-11 rounded-full border border-stone bg-card px-4 text-sm font-semibold text-ink transition hover:border-gold hover:text-gold disabled:pointer-events-none disabled:opacity-40"
+                      className="min-h-10 rounded-full border border-stone bg-card px-3 text-xs font-semibold text-ink transition hover:border-gold hover:text-gold disabled:pointer-events-none disabled:opacity-40 sm:min-h-11 sm:px-4 sm:text-sm"
                     >
                       Previous
                     </button>
@@ -228,7 +230,7 @@ export function CategoryView({ category }: { category: Category }) {
                         aria-current={pageNumber === pageResult.page ? "page" : undefined}
                         onClick={() => setPage(pageNumber)}
                         className={cn(
-                          "flex h-11 min-w-11 items-center justify-center rounded-full border px-3 text-sm font-semibold transition",
+                          "flex h-10 min-w-10 items-center justify-center rounded-full border px-2 text-xs font-semibold transition sm:h-11 sm:min-w-11 sm:px-3 sm:text-sm",
                           pageNumber === pageResult.page
                             ? "border-jet bg-jet text-cream"
                             : "border-stone bg-card text-ink hover:border-gold hover:text-gold",
@@ -246,7 +248,7 @@ export function CategoryView({ category }: { category: Category }) {
                         setPage((current) => Math.min(pageResult.totalPages, current + 1))
                       }
                       disabled={pageResult.page === pageResult.totalPages}
-                      className="min-h-11 rounded-full border border-stone bg-card px-4 text-sm font-semibold text-ink transition hover:border-gold hover:text-gold disabled:pointer-events-none disabled:opacity-40"
+                      className="min-h-10 rounded-full border border-stone bg-card px-3 text-xs font-semibold text-ink transition hover:border-gold hover:text-gold disabled:pointer-events-none disabled:opacity-40 sm:min-h-11 sm:px-4 sm:text-sm"
                     >
                       Next
                     </button>

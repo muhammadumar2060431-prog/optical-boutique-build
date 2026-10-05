@@ -57,6 +57,118 @@ async function authenticatedClient(request: Request) {
   return client;
 }
 
+type TrackOrderRow = Record<string, unknown> & {
+  id?: string;
+  product_id?: string | null;
+  productId?: string | null;
+  variant_id?: string | null;
+  variantId?: string | null;
+  product_name?: string | null;
+  productName?: string | null;
+  items?: Array<Record<string, unknown>>;
+};
+
+type ProductLookupRow = {
+  id: string;
+  name?: string | null;
+  slug?: string | null;
+  sku?: string | null;
+  price?: number | string | null;
+  images?: string[] | null;
+  image?: string | null;
+  description?: string | null;
+  details?: Record<string, unknown> | string | null;
+  variants?: Array<Record<string, unknown>> | null;
+};
+
+function firstItem(row: TrackOrderRow) {
+  return Array.isArray(row.items) ? row.items[0] : null;
+}
+
+function rowProductId(row: TrackOrderRow) {
+  const item = firstItem(row);
+  const value = row.product_id ?? row.productId ?? item?.["productId"] ?? item?.["product_id"];
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function rowVariantId(row: TrackOrderRow) {
+  const item = firstItem(row);
+  const value = row.variant_id ?? row.variantId ?? item?.["variantId"] ?? item?.["variant_id"];
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function parseDetails(details: ProductLookupRow["details"]) {
+  if (typeof details === "string") {
+    try {
+      return JSON.parse(details) as Record<string, unknown>;
+    } catch {
+      return {};
+    }
+  }
+  return details && typeof details === "object" ? details : {};
+}
+
+function enrichTrackRow(row: TrackOrderRow, product: ProductLookupRow | undefined) {
+  if (!product) return row;
+
+  const variantId = rowVariantId(row);
+  const variant = Array.isArray(product.variants)
+    ? product.variants.find((item) => item["id"] === variantId)
+    : undefined;
+  const variantImage = typeof variant?.["image"] === "string" ? variant["image"] : null;
+  const images = Array.isArray(product.images) ? product.images : [];
+  const details = parseDetails(product.details);
+  const productImage = variantImage || images[0] || null;
+  const productDescription =
+    product.description ||
+    (typeof details["lensInfo"] === "string" ? details["lensInfo"] : null) ||
+    (typeof details["material"] === "string" ? details["material"] : null);
+
+  return {
+    ...row,
+    product_id: rowProductId(row),
+    product_name: product.name || row.product_name || row.productName,
+    productImage,
+    productSlug: product.slug || null,
+    productPrice: Number(product.price) || null,
+    productSku: product.sku || null,
+    productDescription,
+  };
+}
+
+async function enrichTrackedOrders(rows: unknown[]) {
+  const normalizedRows = rows as TrackOrderRow[];
+  const ids = normalizedRows
+    .map((row) => (typeof row.id === "string" ? row.id : null))
+    .filter((id): id is string => Boolean(id));
+  if (ids.length === 0) return normalizedRows;
+
+  const client = serviceClient();
+  const { data: orderRows, error: ordersError } = await client
+    .from("orders")
+    .select("id, product_id, variant_id, product_name, items")
+    .in("id", ids);
+  if (ordersError) return normalizedRows;
+
+  const orderById = new Map(
+    ((orderRows ?? []) as TrackOrderRow[]).map((row) => [row.id, row] as const),
+  );
+  const mergedRows = normalizedRows.map((row) => ({ ...row, ...(orderById.get(row.id) ?? {}) }));
+  const productIds = Array.from(new Set(mergedRows.map(rowProductId).filter(Boolean)));
+  if (productIds.length === 0) return mergedRows;
+
+  const { data: products, error: productsError } = await client
+    .from("products")
+    .select("id, name, slug, sku, price, images, description, details, variants")
+    .in("id", productIds);
+  if (productsError) return mergedRows;
+
+  const productById = new Map(
+    ((products ?? []) as ProductLookupRow[]).map((product) => [product.id, product] as const),
+  );
+  return mergedRows.map((row) => enrichTrackRow(row, productById.get(rowProductId(row) ?? "")));
+}
+
 function databaseError(error: { message?: string } | null) {
   const message = error?.message ?? "";
   if (message.includes("RATE_LIMITED")) {
@@ -148,7 +260,7 @@ const repository: OrdersRepository = {
       p_reference: reference,
     });
     if (error) databaseError(error);
-    return data ?? [];
+    return enrichTrackedOrders(data ?? []);
   },
 };
 

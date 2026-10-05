@@ -22,4 +22,9 @@ describe("Supabase image optimization", () => {
       "https://cdn.example.com/hero.jpg",
     );
   });
+  it("serves AVIF originals directly instead of an unsupported transform", () => {
+    const original =
+      "https://demo.supabase.co/storage/v1/object/public/site-assets/banner.AVIF?version=2";
+    assert.equal(getOptimizedSupabaseImageSrc(original, 640), original);
+  });
 });

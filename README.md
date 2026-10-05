@@ -1,4 +1,4 @@
-# Optique Suite
+# Nigah Suite
 
 Premium Eyewear E-commerce Store - Project Specification
 
@@ -8,7 +8,7 @@ Data for now: Do NOT set up a real database/backend yet. Use realistic, well-str
 
 1. Brand & Visual Theme
 
-Brand name placeholder: "OPTIQUE" (used in navbar logo, footer, browser tab title, and admin panel header). Make it editable later from Admin → Settings, and make sure that setting actually drives the navbar/footer text (not hardcoded in multiple places).
+Brand name placeholder: "Nigah" (used in navbar logo, footer, browser tab title, and admin panel header). Make it editable later from Admin → Settings, and make sure that setting actually drives the navbar/footer text (not hardcoded in multiple places).
 
 Color palette — use exactly these as CSS variables/design tokens (so a global theme tweak is a one-line change, not a find-and-replace):
 
@@ -441,7 +441,7 @@ Supabase Vault. Keep `RESEND_API_KEY`, `RESEND_WEBHOOK_SECRET`, and
 `onboarding@resend.dev` is suitable only for initial account testing. Before
 sending confirmations to customer addresses, verify the production domain in
 Resend and set `RESEND_FROM_EMAIL` to a sender on that domain, for example
-`OPTIQUE <orders@example.com>`.
+`Nigah <orders@example.com>`.
 
 ### Deployment readiness checklist
 
@@ -484,3 +484,4 @@ Monitoring and API routes:
 - Authenticated admin CRUD at /api/v1/orders and /api/v1/orders/:id
 
 Run API and transport-control tests with: npm test
+

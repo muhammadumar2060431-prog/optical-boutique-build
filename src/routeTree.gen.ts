@@ -51,6 +51,9 @@ import { Route as CategorySlugRouteImport } from './routes/category.$slug'
 import { Route as ProductSlugRouteImport } from './routes/product.$slug'
 import { Route as ApiV1ContactRouteImport } from './routes/api.v1.contact'
 import { Route as ApiV1OrdersRouteImport } from './routes/api.v1.orders'
+import { Route as ApiV1ReviewsRouteImport } from './routes/api.v1.reviews'
+import { Route as ApiV1StorefrontRouteImport } from './routes/api.v1.storefront'
+import { Route as ApiV1SubscribersRouteImport } from './routes/api.v1.subscribers'
 import { Route as ApiV1AdminCredentialsRouteImport } from './routes/api.v1.admin.credentials'
 import { Route as ApiV1AdminLoginRouteImport } from './routes/api.v1.admin.login'
 import { Route as ApiV1AdminRecoverRouteImport } from './routes/api.v1.admin.recover'
@@ -270,6 +273,21 @@ const ApiV1OrdersRoute = ApiV1OrdersRouteImport.update({
   path: '/api/v1/orders',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiV1ReviewsRoute = ApiV1ReviewsRouteImport.update({
+  id: '/api/v1/reviews',
+  path: '/api/v1/reviews',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1StorefrontRoute = ApiV1StorefrontRouteImport.update({
+  id: '/api/v1/storefront',
+  path: '/api/v1/storefront',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1SubscribersRoute = ApiV1SubscribersRouteImport.update({
+  id: '/api/v1/subscribers',
+  path: '/api/v1/subscribers',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiV1AdminCredentialsRoute = ApiV1AdminCredentialsRouteImport.update({
   id: '/api/v1/admin/credentials',
   path: '/api/v1/admin/credentials',
@@ -355,6 +373,9 @@ export interface FileRoutesByFullPath {
   '/blog/': typeof BlogIndexRoute
   '/api/v1/contact': typeof ApiV1ContactRoute
   '/api/v1/orders': typeof ApiV1OrdersRouteWithChildren
+  '/api/v1/reviews': typeof ApiV1ReviewsRoute
+  '/api/v1/storefront': typeof ApiV1StorefrontRoute
+  '/api/v1/subscribers': typeof ApiV1SubscribersRoute
   '/api/v1/admin/credentials': typeof ApiV1AdminCredentialsRoute
   '/api/v1/admin/login': typeof ApiV1AdminLoginRoute
   '/api/v1/admin/recover': typeof ApiV1AdminRecoverRoute
@@ -406,6 +427,9 @@ export interface FileRoutesByTo {
   '/blog': typeof BlogIndexRoute
   '/api/v1/contact': typeof ApiV1ContactRoute
   '/api/v1/orders': typeof ApiV1OrdersRouteWithChildren
+  '/api/v1/reviews': typeof ApiV1ReviewsRoute
+  '/api/v1/storefront': typeof ApiV1StorefrontRoute
+  '/api/v1/subscribers': typeof ApiV1SubscribersRoute
   '/api/v1/admin/credentials': typeof ApiV1AdminCredentialsRoute
   '/api/v1/admin/login': typeof ApiV1AdminLoginRoute
   '/api/v1/admin/recover': typeof ApiV1AdminRecoverRoute
@@ -459,6 +483,9 @@ export interface FileRoutesById {
   '/blog/': typeof BlogIndexRoute
   '/api/v1/contact': typeof ApiV1ContactRoute
   '/api/v1/orders': typeof ApiV1OrdersRouteWithChildren
+  '/api/v1/reviews': typeof ApiV1ReviewsRoute
+  '/api/v1/storefront': typeof ApiV1StorefrontRoute
+  '/api/v1/subscribers': typeof ApiV1SubscribersRoute
   '/api/v1/admin/credentials': typeof ApiV1AdminCredentialsRoute
   '/api/v1/admin/login': typeof ApiV1AdminLoginRoute
   '/api/v1/admin/recover': typeof ApiV1AdminRecoverRoute
@@ -513,6 +540,9 @@ export interface FileRouteTypes {
     | '/blog/'
     | '/api/v1/contact'
     | '/api/v1/orders'
+    | '/api/v1/reviews'
+    | '/api/v1/storefront'
+    | '/api/v1/subscribers'
     | '/api/v1/admin/credentials'
     | '/api/v1/admin/login'
     | '/api/v1/admin/recover'
@@ -564,6 +594,9 @@ export interface FileRouteTypes {
     | '/blog'
     | '/api/v1/contact'
     | '/api/v1/orders'
+    | '/api/v1/reviews'
+    | '/api/v1/storefront'
+    | '/api/v1/subscribers'
     | '/api/v1/admin/credentials'
     | '/api/v1/admin/login'
     | '/api/v1/admin/recover'
@@ -616,6 +649,9 @@ export interface FileRouteTypes {
     | '/blog/'
     | '/api/v1/contact'
     | '/api/v1/orders'
+    | '/api/v1/reviews'
+    | '/api/v1/storefront'
+    | '/api/v1/subscribers'
     | '/api/v1/admin/credentials'
     | '/api/v1/admin/login'
     | '/api/v1/admin/recover'
@@ -658,6 +694,9 @@ export interface RootRouteChildren {
   BlogIndexRoute: typeof BlogIndexRoute
   ApiV1ContactRoute: typeof ApiV1ContactRoute
   ApiV1OrdersRoute: typeof ApiV1OrdersRouteWithChildren
+  ApiV1ReviewsRoute: typeof ApiV1ReviewsRoute
+  ApiV1StorefrontRoute: typeof ApiV1StorefrontRoute
+  ApiV1SubscribersRoute: typeof ApiV1SubscribersRoute
   ApiV1AdminCredentialsRoute: typeof ApiV1AdminCredentialsRoute
   ApiV1AdminLoginRoute: typeof ApiV1AdminLoginRoute
   ApiV1AdminRecoverRoute: typeof ApiV1AdminRecoverRoute
@@ -962,6 +1001,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1OrdersRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/v1/reviews': {
+      id: '/api/v1/reviews'
+      path: '/api/v1/reviews'
+      fullPath: '/api/v1/reviews'
+      preLoaderRoute: typeof ApiV1ReviewsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/storefront': {
+      id: '/api/v1/storefront'
+      path: '/api/v1/storefront'
+      fullPath: '/api/v1/storefront'
+      preLoaderRoute: typeof ApiV1StorefrontRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/subscribers': {
+      id: '/api/v1/subscribers'
+      path: '/api/v1/subscribers'
+      fullPath: '/api/v1/subscribers'
+      preLoaderRoute: typeof ApiV1SubscribersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/v1/admin/credentials': {
       id: '/api/v1/admin/credentials'
       path: '/api/v1/admin/credentials'
@@ -1097,6 +1157,9 @@ const rootRouteChildren: RootRouteChildren = {
   BlogIndexRoute: BlogIndexRoute,
   ApiV1ContactRoute: ApiV1ContactRoute,
   ApiV1OrdersRoute: ApiV1OrdersRouteWithChildren,
+  ApiV1ReviewsRoute: ApiV1ReviewsRoute,
+  ApiV1StorefrontRoute: ApiV1StorefrontRoute,
+  ApiV1SubscribersRoute: ApiV1SubscribersRoute,
   ApiV1AdminCredentialsRoute: ApiV1AdminCredentialsRoute,
   ApiV1AdminLoginRoute: ApiV1AdminLoginRoute,
   ApiV1AdminRecoverRoute: ApiV1AdminRecoverRoute,

@@ -16,7 +16,8 @@ const BASE_CSP = [
 
 export function applySecurityHeaders(response: Response, request: Request) {
   const headers = new Headers(response.headers);
-  const secureRequest = new URL(request.url).protocol === "https:";
+  const forwardedProto = request.headers.get("x-forwarded-proto")?.split(",")[0]?.trim();
+  const secureRequest = new URL(request.url).protocol === "https:" || forwardedProto === "https";
   const csp = secureRequest ? [...BASE_CSP, "upgrade-insecure-requests"] : BASE_CSP;
 
   headers.set("Content-Security-Policy", csp.join("; "));

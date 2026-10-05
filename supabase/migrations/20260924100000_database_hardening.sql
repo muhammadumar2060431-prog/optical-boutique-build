@@ -115,7 +115,7 @@ ALTER TABLE public.subscribers
   ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT now();
 
 ALTER TABLE public.store_settings
-  ADD COLUMN IF NOT EXISTS store_name TEXT DEFAULT 'OPTIQUE',
+  ADD COLUMN IF NOT EXISTS store_name TEXT DEFAULT 'Nigah',
   ADD COLUMN IF NOT EXISTS whatsapp TEXT DEFAULT '',
   ADD COLUMN IF NOT EXISTS phone TEXT DEFAULT '',
   ADD COLUMN IF NOT EXISTS email TEXT DEFAULT '',
@@ -502,3 +502,4 @@ ON CONFLICT (id) DO UPDATE SET
   public = EXCLUDED.public,
   file_size_limit = EXCLUDED.file_size_limit,
   allowed_mime_types = EXCLUDED.allowed_mime_types;
+

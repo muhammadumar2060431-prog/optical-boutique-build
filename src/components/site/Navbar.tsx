@@ -39,15 +39,18 @@ export function Navbar() {
       {/* Main nav row */}
       <nav
         aria-label="Primary"
-        className="mx-auto flex max-w-7xl items-center gap-4 px-4 sm:px-6 lg:px-8"
-        style={{ minHeight: "64px" }}
+        className="mx-auto flex min-h-14 max-w-7xl items-center gap-3 px-4 sm:min-h-16 sm:gap-4 sm:px-6 lg:px-8"
       >
         {/* Logo */}
-        <Link to="/" className="flex shrink-0 items-center mr-6" aria-label={settings.storeName}>
+        <Link
+          to="/"
+          className="mr-4 flex shrink-0 items-center sm:mr-6"
+          aria-label={settings.storeName}
+        >
           <img
             src="/brand-logo.png"
             alt={settings.storeName}
-            className="h-9 w-auto object-contain"
+            className="h-7 w-auto object-contain sm:h-9"
           />
         </Link>
 

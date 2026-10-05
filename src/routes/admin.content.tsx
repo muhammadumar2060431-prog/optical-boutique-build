@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import {
   ArrowDown,
@@ -485,10 +485,9 @@ function HeroPanel() {
                     variant="ghost"
                     className="text-destructive hover:text-destructive hover:bg-destructive/10"
                     aria-label="Delete slide"
-                    onClick={() => {
+                    onClick={async () => {
                       if (window.confirm("Are you sure you want to delete this slide?")) {
-                        deleteHeroSlide(slide.id);
-                        toast.success("Slide deleted.");
+                        if (await deleteHeroSlide(slide.id)) toast.success("Slide deleted.");
                       }
                     }}
                   >
@@ -659,6 +658,9 @@ function BannerPanel() {
                     onChange={(img) => patch({ image: img ?? "" })}
                     hint="1200 x 600 px - Max 250 KB - JPG/WebP wide"
                     aspectHint="2:1 wide"
+                    maxWidth={1200}
+                    maxHeight={600}
+                    outputQuality={0.88}
                     storageFolder="categories"
                   />
                 </div>
@@ -797,7 +799,7 @@ function VideoPanel() {
             id="v-channel"
             value={channel}
             onChange={(e) => setChannel(e.target.value)}
-            placeholder="@optiqueeyewear"
+            placeholder="@nigaheyewear"
             className="min-h-11"
           />
         </div>
@@ -1090,10 +1092,9 @@ function SocialReelsPanel() {
                         <Button
                           size="icon"
                           variant="ghost"
-                          onClick={() => {
+                          onClick={async () => {
                             if (confirm(`Delete reel "${reel.title}"?`)) {
-                              deleteSocialReel(reel.id);
-                              toast.success("Reel deleted.");
+                              if (await deleteSocialReel(reel.id)) toast.success("Reel deleted.");
                             }
                           }}
                           aria-label="Delete Reel"

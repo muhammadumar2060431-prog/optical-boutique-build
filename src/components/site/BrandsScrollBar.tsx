@@ -40,6 +40,8 @@ export function BrandsScrollBar() {
                 <img
                   src={logo}
                   alt={name || "Brand logo"}
+                  loading="lazy"
+                  decoding="async"
                   className="brand-logo-img"
                   draggable={false}
                 />

@@ -20,9 +20,9 @@ const validOrder = {
 };
 
 function request(path: string, init: RequestInit = {}) {
-  return new Request(`https://optique.pk${path}`, {
+  return new Request(`https://www.nigah.store${path}`, {
     ...init,
-    headers: { origin: "https://optique.pk", ...init.headers },
+    headers: { origin: "https://www.nigah.store", ...init.headers },
   });
 }
 
@@ -152,7 +152,7 @@ describe("API transport controls", () => {
   it("rejects unapproved browser origins", async () => {
     const handler = withApi(() => Response.json({ ok: true }), { name: "test.cors" });
     const response = await handler({
-      request: new Request("https://optique.pk/api/v1/test", {
+      request: new Request("https://www.nigah.store/api/v1/test", {
         headers: { origin: "https://attacker.example" },
       }),
     });
@@ -193,7 +193,7 @@ describe("Browser security headers", () => {
   it("sets CSP, anti-framing, MIME and HSTS headers on HTTPS responses", () => {
     const response = applySecurityHeaders(
       new Response("ok"),
-      new Request("https://optique.pk/admin"),
+      new Request("https://www.nigah.store/admin"),
     );
     assert.match(response.headers.get("content-security-policy") ?? "", /frame-ancestors 'none'/);
     assert.equal(response.headers.get("x-frame-options"), "DENY");

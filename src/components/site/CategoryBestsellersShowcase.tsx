@@ -108,6 +108,10 @@ export function CategoryBestsellersShowcase() {
                       <img
                         src={cat.image}
                         alt={cat.name}
+                        loading="lazy"
+                        decoding="async"
+                        width={208}
+                        height={208}
                         className="w-full h-full object-cover object-center transition-transform duration-500 group-hover:scale-110"
                       />
                     ) : (
@@ -185,7 +189,7 @@ export function CategoryBestsellersShowcase() {
                             src={col.banner!.image}
                             alt={col.name}
                             loading="lazy"
-                            className="block h-auto w-full max-w-full object-contain sm:max-h-[460px] sm:min-h-[340px] sm:object-cover"
+                            className="block h-auto w-full max-w-full object-fill sm:max-h-[460px] sm:min-h-[340px]"
                           />
                         </div>
                       );
@@ -198,7 +202,7 @@ export function CategoryBestsellersShowcase() {
                             src={col.banner.image}
                             alt={col.name}
                             loading="lazy"
-                            className="absolute inset-0 h-full w-full object-cover opacity-50"
+                            className="absolute inset-0 h-full w-full object-fill opacity-50"
                           />
                         ) : (
                           <div className="absolute inset-0 bg-radial from-jet via-zinc-950 to-black" />
@@ -251,10 +255,12 @@ export function CategoryBestsellersShowcase() {
                         ? "/glasses"
                         : "/glasses"
                   }
-                  className="inline-flex items-center gap-2 rounded-full bg-jet hover:bg-jet/90 text-cream px-8 py-3.5 text-xs font-bold uppercase tracking-[0.16em] transition-all hover:scale-105 shadow-md border border-gold/40 group"
+                  className="inline-flex w-full max-w-sm items-center justify-center gap-2 rounded-full border border-gold/40 bg-jet px-5 py-3.5 text-center text-xs font-bold uppercase tracking-[0.13em] text-cream shadow-md transition-all hover:scale-105 hover:bg-jet/90 sm:w-auto sm:max-w-none sm:px-8 sm:tracking-[0.16em] group"
                 >
-                  <span>Explore Full {activeCategory?.name} Boutique</span>
-                  <ArrowRight className="h-4 w-4 text-gold transition-transform group-hover:translate-x-1" />
+                  <span className="min-w-0 leading-snug">
+                    Explore Full {activeCategory?.name} Boutique
+                  </span>
+                  <ArrowRight className="h-4 w-4 shrink-0 text-gold transition-transform group-hover:translate-x-1" />
                 </Link>
               </div>
             </>

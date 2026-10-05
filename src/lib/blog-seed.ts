@@ -1,4 +1,4 @@
-﻿import type { BlogPost } from "@/lib/blog-types";
+import type { BlogPost } from "@/lib/blog-types";
 
 export const sampleBlogPost: BlogPost = {
   id: "blog-complete-eyewear-guide",
@@ -9,12 +9,12 @@ export const sampleBlogPost: BlogPost = {
   category: "Frame guide",
   coverImage: "/about-man.jpg",
   coverAlt: "Man wearing well-fitted black optical eyeglasses",
-  author: "OPTIQUE Editorial",
+  author: "Nigah Editorial",
   status: "published",
   featured: true,
   seoTitle: "How to Choose Perfect Eyeglasses: Expert Frame Guide",
   seoDescription:
-    "Learn how to choose eyeglasses for your face shape, frame size, lifestyle and prescription with practical advice from OPTIQUE opticians.",
+    "Learn how to choose eyeglasses for your face shape, frame size, lifestyle and prescription with practical advice from Nigah opticians.",
   keywords: [
     "how to choose eyeglasses",
     "best frames for face shape",
@@ -122,7 +122,7 @@ export const sampleBlogPost: BlogPost = {
     {
       id: "sample-final",
       type: "paragraph",
-      text: "When in doubt, send OPTIQUE your current frame measurements and prescription. Our team can shortlist shapes that fit correctly before you decide on colour and finish.",
+      text: "When in doubt, send Nigah your current frame measurements and prescription. Our team can shortlist shapes that fit correctly before you decide on colour and finish.",
       bold: true,
       fontSize: "normal",
     },

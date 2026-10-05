@@ -3,18 +3,19 @@ import { createFileRoute } from "@tanstack/react-router";
 import { CategoryView } from "@/components/site/CategoryView";
 import { SiteLayout } from "@/components/site/SiteLayout";
 import { useStore } from "@/lib/store";
+import { breadcrumbSchema, collectionPageSchema, jsonLdScript } from "@/lib/schema";
 import { getSiteUrl } from "@/lib/utils";
 
 export const Route = createFileRoute("/glasses")({
   head: () => ({
     meta: [
-      { title: "Designer Eyeglasses & Frames — Handcrafted Optics | OPTIQUE" },
+      { title: "Designer Eyeglasses & Frames — Handcrafted Optics | Nigah" },
       {
         name: "description",
         content:
           "Explore handcrafted acetate, titanium, and minimalist eyeglass frames. Precision-cut and fitted with premium prescription lenses.",
       },
-      { property: "og:title", content: "Designer Eyeglasses & Frames | OPTIQUE" },
+      { property: "og:title", content: "Designer Eyeglasses & Frames | Nigah" },
       {
         property: "og:description",
         content: "Explore handcrafted acetate, titanium, and minimalist eyeglass frames.",
@@ -23,6 +24,20 @@ export const Route = createFileRoute("/glasses")({
       { property: "og:url", content: getSiteUrl("/glasses") },
     ],
     links: [{ rel: "canonical", href: getSiteUrl("/glasses") }],
+    scripts: [
+      jsonLdScript([
+        collectionPageSchema({
+          path: "/glasses",
+          name: "Designer Eyeglasses and Frames",
+          description:
+            "Explore handcrafted acetate, titanium, and minimalist eyeglass frames from Nigah.",
+        }),
+        breadcrumbSchema([
+          { name: "Home", url: getSiteUrl("/") },
+          { name: "Glasses", url: getSiteUrl("/glasses") },
+        ]),
+      ]),
+    ],
   }),
   component: GlassesPage,
 });

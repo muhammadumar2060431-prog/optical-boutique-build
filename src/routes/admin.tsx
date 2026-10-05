@@ -23,17 +23,23 @@ import { useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/admin")({
+  notFoundComponent: AdminNotFoundFallback,
   head: () => ({
     meta: [
-      { title: "Admin - OPTIQUE Control Panel" },
-      { name: "description", content: "Manage OPTIQUE products, orders, inventory and content." },
+      { title: "Admin - Nigah Control Panel" },
+      { name: "description", content: "Manage Nigah products, orders, inventory and content." },
       { name: "robots", content: "noindex, nofollow" },
-      { property: "og:title", content: "Admin - OPTIQUE Control Panel" },
-      { property: "og:description", content: "Internal control panel for the OPTIQUE store." },
+      { property: "og:title", content: "Admin - Nigah Control Panel" },
+      { property: "og:description", content: "Internal control panel for the Nigah store." },
     ],
   }),
   component: AdminLayout,
 });
+
+function AdminNotFoundFallback() {
+  const { isAdmin } = useStore();
+  return isAdmin ? <AdminDashboard /> : <AdminAuthPanel />;
+}
 
 const nav = [
   { to: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },

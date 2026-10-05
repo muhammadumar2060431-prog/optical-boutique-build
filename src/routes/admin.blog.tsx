@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   ArrowDown,
@@ -23,7 +23,7 @@ import type { BlogBlock, BlogBlockType, BlogPost } from "@/lib/blog-types";
 export const Route = createFileRoute("/admin/blog")({
   head: () => ({
     meta: [
-      { title: "Blog Articles | OPTIQUE Admin" },
+      { title: "Blog Articles | Nigah Admin" },
       { name: "robots", content: "noindex, nofollow" },
     ],
   }),
@@ -40,7 +40,7 @@ const emptyPost = (): BlogPost => {
     category: "Eyewear guide",
     coverImage: "",
     coverAlt: "",
-    author: "OPTIQUE Editorial",
+    author: "Nigah Editorial",
     status: "draft",
     featured: false,
     seoTitle: "",
@@ -163,7 +163,7 @@ function BlogAdmin() {
                     </span>
                   </div>
                   <p className="mt-1 text-xs text-ink-muted">
-                    /{post.slug} · {post.category}
+                    /{post.slug} � {post.category}
                   </p>
                 </div>
                 <div className="flex gap-2">

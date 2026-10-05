@@ -4,11 +4,16 @@ import type { BlogPost } from "@/lib/blog-types";
 import { sampleBlogPost } from "@/lib/blog-seed";
 
 const CACHE_KEY = "optique_blog_posts";
+const LEGACY_CACHE_KEY = "nigah_blog_posts";
 
 function readCache(): BlogPost[] {
   if (typeof window === "undefined") return [sampleBlogPost];
   try {
-    const stored = localStorage.getItem(CACHE_KEY);
+    let stored = localStorage.getItem(CACHE_KEY);
+    if (stored === null) {
+      stored = localStorage.getItem(LEGACY_CACHE_KEY);
+      if (stored !== null) localStorage.setItem(CACHE_KEY, stored);
+    }
     if (stored === null) return [sampleBlogPost];
     const parsed = JSON.parse(stored) as BlogPost[];
     return parsed.length > 0 ? parsed : [sampleBlogPost];
@@ -30,7 +35,7 @@ function mapDbBlogPost(raw: any): BlogPost {
     category: raw.category || "Eyewear guide",
     coverImage: raw.cover_image || "",
     coverAlt: raw.cover_alt || raw.title || "",
-    author: raw.author || "OPTIQUE Editorial",
+    author: raw.author || "Nigah Editorial",
     status: raw.status === "published" ? "published" : "draft",
     featured: Boolean(raw.featured),
     seoTitle: raw.seo_title || raw.title || "",
@@ -109,10 +114,21 @@ export async function saveBlogPost(post: BlogPost): Promise<{ ok: boolean; error
 }
 
 export async function removeBlogPost(id: string): Promise<{ ok: boolean; error?: string }> {
-  writeCache(readCache().filter((post) => post.id !== id));
-  if (!isSupabaseConfigured) return { ok: true };
-  const { error } = await supabase.from("blog_posts").delete().eq("id", id);
-  return error ? { ok: false, error: error.message } : { ok: true };
+  try {
+    if (isSupabaseConfigured) {
+      const { deleteDatabaseRecord } = await import("./database-delete.ts");
+      await deleteDatabaseRecord(supabase, "blog_posts", id);
+      const { invalidatePublicStorefront } = await import("./storefront-invalidate.ts");
+      await invalidatePublicStorefront(supabase);
+    }
+    writeCache(readCache().filter((post) => post.id !== id));
+    return { ok: true };
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "Article deletion failed.",
+    };
+  }
 }
 
 export function blogReadingMinutes(post: BlogPost) {

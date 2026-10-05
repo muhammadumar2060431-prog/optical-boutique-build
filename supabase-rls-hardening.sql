@@ -1,5 +1,5 @@
 -- ==============================================================================
--- OPTIQUE: ROW LEVEL SECURITY (RLS) HARDENING SCRIPT
+-- Nigah: ROW LEVEL SECURITY (RLS) HARDENING SCRIPT
 -- ==============================================================================
 -- Run this in your Supabase SQL Editor:
 -- https://supabase.com/dashboard/project/jebzcorqtizjakontrrl/sql/new
@@ -130,3 +130,4 @@ BEGIN
   CREATE POLICY "Public read video_settings" ON public.video_settings FOR SELECT USING (true);
   CREATE POLICY "Admin modify video_settings" ON public.video_settings FOR ALL TO authenticated USING (true) WITH CHECK (true);
 END $$;
+

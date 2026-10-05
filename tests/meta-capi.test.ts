@@ -9,7 +9,7 @@ function expectedHash(value: string) {
 }
 
 function trackingRequest() {
-  return new Request("https://optique.pk/api/v1/meta/events", {
+  return new Request("https://www.nigah.store/api/v1/meta/events", {
     headers: {
       "x-forwarded-for": "203.0.113.10, 10.0.0.1",
       "user-agent": "Meta-CAPI-Test/1.0",
@@ -28,7 +28,7 @@ describe("Meta Conversions API payload", () => {
       {
         eventName: "Purchase",
         eventId: "purchase:test-12345",
-        eventSourceUrl: "https://optique.pk/checkout",
+        eventSourceUrl: "https://www.nigah.store/checkout",
         userData: {
           email: " AYESHA@EXAMPLE.COM ",
           phone: " +92 300 1234567 ",
@@ -79,7 +79,7 @@ describe("Meta Conversions API payload", () => {
       {
         eventName: "Lead",
         eventId: "lead:test-12345",
-        eventSourceUrl: "https://optique.pk/contact",
+        eventSourceUrl: "https://www.nigah.store/contact",
       },
       trackingRequest(),
       { testEventCode: "TEST12345" },

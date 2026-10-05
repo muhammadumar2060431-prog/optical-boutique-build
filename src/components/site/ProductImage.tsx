@@ -1,4 +1,5 @@
 import { useEffect, useState, type ImgHTMLAttributes } from "react";
+import { sanitizeImageSrc } from "@/lib/security";
 
 const DEFAULT_FALLBACK = "/placeholder.svg";
 
@@ -13,7 +14,8 @@ export function ProductImage({
   alt,
   ...props
 }: ProductImageProps) {
-  const preferredSrc = src?.trim() && src !== DEFAULT_FALLBACK ? src : fallbackSrc;
+  const safeFallback = sanitizeImageSrc(fallbackSrc, DEFAULT_FALLBACK);
+  const preferredSrc = sanitizeImageSrc(src, safeFallback);
   const [currentSrc, setCurrentSrc] = useState(preferredSrc);
 
   useEffect(() => {
@@ -28,12 +30,14 @@ export function ProductImage({
 
   return (
     <img
+      loading="lazy"
+      decoding="async"
       {...props}
       src={currentSrc}
       alt={alt}
-      data-fallback={currentSrc === fallbackSrc ? "true" : undefined}
+      data-fallback={currentSrc === safeFallback ? "true" : undefined}
       onError={() => {
-        if (currentSrc !== fallbackSrc) setCurrentSrc(fallbackSrc);
+        if (currentSrc !== safeFallback) setCurrentSrc(safeFallback);
       }}
     />
   );

@@ -14,6 +14,16 @@ export function Hero() {
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
   const [failedImages, setFailedImages] = useState<Set<string>>(() => new Set());
+  const [failedTransforms, setFailedTransforms] = useState<Set<string>>(() => new Set());
+  const [visitedSlides, setVisitedSlides] = useState<Set<string>>(() => new Set());
+  const activeSlideId = slides[index]?.id;
+
+  useEffect(() => {
+    if (!activeSlideId) return;
+    setVisitedSlides((current) =>
+      current.has(activeSlideId) ? current : new Set([...current, activeSlideId]),
+    );
+  }, [activeSlideId]);
 
   const go = useCallback(
     (dir: number) =>
@@ -35,7 +45,7 @@ export function Hero() {
 
   return (
     <section
-      className="relative isolate h-[230px] w-full overflow-hidden bg-jet sm:h-[330px] md:h-[400px] lg:h-[460px] xl:h-[480px]"
+      className="relative isolate h-[250px] w-full overflow-hidden bg-jet sm:h-[340px] md:h-[400px] lg:h-[450px]"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
       onTouchStart={() => setPaused(true)}
@@ -49,10 +59,11 @@ export function Hero() {
           slide.ctaText?.trim(),
         );
 
-        const imageSrc = failedImages.has(slide.id)
-          ? FALLBACK_HERO_IMAGE
-          : sanitizeImageSrc(slide.image, FALLBACK_HERO_IMAGE);
-        const optimizedImageSrc = getOptimizedSupabaseImageSrc(imageSrc, 1600);
+        const originalImage = sanitizeImageSrc(slide.image, FALLBACK_HERO_IMAGE);
+        const imageSrc = failedImages.has(originalImage) ? FALLBACK_HERO_IMAGE : originalImage;
+        const optimizedImageSrc = failedTransforms.has(imageSrc)
+          ? imageSrc
+          : getOptimizedSupabaseImageSrc(imageSrc, 1600);
         const optimizedSrcSet =
           optimizedImageSrc === imageSrc
             ? undefined
@@ -61,28 +72,33 @@ export function Hero() {
                 .join(", ");
         const ctaLink = sanitizeHref(slide.ctaLink, "");
 
-        const imageElement = (
-          <img
-            src={optimizedImageSrc}
-            srcSet={optimizedSrcSet}
-            sizes="100vw"
-            alt={slide.headline || "Store banner"}
-            width={1920}
-            height={960}
-            loading={i === 0 ? "eager" : "lazy"}
-            decoding="async"
-            fetchPriority={i === 0 ? "high" : "auto"}
-            className="h-full w-full object-cover"
-            onError={() => {
-              setFailedImages((current) => {
-                if (current.has(slide.id)) return current;
-                const next = new Set(current);
-                next.add(slide.id);
-                return next;
-              });
-            }}
-          />
-        );
+        const imageElement =
+          i === index || visitedSlides.has(slide.id) ? (
+            <img
+              src={optimizedImageSrc}
+              srcSet={optimizedSrcSet}
+              sizes="100vw"
+              alt={slide.headline || "Store banner"}
+              width={1920}
+              height={960}
+              loading={i === index ? "eager" : "lazy"}
+              decoding="async"
+              fetchPriority={i === 0 ? "high" : "auto"}
+              className="block h-full w-full object-fill"
+              onError={() => {
+                if (optimizedImageSrc !== imageSrc) {
+                  setFailedTransforms((current) => new Set([...current, imageSrc]));
+                  return;
+                }
+                setFailedImages((current) => {
+                  if (current.has(originalImage)) return current;
+                  const next = new Set(current);
+                  next.add(originalImage);
+                  return next;
+                });
+              }}
+            />
+          ) : null;
 
         return (
           <div
@@ -129,9 +145,9 @@ export function Hero() {
                       )}
                       {(slide.ctaText?.trim() || slide.headline?.trim()) && (
                         <div className="flex flex-wrap items-center gap-4 pt-2">
-                          {slide.ctaText?.trim() && (
+                          {slide.ctaText?.trim() && ctaLink && (
                             <a
-                              href={ctaLink || "#"}
+                              href={ctaLink}
                               className="inline-flex min-h-11 items-center rounded-full bg-gold px-7 text-xs tracking-[0.18em] uppercase text-primary-foreground transition-transform duration-200 hover:scale-[1.02]"
                             >
                               {slide.ctaText}

@@ -1,5 +1,5 @@
 -- ==============================================================================
--- OPTIQUE REAL-TIME SUPABASE DATABASE SCHEMA & RLS POLICIES
+-- Nigah REAL-TIME SUPABASE DATABASE SCHEMA & RLS POLICIES
 -- ==============================================================================
 -- Instructions: Copy and paste this script into your Supabase SQL Editor
 -- (https://supabase.com/dashboard/project/jebzcorqtizjakontrrl/sql/new) and click "Run".
@@ -8,10 +8,10 @@
 -- 1. Store Settings
 CREATE TABLE IF NOT EXISTS public.store_settings (
   id TEXT PRIMARY KEY DEFAULT 'default',
-  store_name TEXT NOT NULL DEFAULT 'OPTIQUE',
+  store_name TEXT NOT NULL DEFAULT 'Nigah',
   whatsapp TEXT DEFAULT '923001234567',
   phone TEXT DEFAULT '+92 300 1234567',
-  email TEXT DEFAULT 'info@optique.com',
+  email TEXT DEFAULT 'info@nigah.store',
   address TEXT DEFAULT 'Main Boulevard, Gulberg III, Lahore',
   hours TEXT DEFAULT 'Mon - Sat: 11:00 AM - 9:00 PM',
   logo TEXT DEFAULT '/brand-logo.png',
@@ -397,3 +397,4 @@ CREATE INDEX IF NOT EXISTS idx_hero_slides_sort ON public.hero_slides (sort_orde
 CREATE INDEX IF NOT EXISTS idx_brands_sort ON public.brands (sort_order ASC, enabled);
 CREATE INDEX IF NOT EXISTS idx_social_reels_sort ON public.social_reels (sort_order ASC, enabled);
 CREATE INDEX IF NOT EXISTS idx_faqs_sort ON public.faqs (sort_order ASC, enabled);
+

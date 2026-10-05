@@ -22,13 +22,13 @@ import { getSiteUrl } from "@/lib/utils";
 export const Route = createFileRoute("/checkout")({
   head: () => ({
     meta: [
-      { title: "Checkout — OPTIQUE Boutique Eyewear" },
+      { title: "Checkout — Nigah Boutique Eyewear" },
       {
         name: "description",
         content:
           "Complete your eyewear order. Our optical team reviews every prescription and order detail for precision delivery.",
       },
-      { property: "og:title", content: "Checkout — OPTIQUE Boutique Eyewear" },
+      { property: "og:title", content: "Checkout — Nigah Boutique Eyewear" },
       {
         property: "og:description",
         content: "Confirm your delivery details and place your order.",
@@ -249,12 +249,12 @@ function CheckoutPage() {
 
   return (
     <SiteLayout>
-      <div className="mx-auto max-w-5xl px-4 py-12 sm:px-6 sm:py-16">
+      <div className="mx-auto w-full max-w-5xl overflow-x-clip px-4 py-10 sm:px-6 sm:py-16">
         <p className="eyebrow text-gold">Almost there</p>
-        <h1 className="mt-2 font-display text-4xl sm:text-5xl">Checkout</h1>
+        <h1 className="mt-2 font-display text-4xl tracking-normal sm:text-5xl">Checkout</h1>
 
-        <div className="mt-10 grid gap-10 lg:grid-cols-[1fr_340px]">
-          <form onSubmit={placeOrder} noValidate className="space-y-5">
+        <div className="mt-8 grid min-w-0 gap-8 lg:mt-10 lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start">
+          <form onSubmit={placeOrder} noValidate className="min-w-0 space-y-5">
             <div className="space-y-2">
               <Label htmlFor="co-name">Full name</Label>
               <Input
@@ -346,24 +346,27 @@ function CheckoutPage() {
               type="submit"
               size="lg"
               disabled={stockBlocked || submitting}
-              className="min-h-12 w-full rounded-full sm:w-auto sm:px-10"
+              className="min-h-12 w-full max-w-full rounded-full px-6 text-sm sm:w-auto sm:px-10"
             >
               {submitting ? "Saving order..." : "Place order"}
             </Button>
-            <p className="text-xs text-ink-muted">
+            <p className="mt-1 block text-xs leading-snug text-ink-muted">
               No payment is taken online — our team confirms your order and arranges payment on
               delivery or in the showroom.
             </p>
           </form>
 
-          <aside className="h-fit rounded-xl border border-stone bg-mist p-6">
-            <h2 className="font-display text-2xl">Order summary</h2>
-            <ul className="mt-4 space-y-3 text-sm">
+          <aside className="h-fit min-w-0 max-w-full overflow-hidden rounded-xl border border-stone bg-mist p-4 sm:p-6">
+            <h2 className="font-display text-2xl tracking-normal">Order summary</h2>
+            <ul className="mt-4 space-y-4 text-sm">
               {stockLines.map(({ item, stock }) => (
-                <li key={item.key} className="flex justify-between gap-4">
-                  <span className="min-w-0">
-                    <span className="block truncate">{item.name}</span>
-                    <span className="text-xs text-ink-muted">
+                <li
+                  key={item.key}
+                  className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-start gap-3"
+                >
+                  <span className="min-w-0 pr-1">
+                    <span className="block min-w-0 break-words leading-snug">{item.name}</span>
+                    <span className="mt-1 block text-xs leading-snug text-ink-muted">
                       {item.variantLabel ? `${item.variantLabel} · ` : ""}Qty {item.qty}
                     </span>
                     {(stock <= 0 || item.qty > stock) && (
@@ -372,13 +375,13 @@ function CheckoutPage() {
                       </span>
                     )}
                   </span>
-                  <span className="font-semibold whitespace-nowrap">
+                  <span className="shrink-0 whitespace-nowrap text-right text-sm font-semibold">
                     {formatPrice(item.price * item.qty)}
                   </span>
                 </li>
               ))}
             </ul>
-            <div className="mt-5 flex justify-between border-t border-stone pt-4 text-sm">
+            <div className="mt-5 flex min-w-0 justify-between gap-4 border-t border-stone pt-4 text-sm">
               <span className="text-ink-muted">Subtotal</span>
               <span className="font-semibold text-gold">{formatPrice(subtotal)}</span>
             </div>

@@ -8,13 +8,13 @@ import { getSiteUrl } from "@/lib/utils";
 export const Route = createFileRoute("/terms")({
   head: () => ({
     meta: [
-      { title: "Terms & Conditions of Service - OPTIQUE Eyewear" },
+      { title: "Terms & Conditions of Service - Nigah Eyewear" },
       {
         name: "description",
         content:
-          "Official terms of service, optical prescription dispensing conditions, product warranties, pricing policies, and customer agreements for OPTIQUE Optical Boutique.",
+          "Official terms of service, optical prescription dispensing conditions, product warranties, pricing policies, and customer agreements for Nigah Optical Boutique.",
       },
-      { property: "og:title", content: "Terms & Conditions - OPTIQUE Eyewear" },
+      { property: "og:title", content: "Terms & Conditions - Nigah Eyewear" },
       {
         property: "og:description",
         content: "Complete terms of service and optical dispensing conditions.",
@@ -35,14 +35,14 @@ function TermsPage() {
           {/* Header */}
           <Reveal>
             <div className="text-center max-w-2xl mx-auto mb-16">
-              <span className="inline-block px-3.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-[0.2em] bg-stone-100 text-stone-800 border border-stone-200 mb-4">
+              <span className="inline-block max-w-full rounded-full border border-stone-200 bg-stone-100 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-stone-800 sm:px-3.5 sm:text-[11px] sm:tracking-[0.2em] mb-4">
                 User Agreement & Legal Terms
               </span>
-              <h1 className="font-display text-3xl sm:text-5xl font-semibold text-black tracking-tight">
+              <h1 className="font-display text-3xl font-semibold leading-tight tracking-normal text-black sm:text-5xl sm:tracking-tight">
                 Terms & Conditions
               </h1>
               <p className="mt-4 text-sm sm:text-base text-zinc-600 leading-relaxed">
-                Welcome to OPTIQUE. By browsing our digital catalog, placing an optical order, or
+                Welcome to Nigah. By browsing our digital catalog, placing an optical order, or
                 submitting a prescription, you agree to the following terms and optical dispensing
                 conditions.
               </p>
@@ -86,19 +86,18 @@ function TermsPage() {
           <div className="space-y-12 text-zinc-800 leading-relaxed">
             {/* Section 1 */}
             <section className="space-y-4 border-b border-stone-200 pb-10">
-              <h2 className="font-display text-2xl font-semibold text-black">
+              <h2 className="font-display text-xl font-semibold leading-snug text-black sm:text-2xl">
                 1. Store Ownership & Boutique Operations
               </h2>
               <p className="text-sm sm:text-base text-zinc-600">
-                This website is operated by OPTIQUE Optical Boutique, located in Gulberg III,
-                Lahore, Pakistan. Throughout the site, the terms "we", "us", and "our" refer to
-                OPTIQUE.
+                This website is operated by Nigah Optical Boutique, located in Gulberg III, Lahore,
+                Pakistan. Throughout the site, the terms "we", "us", and "our" refer to Nigah.
               </p>
             </section>
 
             {/* Section 2 */}
             <section className="space-y-4 border-b border-stone-200 pb-10">
-              <h2 className="font-display text-2xl font-semibold text-black">
+              <h2 className="font-display text-xl font-semibold leading-snug text-black sm:text-2xl">
                 2. Optical Prescriptions & Customer Responsibility
               </h2>
               <ul className="list-disc pl-5 space-y-2 text-sm text-zinc-700">
@@ -108,7 +107,7 @@ function TermsPage() {
                   old), and issued by a certified optometrist or ophthalmologist.
                 </li>
                 <li>
-                  OPTIQUE is not liable for visual discomfort resulting from incorrect or outdated
+                  Nigah is not liable for visual discomfort resulting from incorrect or outdated
                   prescription values supplied by the customer.
                 </li>
                 <li>
@@ -121,7 +120,7 @@ function TermsPage() {
 
             {/* Section 3 */}
             <section className="space-y-4 border-b border-stone-200 pb-10">
-              <h2 className="font-display text-2xl font-semibold text-black">
+              <h2 className="font-display text-xl font-semibold leading-snug text-black sm:text-2xl">
                 3. Product Imagery & Handcrafted Acetate Variations
               </h2>
               <p className="text-sm sm:text-base text-zinc-600">
@@ -134,7 +133,7 @@ function TermsPage() {
 
             {/* Section 4 */}
             <section className="space-y-4 border-b border-stone-200 pb-10">
-              <h2 className="font-display text-2xl font-semibold text-black">
+              <h2 className="font-display text-xl font-semibold leading-snug text-black sm:text-2xl">
                 4. Order Confirmation & Cancellation
               </h2>
               <p className="text-sm sm:text-base text-zinc-600">
@@ -147,11 +146,11 @@ function TermsPage() {
 
             {/* Section 5 */}
             <section className="space-y-4">
-              <h2 className="font-display text-2xl font-semibold text-black">
+              <h2 className="font-display text-xl font-semibold leading-snug text-black sm:text-2xl">
                 5. Limitation of Liability
               </h2>
               <p className="text-sm sm:text-base text-zinc-600">
-                OPTIQUE shall not be liable for any direct, indirect, incidental, or consequential
+                Nigah shall not be liable for any direct, indirect, incidental, or consequential
                 damages resulting from the misuse of eyewear products, failure to follow lens care
                 instructions, or wear during prohibited high-impact industrial activities without
                 certified safety shields.
@@ -160,7 +159,7 @@ function TermsPage() {
           </div>
 
           {/* Contact Box */}
-          <div className="mt-16 rounded-2xl border border-stone-300 bg-stone-50 p-6 sm:p-8 flex flex-col sm:flex-row items-center justify-between gap-6">
+          <div className="mt-12 flex flex-col items-center justify-between gap-5 rounded-2xl border border-stone-300 bg-stone-50 p-5 sm:mt-16 sm:flex-row sm:gap-6 sm:p-8">
             <div className="space-y-1 text-center sm:text-left">
               <h4 className="font-display text-lg font-semibold text-black">
                 Questions regarding our terms of service?
@@ -172,7 +171,7 @@ function TermsPage() {
             <Link
               to="/contact"
               search={{ product: undefined }}
-              className="inline-flex min-h-11 items-center justify-center rounded-full bg-black px-6 text-xs font-semibold uppercase tracking-[0.16em] text-white hover:bg-zinc-800 shadow-md shrink-0"
+              className="inline-flex min-h-11 w-full max-w-xs items-center justify-center rounded-full bg-black px-5 text-center text-xs font-semibold uppercase tracking-[0.1em] text-white shadow-md hover:bg-zinc-800 sm:w-auto sm:px-6 sm:tracking-[0.16em] shrink-0"
             >
               Contact Boutique
             </Link>

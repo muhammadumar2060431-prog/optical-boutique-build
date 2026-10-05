@@ -1,7 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
 
-import { ApiError, json } from "./http.server.ts";
+import { ApiError, json, readJsonBody } from "./http.server.ts";
 
 const credentialsSchema = z.object({
   email: z.string().trim().email().max(254),
@@ -47,12 +47,7 @@ function retryResponse(retryAfter: number) {
 }
 
 export async function adminLoginHandler(request: Request) {
-  const contentLength = Number(request.headers.get("content-length") ?? "0");
-  if (contentLength > 8_192) {
-    throw new ApiError(413, "PAYLOAD_TOO_LARGE", "The submitted data is too large.");
-  }
-
-  const credentials = credentialsSchema.parse(await request.json());
+  const credentials = credentialsSchema.parse(await readJsonBody(request, 8_192));
   const { url, anonKey, serviceKey } = config();
   const service = createClient(url, serviceKey, {
     auth: { persistSession: false, autoRefreshToken: false },

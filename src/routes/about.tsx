@@ -8,13 +8,13 @@ import { getSiteUrl } from "@/lib/utils";
 export const Route = createFileRoute("/about")({
   head: () => ({
     meta: [
-      { title: "About OPTIQUE — Handcrafted Eyewear & Precision Optics" },
+      { title: "About Nigah — Handcrafted Eyewear & Precision Optics" },
       {
         name: "description",
         content:
-          "Discover OPTIQUE's heritage: over three decades of optical craftsmanship, precision lens fitting, and custom Italian acetate frames.",
+          "Discover Nigah's heritage: over three decades of optical craftsmanship, precision lens fitting, and custom Italian acetate frames.",
       },
-      { property: "og:title", content: "About OPTIQUE — Handcrafted Eyewear & Precision Optics" },
+      { property: "og:title", content: "About Nigah — Handcrafted Eyewear & Precision Optics" },
       {
         property: "og:description",
         content: "Discover our heritage of optical craftsmanship and precision lens fitting.",
@@ -84,7 +84,7 @@ function AboutPage() {
                 <div className="relative -mt-10 ml-4">
                   <img
                     src="/about-man.jpg"
-                    alt="Man wearing OPTIQUE eyeglasses"
+                    alt="Man wearing Nigah eyeglasses"
                     className="h-[420px] w-full rounded-xl object-cover shadow-2xl sm:h-[520px]"
                   />
                 </div>
@@ -129,7 +129,7 @@ function AboutPage() {
               <div className="relative">
                 <img
                   src="/about-woman.jpg"
-                  alt="Woman wearing OPTIQUE eyeglasses"
+                  alt="Woman wearing Nigah eyeglasses"
                   className="h-[420px] w-full rounded-xl object-cover shadow-2xl sm:h-[540px]"
                 />
               </div>

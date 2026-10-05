@@ -65,7 +65,7 @@ function blankProduct(categoryId: string, collectionId?: string): Product {
       lensMaterial: "Polycarbonate",
       lensType: ["Single Vision"],
       uvProtection: "UV400",
-      warranty: "1 Year Official Optique Guarantee",
+      warranty: "1 Year Official Nigah Guarantee",
       material: "",
       lensInfo: "",
       care: "",
@@ -332,10 +332,9 @@ function ProductsTab() {
                           size="icon"
                           variant="ghost"
                           aria-label="Delete product"
-                          onClick={() => {
+                          onClick={async () => {
                             if (confirm(`Delete "${p.name}"? This cannot be undone.`)) {
-                              deleteProduct(p.id);
-                              toast.success("Product deleted.");
+                              if (await deleteProduct(p.id)) toast.success("Product deleted.");
                             }
                           }}
                         >
@@ -599,6 +598,7 @@ function ProductDialog({
                   hint="800×800 px square • Max 200 KB • JPG/WebP recommended"
                   aspectHint="1:1 square"
                   storageFolder="products"
+                  allowAdjustment
                 />
 
                 <ImageUpload
@@ -609,6 +609,7 @@ function ProductDialog({
                   hint="800×800 px square • Max 200 KB • Same ratio as main image"
                   aspectHint="1:1 square"
                   storageFolder="products"
+                  allowAdjustment
                 />
 
                 <div>
@@ -659,6 +660,7 @@ function ProductDialog({
                           hint="500×500 px • PNG/WebP/AVIF (Transparent BG supported)"
                           aspectHint="1:1 square"
                           storageFolder="products"
+                          allowAdjustment
                         />
                       );
                     })}
@@ -684,7 +686,7 @@ function ProductDialog({
                         details: { ...value.details, warranty: e.target.value },
                       })
                     }
-                    placeholder="e.g. 1 Year Official Optique Guarantee"
+                    placeholder="e.g. 1 Year Official Nigah Guarantee"
                     className="min-h-11"
                   />
                 </div>
@@ -819,6 +821,7 @@ function ProductDialog({
                           hint="600×600 px square • Max 120 KB • JPG/WebP"
                           aspectHint="1:1 square"
                           storageFolder="products"
+                          allowAdjustment
                         />
                       </li>
                     ))}
@@ -878,6 +881,7 @@ function ProductDialog({
                           hint="800×800 px • PNG/WebP/AVIF (Background removal transparent image supported)"
                           aspectHint="1:1 square"
                           storageFolder="products"
+                          allowAdjustment
                         />
                       </div>
                     )}
@@ -1118,10 +1122,10 @@ function CategoriesTab() {
                           <Button
                             size="icon"
                             variant="ghost"
-                            onClick={() => {
+                            onClick={async () => {
                               if (confirm(`Delete collection "${col.name}"?`)) {
-                                deleteCollection(col.id);
-                                toast.success("Collection deleted.");
+                                if (await deleteCollection(col.id))
+                                  toast.success("Collection deleted.");
                               }
                             }}
                           >
@@ -1385,13 +1389,12 @@ function CategoriesTab() {
                         size="icon"
                         variant="ghost"
                         aria-label="Delete category"
-                        onClick={() => {
+                        onClick={async () => {
                           const warn = count
-                            ? `"${c.name}" still has ${count} product(s). Deleting it removes those products too. Continue?`
+                            ? `"${c.name}" has ${count} linked product(s). Move linked products and collections before deleting this category.`
                             : `Delete the "${c.name}" category?`;
                           if (confirm(warn)) {
-                            deleteCategory(c.id);
-                            toast.success("Category deleted.");
+                            if (await deleteCategory(c.id)) toast.success("Category deleted.");
                           }
                         }}
                       >

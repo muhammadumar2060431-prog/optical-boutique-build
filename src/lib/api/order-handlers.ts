@@ -1,5 +1,5 @@
 import { createOrdersSchema, updateOrderSchema } from "./contracts.ts";
-import { ApiError, json } from "./http.server.ts";
+import { ApiError, json, readJsonBody } from "./http.server.ts";
 import { logger } from "./logger.server.ts";
 import type { MetaEventInput } from "../meta-events.types.ts";
 
@@ -22,18 +22,6 @@ function validIdentifier(value: string) {
     throw new ApiError(400, "INVALID_IDENTIFIER", "The requested identifier is invalid.");
   }
   return value;
-}
-
-async function readJson(request: Request) {
-  const length = Number(request.headers.get("content-length") ?? 0);
-  if (length > 100_000) {
-    throw new ApiError(413, "PAYLOAD_TOO_LARGE", "The request is too large.");
-  }
-  try {
-    return await request.json();
-  } catch {
-    throw new ApiError(400, "INVALID_JSON", "The request body must be valid JSON.");
-  }
 }
 
 async function sha256(value: unknown) {
@@ -65,7 +53,7 @@ export function createOrderHandlers(
           "A valid Idempotency-Key header is required.",
         );
       }
-      const input = createOrdersSchema.parse(await readJson(request));
+      const input = createOrdersSchema.parse(await readJsonBody(request, 100_000));
       const result = await repository.create(
         input,
         idempotencyKey,
@@ -103,7 +91,7 @@ export function createOrderHandlers(
     },
 
     update: async (request: Request, id: string) => {
-      const input = updateOrderSchema.parse(await readJson(request));
+      const input = updateOrderSchema.parse(await readJsonBody(request, 100_000));
       const order = await repository.update(request, validIdentifier(id), input);
       if (!order) throw new ApiError(404, "ORDER_NOT_FOUND", "Order not found.");
       return json({ data: order });

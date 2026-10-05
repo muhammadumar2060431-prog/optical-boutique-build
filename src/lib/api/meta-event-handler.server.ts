@@ -2,7 +2,7 @@ import { z } from "zod";
 
 import { sendMetaEvent } from "../meta-capi.server.ts";
 import { metaEventNames } from "../meta-events.types.ts";
-import { ApiError, json } from "./http.server.ts";
+import { json, readJsonBody } from "./http.server.ts";
 
 const optionalUserValue = z.string().trim().min(1).max(320).optional();
 
@@ -39,19 +39,7 @@ export const metaEventSchema = z.object({
 });
 
 export async function metaEventHandler(request: Request) {
-  const length = Number(request.headers.get("content-length") ?? 0);
-  if (length > 50_000) {
-    throw new ApiError(413, "PAYLOAD_TOO_LARGE", "The request is too large.");
-  }
-
-  let raw: unknown;
-  try {
-    raw = await request.json();
-  } catch {
-    throw new ApiError(400, "INVALID_JSON", "The request body must be valid JSON.");
-  }
-
-  const input = metaEventSchema.parse(raw);
+  const input = metaEventSchema.parse(await readJsonBody(request, 50_000));
   const result = await sendMetaEvent(input, request);
   return json({ accepted: result.ok, eventId: input.eventId }, { status: result.ok ? 202 : 502 });
 }

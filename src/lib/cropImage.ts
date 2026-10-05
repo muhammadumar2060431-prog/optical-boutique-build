@@ -1,24 +1,3 @@
-const createImage = (url: string): Promise<HTMLImageElement> =>
-  new Promise((resolve, reject) => {
-    const image = new Image();
-    image.addEventListener("load", () => resolve(image));
-    image.addEventListener("error", (error) => reject(error));
-    image.setAttribute("crossOrigin", "anonymous");
-    image.src = url;
-  });
-
-function getRadianAngle(degreeValue: number) {
-  return (degreeValue * Math.PI) / 180;
-}
-
-function rotateSize(width: number, height: number, rotation: number) {
-  const rotRad = getRadianAngle(rotation);
-  return {
-    width: Math.abs(Math.cos(rotRad) * width) + Math.abs(Math.sin(rotRad) * height),
-    height: Math.abs(Math.sin(rotRad) * width) + Math.abs(Math.cos(rotRad) * height),
-  };
-}
-
 export interface PixelCrop {
   x: number;
   y: number;
@@ -26,58 +5,41 @@ export interface PixelCrop {
   height: number;
 }
 
-/**
- * Extracts a cropped region from the source image with optional rotation and horizontal flip.
- *
- * NOTE: `pixelCrop` must come from react-easy-crop's `onCropComplete` callback,
- * which already accounts for the current zoom/pan position in the original image's coordinate space.
- */
+const createImage = (url: string): Promise<HTMLImageElement> =>
+  new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error("The image could not be loaded."));
+    image.crossOrigin = "anonymous";
+    image.src = url;
+  });
+
+/** Crop coordinates are supplied by react-easy-crop in source image pixels. */
 export default async function getCroppedImg(
   imageSrc: string,
   pixelCrop: PixelCrop,
-  rotation = 0,
-  flipH = false,
 ): Promise<string> {
   const image = await createImage(imageSrc);
+  const { x, y, width, height } = pixelCrop;
+  if (
+    ![x, y, width, height].every(Number.isFinite) ||
+    x < 0 ||
+    y < 0 ||
+    width < 1 ||
+    height < 1 ||
+    x + width > image.naturalWidth ||
+    y + height > image.naturalHeight
+  ) {
+    throw new Error("The image crop is invalid.");
+  }
+
   const canvas = document.createElement("canvas");
+  canvas.width = Math.round(width);
+  canvas.height = Math.round(height);
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("No 2d context");
-
-  const rotRad = getRadianAngle(rotation);
-
-  // Compute the bounding box of the rotated image so nothing is clipped
-  const { width: bBoxWidth, height: bBoxHeight } = rotateSize(image.width, image.height, rotation);
-
-  // Set canvas to bounding box size
-  canvas.width = bBoxWidth;
-  canvas.height = bBoxHeight;
-
-  // Center → rotate → flip → draw
-  ctx.translate(bBoxWidth / 2, bBoxHeight / 2);
-  ctx.rotate(rotRad);
-  ctx.scale(flipH ? -1 : 1, 1);
-  ctx.translate(-image.width / 2, -image.height / 2);
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = "high";
-  ctx.drawImage(image, 0, 0);
-
-  // When the image is flipped via CSS (mediaStyle scaleX(-1)), react-easy-crop still
-  // reports crop coords from the left edge of the *visual* image.
-  // We need to mirror the x-coordinate for the canvas (which was drawn flipped).
-  const cropX = flipH ? bBoxWidth - pixelCrop.x - pixelCrop.width : pixelCrop.x;
-
-  // Extract the pixel data for the crop region
-  const croppedData = ctx.getImageData(
-    Math.round(cropX),
-    Math.round(pixelCrop.y),
-    Math.round(pixelCrop.width),
-    Math.round(pixelCrop.height),
-  );
-
-  // Resize canvas to the final crop dimensions and paste
-  canvas.width = Math.round(pixelCrop.width);
-  canvas.height = Math.round(pixelCrop.height);
-  ctx.putImageData(croppedData, 0, 0);
-
+  ctx.drawImage(image, x, y, width, height, 0, 0, canvas.width, canvas.height);
   return canvas.toDataURL("image/png");
 }

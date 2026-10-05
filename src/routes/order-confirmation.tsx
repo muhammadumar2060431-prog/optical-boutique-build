@@ -15,13 +15,13 @@ export const Route = createFileRoute("/order-confirmation")({
   }),
   head: () => ({
     meta: [
-      { title: "Order Confirmed — OPTIQUE Eyewear" },
+      { title: "Order Confirmed — Nigah Eyewear" },
       {
         name: "description",
         content:
-          "Your OPTIQUE order is confirmed. Review your items, total and next steps to reach our opticians on WhatsApp.",
+          "Your Nigah order is confirmed. Review your items, total and next steps to reach our opticians on WhatsApp.",
       },
-      { property: "og:title", content: "Order Confirmed — OPTIQUE Eyewear" },
+      { property: "og:title", content: "Order Confirmed — Nigah Eyewear" },
       {
         property: "og:description",
         content: "Your order details, totals and next steps.",

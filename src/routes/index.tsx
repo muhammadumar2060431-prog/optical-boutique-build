@@ -10,12 +10,13 @@ import { SocialProofReels } from "@/components/site/SocialProofReels";
 import { Testimonials } from "@/components/site/Testimonials";
 import { VideoSection } from "@/components/site/VideoSection";
 import { useStore } from "@/lib/store";
+import { breadcrumbSchema, jsonLdScript, webPageSchema } from "@/lib/schema";
 import { getSiteUrl } from "@/lib/utils";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "OPTIQUE — Designer Eyeglasses, Sunglasses & Contact Lenses" },
+      { title: "Nigah — Designer Eyeglasses, Sunglasses & Contact Lenses" },
       {
         name: "description",
         content:
@@ -23,7 +24,7 @@ export const Route = createFileRoute("/")({
       },
       {
         property: "og:title",
-        content: "OPTIQUE — Designer Eyeglasses, Sunglasses & Contact Lenses",
+        content: "Nigah — Designer Eyeglasses, Sunglasses & Contact Lenses",
       },
       {
         property: "og:description",
@@ -34,6 +35,17 @@ export const Route = createFileRoute("/")({
       { property: "og:url", content: getSiteUrl("/") },
     ],
     links: [{ rel: "canonical", href: getSiteUrl("/") }],
+    scripts: [
+      jsonLdScript([
+        webPageSchema({
+          path: "/",
+          name: "Nigah Designer Eyewear Store",
+          description:
+            "Shop handcrafted eyeglasses, sunglasses, and contact lenses with expert optician support.",
+        }),
+        breadcrumbSchema([{ name: "Home", url: getSiteUrl("/") }]),
+      ]),
+    ],
   }),
   component: HomePage,
 });
@@ -45,7 +57,7 @@ function HomePage() {
     <SiteLayout>
       {!storefrontReady ? (
         <div aria-busy="true" aria-label="Loading storefront">
-          <div className="h-[230px] w-full animate-pulse bg-jet sm:h-[330px] md:h-[400px] lg:h-[460px] xl:h-[480px]" />
+          <div className="h-[250px] w-full animate-pulse bg-jet sm:h-[340px] md:h-[400px] lg:h-[450px]" />
           <div className="h-16 w-full bg-background sm:h-24" />
         </div>
       ) : (

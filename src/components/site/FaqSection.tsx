@@ -68,16 +68,18 @@ export function FaqSection({ isHomepage = false }: FaqSectionProps) {
         <Reveal delay={100}>
           <div className="space-y-4 mb-10">
             {/* Search Input */}
-            <div className="relative max-w-md mx-auto">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
-              <Input
-                type="search"
-                placeholder="Search questions (e.g. prescription, delivery, blue light)..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 pr-4 py-2.5 h-11 bg-white border border-zinc-300 text-black font-semibold placeholder:text-zinc-500 placeholder:font-normal rounded-full shadow-sm focus-visible:ring-2 focus-visible:ring-black/20 focus-visible:border-black transition-all"
-              />
-            </div>
+            {!isHomepage && (
+              <div className="relative max-w-md mx-auto">
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
+                <Input
+                  type="search"
+                  placeholder="Search questions (e.g. prescription, delivery, blue light)..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10 pr-4 py-2.5 h-11 bg-white border border-zinc-300 text-black font-semibold placeholder:text-zinc-500 placeholder:font-normal rounded-full shadow-sm focus-visible:ring-2 focus-visible:ring-black/20 focus-visible:border-black transition-all"
+                />
+              </div>
+            )}
 
             {/* Category Filter Pills */}
             {categories.length > 1 && (

@@ -3,18 +3,19 @@ import { createFileRoute } from "@tanstack/react-router";
 import { CategoryView } from "@/components/site/CategoryView";
 import { SiteLayout } from "@/components/site/SiteLayout";
 import { useStore } from "@/lib/store";
+import { breadcrumbSchema, collectionPageSchema, jsonLdScript } from "@/lib/schema";
 import { getSiteUrl } from "@/lib/utils";
 
 export const Route = createFileRoute("/lenses")({
   head: () => ({
     meta: [
-      { title: "Precision Contact Lenses — Daily, Monthly & Toric | OPTIQUE" },
+      { title: "Precision Contact Lenses — Daily, Monthly & Toric | Nigah" },
       {
         name: "description",
         content:
           "Shop premium daily disposables, monthly lenses, toric options for astigmatism, and cosmetic color contacts. Optician-approved for superior comfort.",
       },
-      { property: "og:title", content: "Precision Contact Lenses | OPTIQUE" },
+      { property: "og:title", content: "Precision Contact Lenses | Nigah" },
       {
         property: "og:description",
         content: "Shop premium daily disposables, toric lenses, and cosmetic color contacts.",
@@ -23,6 +24,20 @@ export const Route = createFileRoute("/lenses")({
       { property: "og:url", content: getSiteUrl("/lenses") },
     ],
     links: [{ rel: "canonical", href: getSiteUrl("/lenses") }],
+    scripts: [
+      jsonLdScript([
+        collectionPageSchema({
+          path: "/lenses",
+          name: "Precision Contact Lenses",
+          description:
+            "Shop premium daily, monthly, toric, and cosmetic contact lenses from Nigah.",
+        }),
+        breadcrumbSchema([
+          { name: "Home", url: getSiteUrl("/") },
+          { name: "Lenses", url: getSiteUrl("/lenses") },
+        ]),
+      ]),
+    ],
   }),
   component: LensesPage,
 });

@@ -267,7 +267,7 @@ export function SocialProofReels() {
                   <PlatformBadge platform={selectedReel.platform} />
                   <div>
                     <p className="text-xs font-semibold text-white">
-                      {selectedReel.creatorName || "OPTIQUE Community"}
+                      {selectedReel.creatorName || "Nigah Community"}
                     </p>
                     <p className="text-[10px] text-gold-soft font-mono">
                       {selectedReel.creatorHandle}

@@ -12,7 +12,7 @@ export function NewsletterSection() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim()) {
       toast.error("Please enter your email address.");
@@ -20,30 +20,29 @@ export function NewsletterSection() {
     }
 
     setIsSubmitting(true);
-    setTimeout(() => {
-      const res = addSubscriber(email);
-      setIsSubmitting(false);
-      if (res.ok) {
-        trackMetaEvent({
-          eventName: "CompleteRegistration",
-          userData: { email },
-          customData: { contentName: "Email newsletter" },
-        });
-        setIsSuccess(true);
-        setEmail("");
-        toast.success(res.message);
-      } else {
-        toast.error(res.message);
-      }
-    }, 400);
+    const submittedEmail = email.trim();
+    const res = await addSubscriber(submittedEmail);
+    setIsSubmitting(false);
+    if (res.ok) {
+      trackMetaEvent({
+        eventName: "CompleteRegistration",
+        userData: { email: submittedEmail },
+        customData: { contentName: "Email newsletter" },
+      });
+      setIsSuccess(true);
+      setEmail("");
+      toast.success(res.message);
+    } else {
+      toast.error(res.message);
+    }
   };
 
   return (
-    <section className="bg-[#666666] py-16 sm:py-20 text-white relative overflow-hidden border-t border-b border-[#5A5A5A]">
-      <div className="mx-auto max-w-4xl px-4 sm:px-6 text-center">
+    <section className="relative max-w-full overflow-x-clip border-y border-[#5A5A5A] bg-[#666666] py-12 text-white sm:py-20">
+      <div className="mx-auto max-w-4xl px-4 text-center sm:px-6">
         <Reveal>
           {/* Main Title matching user reference image */}
-          <h2 className="font-display text-3xl sm:text-4xl lg:text-5xl font-semibold tracking-tight text-white">
+          <h2 className="font-display text-3xl font-semibold tracking-normal text-white sm:text-4xl lg:text-5xl">
             Subscribe to our emails
           </h2>
 
@@ -54,15 +53,15 @@ export function NewsletterSection() {
         </Reveal>
 
         <Reveal delay={120}>
-          <div className="mt-8 max-w-lg mx-auto">
+          <div className="mx-auto mt-7 w-full max-w-lg">
             {isSuccess ? (
-              <div className="flex items-center justify-center gap-2.5 py-4 px-6 rounded-full bg-white text-black font-semibold text-sm shadow-xl animate-in fade-in zoom-in duration-300">
+              <div className="flex min-w-0 items-center justify-center gap-2.5 rounded-full bg-white px-4 py-4 text-sm font-semibold text-black shadow-xl animate-in fade-in zoom-in duration-300 sm:px-6">
                 <CheckCircle2 className="h-5 w-5 text-black shrink-0" />
                 <span>You're subscribed! Check your inbox for exclusive drops.</span>
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="relative group">
-                <div className="relative flex items-center bg-white rounded-full p-1.5 sm:p-2 shadow-2xl shadow-black/30 border border-white transition-all duration-300 focus-within:ring-4 focus-within:ring-black/20 hover:shadow-black/40">
+                <div className="relative flex min-w-0 items-center rounded-full border border-white bg-white p-1.5 shadow-2xl shadow-black/30 transition-all duration-300 focus-within:ring-4 focus-within:ring-black/20 hover:shadow-black/40 sm:p-2">
                   {/* Mail icon */}
                   <div className="pl-3.5 sm:pl-4 text-zinc-400 flex items-center justify-center">
                     <Mail className="h-4 w-4 sm:h-5 sm:w-5" />
@@ -76,7 +75,7 @@ export function NewsletterSection() {
                     placeholder="Enter your email address"
                     required
                     disabled={isSubmitting}
-                    className="w-full bg-transparent px-3 py-2.5 sm:py-3 text-sm sm:text-base font-semibold text-black placeholder:text-zinc-400 placeholder:font-normal focus:outline-none disabled:opacity-50"
+                    className="min-w-0 flex-1 bg-transparent px-2 py-2.5 text-sm font-semibold text-black placeholder:text-zinc-400 placeholder:font-normal focus:outline-none disabled:opacity-50 sm:px-3 sm:py-3 sm:text-base"
                   />
 
                   {/* Black circular submit button */}

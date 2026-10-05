@@ -1,6 +1,6 @@
 /**
  * Security & Input Sanitization Suite
- * OPTIQUE Control Panel & Storefront Security Guard
+ * Nigah Control Panel & Storefront Security Guard
  */
 
 // Regex patterns for platform verification
@@ -49,22 +49,23 @@ export function sanitizeRawInput(input: string): string {
  */
 export function isSafeUrl(url: string): boolean {
   if (!url) return false;
-  const clean = sanitizeRawInput(url).toLowerCase();
+  const clean = sanitizeRawInput(url);
+  if (!clean || /[\s\\]/.test(clean) || clean.startsWith("//")) return false;
+  if (clean.startsWith("#")) return true;
 
-  // Block dangerous schemes
-  if (
-    clean.startsWith("javascript:") ||
-    clean.startsWith("data:") ||
-    clean.startsWith("vbscript:") ||
-    clean.startsWith("file:") ||
-    clean.startsWith("blob:") ||
-    clean.startsWith("about:")
-  ) {
+  try {
+    const parsed = new URL(clean, "https://relative.invalid");
+    if (parsed.username || parsed.password) return false;
+    if (clean.startsWith("/")) return parsed.origin === "https://relative.invalid";
+    if (/^https:\/\//i.test(clean)) return parsed.protocol === "https:";
+    return (
+      /^http:\/\//i.test(clean) &&
+      parsed.protocol === "http:" &&
+      (parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1")
+    );
+  } catch {
     return false;
   }
-
-  if (clean.startsWith("/") || clean.startsWith("https://")) return true;
-  return /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?(?:\/|$)/i.test(clean);
 }
 
 /**
@@ -100,6 +101,11 @@ export function sanitizeText(text: string): string {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#x27;");
+}
+
+/** Prevent JSON text from closing an HTML script element. */
+export function serializeJsonForHtml(value: unknown): string {
+  return (JSON.stringify(value) ?? "null").replace(/</g, "\\u003c");
 }
 
 export interface VideoUrlValidationResult {
@@ -172,8 +178,11 @@ export function validateSocialVideoUrl(
   }
 
   // Check Direct Video (.mp4, .webm) or Approved Video CDNs
-  const isDirectFile = DIRECT_VIDEO_EXT_REGEX.test(cleanUrl);
-  const isApprovedCdn = KNOWN_VIDEO_CDNS.some((cdn) => cleanUrl.toLowerCase().includes(cdn));
+  const parsed = new URL(cleanUrl, "https://relative.invalid");
+  const isDirectFile = DIRECT_VIDEO_EXT_REGEX.test(parsed.pathname);
+  const isApprovedCdn = KNOWN_VIDEO_CDNS.some(
+    (cdn) => parsed.hostname === cdn || parsed.hostname.endsWith(`.${cdn}`),
+  );
 
   if (isDirectFile || isApprovedCdn) {
     return {
@@ -247,14 +256,8 @@ export function validateImageUrl(url: string): { valid: boolean; error?: string 
   }
 
   // Block dangerous executable extensions in image parameters
-  const lower = cleanUrl.toLowerCase();
-  if (
-    lower.includes(".js") ||
-    lower.includes(".html") ||
-    lower.includes(".php") ||
-    lower.includes(".exe") ||
-    lower.includes(".sh")
-  ) {
+  const pathname = safeRasterData ? "" : new URL(cleanUrl, "https://relative.invalid").pathname;
+  if (/\.(?:js|html?|php|exe|sh)(?:\/|$)/i.test(pathname)) {
     return {
       valid: false,
       error: "🔒 Security Alert: Executable file formats are not allowed as images.",
@@ -291,6 +294,7 @@ export function sanitizeDbInput<T>(input: T): T {
   if (input !== null && typeof input === "object") {
     const sanitizedObj: Record<string, unknown> = {};
     for (const [key, val] of Object.entries(input)) {
+      if (key === "__proto__" || key === "constructor" || key === "prototype") continue;
       sanitizedObj[key] = sanitizeDbInput(val);
     }
     return sanitizedObj as T;

@@ -27,6 +27,8 @@ export function getOptimizedSupabaseImageSrc(src: string, width: number, quality
     const isSupabaseHost = url.hostname === "supabase.co" || url.hostname.endsWith(".supabase.co");
 
     if (!isSupabaseHost || !url.pathname.includes(SUPABASE_PUBLIC_OBJECT_PATH)) return src;
+    // Supabase's renderer does not support AVIF inputs; serve those originals directly.
+    if (/\.avif$/i.test(url.pathname)) return src;
 
     url.pathname = url.pathname.replace(SUPABASE_PUBLIC_OBJECT_PATH, SUPABASE_PUBLIC_RENDER_PATH);
     url.searchParams.set("width", String(Math.max(1, Math.round(width))));

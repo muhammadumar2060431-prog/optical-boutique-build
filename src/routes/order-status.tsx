@@ -21,10 +21,18 @@ import { Label } from "@/components/ui/label";
 import { getCourierTrackingUrl } from "@/lib/couriers";
 import { useStore } from "@/lib/store";
 import { whatsappLink } from "@/lib/whatsapp";
-import type { Order, OrderStatus } from "@/lib/types";
+import type { Order, OrderStatus, Product } from "@/lib/types";
 import { getSiteUrl } from "@/lib/utils";
 
 const CANONICAL = getSiteUrl("/order-status");
+
+type TrackedOrder = Order & {
+  productImage?: string | null;
+  productSlug?: string | null;
+  productPrice?: number | null;
+  productSku?: string | null;
+  productDescription?: string | null;
+};
 
 export const Route = createFileRoute("/order-status")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -32,17 +40,17 @@ export const Route = createFileRoute("/order-status")({
   }),
   head: () => ({
     meta: [
-      { title: "Track Your Order — OPTIQUE Eyewear" },
+      { title: "Track Your Order — Nigah Eyewear" },
       {
         name: "description",
         content:
-          "Enter your OPTIQUE order reference to see live courier tracking and status of your frames or lenses.",
+          "Enter your Nigah order reference to see live courier tracking and status of your frames or lenses.",
       },
-      { property: "og:title", content: "Track Your Order — OPTIQUE" },
+      { property: "og:title", content: "Track Your Order — Nigah" },
       {
         property: "og:description",
         content:
-          "Look up an OPTIQUE order reference to check its status, live courier tracking, and reach our team.",
+          "Look up an Nigah order reference to check its status, live courier tracking, and reach our team.",
       },
       { property: "og:type", content: "website" },
       { property: "og:url", content: CANONICAL },
@@ -75,7 +83,7 @@ const statusCopy: Record<OrderStatus, { label: string; note: string; tone: strin
     },
     Completed: {
       label: "Delivered & Completed",
-      note: "This order has been fulfilled. Thank you for choosing OPTIQUE.",
+      note: "This order has been fulfilled. Thank you for choosing Nigah.",
       tone: "bg-emerald-50 text-emerald-700 border-emerald-200",
       step: 4,
     },
@@ -94,7 +102,7 @@ const getStatusInfo = (status?: string) => {
 };
 
 /** Map a raw Supabase order row to the Order store type */
-function mapRawToOrder(o: any): Order {
+function mapRawToOrder(o: any): TrackedOrder {
   return {
     id: o.id,
     reference:
@@ -104,10 +112,10 @@ function mapRawToOrder(o: any): Order {
     createdAt: o.createdAt || o.created_at || new Date().toISOString(),
     customerName: o.customerName || o.customer_name || "Customer",
     contact: o.contact || o.phone || "",
-    productId: o.productId || o.items?.[0]?.productId || null,
-    productName: o.productName || o.items?.[0]?.productName || "Glasses",
-    variantId: o.variantId || o.items?.[0]?.variantId || null,
-    variantLabel: o.variantLabel || o.items?.[0]?.variantLabel || null,
+    productId: o.productId || o.product_id || o.items?.[0]?.productId || null,
+    productName: o.productName || o.product_name || o.items?.[0]?.productName || "Glasses",
+    variantId: o.variantId || o.variant_id || o.items?.[0]?.variantId || null,
+    variantLabel: o.variantLabel || o.variant_label || o.items?.[0]?.variantLabel || null,
     message: o.message || o.address || "",
     source: (o.source ||
       o.items?.[0]?.source ||
@@ -121,14 +129,63 @@ function mapRawToOrder(o: any): Order {
     courierName: o.courier_name || o.courierName || o.items?.[0]?.courierName || null,
     trackingNumber: o.tracking_number || o.trackingNumber || o.items?.[0]?.trackingNumber || null,
     dispatchedAt: o.dispatched_at || o.dispatchedAt || null,
+    productImage:
+      o.productImage ||
+      o.product_image ||
+      o.image ||
+      o.items?.[0]?.productImage ||
+      o.items?.[0]?.product_image ||
+      o.items?.[0]?.image ||
+      null,
+    productSlug: o.productSlug || o.product_slug || o.items?.[0]?.productSlug || null,
+    productPrice:
+      Number(o.productPrice ?? o.product_price ?? o.items?.[0]?.productPrice ?? NaN) || null,
+    productSku: o.productSku || o.sku || o.items?.[0]?.sku || null,
+    productDescription: o.productDescription || o.description || o.items?.[0]?.description || null,
   };
+}
+
+function findProductForOrder(order: TrackedOrder, products: Product[]) {
+  if (order.productId) {
+    const byId = products.find((product) => product.id === order.productId);
+    if (byId) return byId;
+  }
+
+  const normalizedName = order.productName.trim().toLowerCase();
+  return products.find((product) => product.name.trim().toLowerCase() === normalizedName) ?? null;
+}
+
+function orderProductDetails(order: TrackedOrder, products: Product[]) {
+  const product = findProductForOrder(order, products);
+  const variant = product?.variants.find((item) => item.id === order.variantId) ?? null;
+  const image =
+    order.productImage ||
+    variant?.image ||
+    product?.image ||
+    product?.subImages?.[0] ||
+    "/placeholder.svg";
+  const name = product?.name || order.productName || "Glasses";
+  const price = order.productPrice ?? variant?.price ?? product?.price ?? null;
+  const sku = order.productSku || product?.sku || null;
+  const description =
+    order.productDescription ||
+    product?.description ||
+    product?.details?.lensInfo ||
+    "Premium eyewear prepared by Nigah.";
+
+  return { product, variant, image, name, price, sku, description };
+}
+
+function formatOrderPrice(value: number | null) {
+  if (!value || value <= 0) return null;
+  return `Rs. ${value.toLocaleString("en-PK")}`;
 }
 
 /**
  * Order tracking uses the versioned API so validation, CORS, rate limiting,
  * logging, and the narrow database RPC remain server-side.
  */
-async function fetchOrdersByRef(reference: string): Promise<Order[]> {
+async function fetchOrdersByRef(reference: string): Promise<TrackedOrder[]> {
   const trimmed = reference.trim();
   if (!trimmed) return [];
 
@@ -147,11 +204,11 @@ function OrderStatusPage() {
   //    Previously `orders: allOrders` was also destructured here which loaded
   //    ALL customer orders into client JavaScript memory — any user could
   //    inspect them via browser DevTools. That exposure is now fully removed.
-  const { settings } = useStore();
+  const { settings, products } = useStore();
 
   const [value, setValue] = useState(search.ref ?? "");
   const [query, setQuery] = useState(search.ref?.trim() ?? "");
-  const [results, setResults] = useState<Order[]>([]);
+  const [results, setResults] = useState<TrackedOrder[]>([]);
   const [loading, setLoading] = useState(false);
   const [inputError, setInputError] = useState<string | null>(null);
   const [fetchError, setFetchError] = useState<string | null>(null);
@@ -440,21 +497,64 @@ function OrderStatusPage() {
                 <p className="text-xs font-bold uppercase tracking-wider text-ink-muted mb-3">
                   Items in this Order
                 </p>
-                <ul className="divide-y divide-stone border-t border-b border-stone">
-                  {results.map((order) => (
-                    <li
-                      key={order.id}
-                      className="flex flex-wrap justify-between gap-2 py-3.5 text-sm"
-                    >
-                      <span className="font-medium text-zinc-900">
-                        {order.productName}
-                        {order.variantLabel ? ` — ${order.variantLabel}` : ""}
-                      </span>
-                      <span className="text-xs tracking-[0.14em] uppercase text-ink-muted">
-                        {getStatusInfo(order.status).label}
-                      </span>
-                    </li>
-                  ))}
+                <ul className="space-y-3">
+                  {results.map((order) => {
+                    const details = orderProductDetails(order, products);
+                    const price = formatOrderPrice(details.price);
+                    const itemStatus = getStatusInfo(order.status);
+                    const variantLabel = details.variant?.label || order.variantLabel;
+
+                    return (
+                      <li
+                        key={order.id}
+                        className="grid gap-4 rounded-2xl border border-stone bg-white p-3.5 shadow-sm sm:grid-cols-[96px_minmax(0,1fr)_auto] sm:items-center"
+                      >
+                        <div className="relative aspect-square overflow-hidden rounded-xl border border-stone bg-mist sm:h-24 sm:w-24">
+                          <img
+                            src={details.image}
+                            alt={details.name}
+                            className="h-full w-full object-cover"
+                            loading="lazy"
+                          />
+                        </div>
+
+                        <div className="min-w-0 space-y-2">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <h3 className="font-display text-xl font-bold leading-tight text-zinc-950">
+                              {details.name}
+                            </h3>
+                            {variantLabel ? (
+                              <span className="rounded-full border border-stone bg-zinc-50 px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.12em] text-zinc-600">
+                                {variantLabel}
+                              </span>
+                            ) : null}
+                          </div>
+
+                          <p className="line-clamp-2 text-sm leading-6 text-ink-muted">
+                            {details.description}
+                          </p>
+
+                          <div className="flex flex-wrap gap-2 text-[11px] font-bold uppercase tracking-[0.12em] text-zinc-500">
+                            {details.sku ? <span>SKU {details.sku}</span> : null}
+                            {order.productId ? <span>Product ID {order.productId}</span> : null}
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-between gap-3 sm:flex-col sm:items-end sm:justify-center">
+                          {price ? (
+                            <span className="font-display text-lg font-bold text-zinc-950">
+                              {price}
+                            </span>
+                          ) : null}
+                          <span
+                            className={`rounded-full border px-3 py-1 text-[11px] font-bold uppercase tracking-[0.14em] ${itemStatus.tone}`}
+                          >
+                            {itemStatus.label}
+                          </span>
+                        </div>
+                      </li>
+                    );
+                  })}
                 </ul>
               </div>
             </section>

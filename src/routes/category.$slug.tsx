@@ -6,6 +6,7 @@ import { supabase } from "@/lib/supabase";
 import { mapDbCategoryToStore } from "@/lib/supabaseSync";
 import type { Category } from "@/lib/types";
 import { useStore } from "@/lib/store";
+import { breadcrumbSchema, collectionPageSchema, jsonLdScript } from "@/lib/schema";
 import { getSiteUrl } from "@/lib/utils";
 
 export const Route = createFileRoute("/category/$slug")({
@@ -30,7 +31,9 @@ export const Route = createFileRoute("/category/$slug")({
 
     if (typeof window !== "undefined") {
       try {
-        const raw = localStorage.getItem("optique_v1_categories");
+        const raw =
+          localStorage.getItem("optique_v1_categories") ??
+          localStorage.getItem("nigah_v1_categories");
         if (raw) {
           const cats: Category[] = JSON.parse(raw);
           const found = cats.find((c) => c.slug === params.slug);
@@ -47,10 +50,10 @@ export const Route = createFileRoute("/category/$slug")({
     const category = loaderData?.category;
     const url = getSiteUrl(`/category/${params.slug}`);
     const title = category
-      ? `${category.name} — Handcrafted Eyewear | OPTIQUE`
-      : "Eyewear Collection | OPTIQUE";
+      ? `${category.name} — Handcrafted Eyewear | Nigah`
+      : "Eyewear Collection | Nigah";
     const description = category
-      ? `Explore the OPTIQUE ${category.name.toLowerCase()} collection. Featuring premium materials, expert fitting, and fast delivery.`
+      ? `Explore the Nigah ${category.name.toLowerCase()} collection. Featuring premium materials, expert fitting, and fast delivery.`
       : "Explore our curated collection of premium designer eyewear and lenses.";
     const ogImage =
       category?.image && category.image !== "/placeholder.svg" ? category.image : "/brand-logo.png";
@@ -69,6 +72,21 @@ export const Route = createFileRoute("/category/$slug")({
         { name: "twitter:image", content: ogImageUrl },
       ],
       links: [{ rel: "canonical", href: url }],
+      scripts: [
+        jsonLdScript([
+          collectionPageSchema({
+            path: `/category/${params.slug}`,
+            name: category ? `${category.name} Collection` : "Eyewear Collection",
+            description,
+            image: ogImageUrl,
+            category: category ?? null,
+          }),
+          breadcrumbSchema([
+            { name: "Home", url: getSiteUrl("/") },
+            { name: category?.name ?? "Collection", url },
+          ]),
+        ]),
+      ],
     };
   },
   component: CategoryPage,

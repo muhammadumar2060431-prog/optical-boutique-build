@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useStore } from "@/lib/store";
 import { splitMetaName, trackMetaEvent } from "@/lib/meta-events";
 
+import { breadcrumbSchema, jsonLdScript, webPageSchema } from "@/lib/schema";
 import { getSiteUrl } from "@/lib/utils";
 
 export const Route = createFileRoute("/contact")({
@@ -20,13 +21,13 @@ export const Route = createFileRoute("/contact")({
   }),
   head: () => ({
     meta: [
-      { title: "Contact OPTIQUE — Expert Optician Support & Inquiries" },
+      { title: "Contact Nigah — Expert Optician Support & Inquiries" },
       {
         name: "description",
         content:
-          "Connect with OPTIQUE optical specialists via WhatsApp, email, or inquiry form for personalized frame fittings, lens advice, and order assistance.",
+          "Connect with Nigah optical specialists via WhatsApp, email, or inquiry form for personalized frame fittings, lens advice, and order assistance.",
       },
-      { property: "og:title", content: "Contact OPTIQUE — Expert Optician Support & Inquiries" },
+      { property: "og:title", content: "Contact Nigah — Expert Optician Support & Inquiries" },
       {
         property: "og:description",
         content:
@@ -36,6 +37,21 @@ export const Route = createFileRoute("/contact")({
       { property: "og:url", content: getSiteUrl("/contact") },
     ],
     links: [{ rel: "canonical", href: getSiteUrl("/contact") }],
+    scripts: [
+      jsonLdScript([
+        webPageSchema({
+          path: "/contact",
+          name: "Contact Nigah",
+          description:
+            "Contact Nigah optical specialists for frame fitting, lens advice, product inquiries, and order support.",
+          type: "ContactPage",
+        }),
+        breadcrumbSchema([
+          { name: "Home", url: getSiteUrl("/") },
+          { name: "Contact", url: getSiteUrl("/contact") },
+        ]),
+      ]),
+    ],
   }),
   component: ContactPage,
 });
@@ -127,12 +143,14 @@ function ContactPage() {
 
   return (
     <SiteLayout>
-      <section className="lens-halo bg-background py-16 sm:py-20">
-        <div className="mx-auto grid max-w-7xl gap-12 px-4 sm:px-6 lg:grid-cols-[1.1fr_0.9fr]">
+      <section className="lens-halo bg-background py-10 sm:py-20">
+        <div className="mx-auto grid max-w-7xl gap-8 px-4 sm:gap-12 sm:px-6 lg:grid-cols-[1.1fr_0.9fr]">
           <div>
             <p className="eyebrow text-gold">Get in touch</p>
-            <h1 className="mt-3 font-display text-4xl sm:text-5xl">Talk to an optician</h1>
-            <p className="mt-3 max-w-md text-sm text-ink-muted">
+            <h1 className="mt-2 max-w-[12ch] font-display text-[2.45rem] leading-[1.05] tracking-normal sm:mt-3 sm:max-w-none sm:text-5xl sm:leading-[1.2]">
+              Talk to an optician
+            </h1>
+            <p className="mt-3 max-w-md text-[15px] leading-relaxed text-ink-muted sm:text-sm">
               Send us a note about a frame, a prescription or a repair — we usually reply the same
               working day.
             </p>
@@ -159,7 +177,11 @@ function ContactPage() {
                 </Button>
               </div>
             ) : (
-              <form onSubmit={onSubmit} noValidate className="mt-8 space-y-5">
+              <form
+                onSubmit={onSubmit}
+                noValidate
+                className="mt-7 min-w-0 space-y-4 sm:mt-8 sm:space-y-5"
+              >
                 <div className="space-y-2">
                   <Label htmlFor="name">Name</Label>
                   <Input
@@ -167,7 +189,7 @@ function ContactPage() {
                     placeholder="e.g. Ayesha Khan"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    className="min-h-11"
+                    className="min-h-11 max-w-full text-sm placeholder:text-sm sm:text-base sm:placeholder:text-base"
                   />
                   {errors.name && <p className="text-xs text-destructive">{errors.name}</p>}
                 </div>
@@ -178,7 +200,7 @@ function ContactPage() {
                     placeholder="e.g. +92 300 1234567 or your@email.com"
                     value={contact}
                     onChange={(e) => setContact(e.target.value)}
-                    className="min-h-11"
+                    className="min-h-11 max-w-full text-sm placeholder:text-sm sm:text-base sm:placeholder:text-base"
                   />
                   {errors.contact && <p className="text-xs text-destructive">{errors.contact}</p>}
                 </div>
@@ -189,17 +211,18 @@ function ContactPage() {
                     placeholder="e.g. Aviator Classic, SKU, or model name"
                     value={productRef}
                     onChange={(e) => setProductRef(e.target.value)}
-                    className="min-h-11"
+                    className="min-h-11 max-w-full text-sm placeholder:text-sm sm:text-base sm:placeholder:text-base"
                   />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="message">Message</Label>
                   <Textarea
                     id="message"
-                    rows={5}
-                    placeholder="Tell us what you're looking for, ask about lens options, or leave any special requests..."
+                    rows={4}
+                    placeholder="Tell us what you need help with..."
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}
+                    className="min-h-32 max-w-full text-sm placeholder:text-sm sm:min-h-[60px] sm:text-base sm:placeholder:text-base"
                   />
                   {errors.message && <p className="text-xs text-destructive">{errors.message}</p>}
                 </div>
@@ -211,7 +234,7 @@ function ContactPage() {
                 <Button
                   type="submit"
                   size="lg"
-                  className="min-h-12 rounded-full px-8"
+                  className="min-h-12 w-full rounded-full px-8 text-sm sm:w-auto sm:text-sm"
                   disabled={submitting}
                 >
                   {submitting ? "Sending..." : "Send enquiry"}
@@ -220,7 +243,7 @@ function ContactPage() {
             )}
           </div>
 
-          <aside className="space-y-6">
+          <aside className="space-y-5 sm:space-y-6">
             <button
               type="button"
               onClick={() =>
@@ -228,32 +251,34 @@ function ContactPage() {
                   productName: productRef ? `Inquiry: ${productRef}` : "General Contact Inquiry",
                 })
               }
-              className="flex w-full items-center gap-4 rounded-xl bg-jet p-6 text-cream transition-transform duration-200 hover:scale-[1.01] text-left cursor-pointer border-0"
+              className="flex w-full min-w-0 items-center gap-4 rounded-xl bg-jet p-5 text-left text-cream transition-transform duration-200 hover:scale-[1.01] cursor-pointer border-0 sm:p-6"
             >
               <span className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-[#25D366] text-white shadow-md">
                 <WhatsAppIcon className="h-6 w-6 text-white" />
               </span>
               <span className="min-w-0">
-                <span className="block font-display text-xl">Chat on WhatsApp</span>
+                <span className="block font-display text-xl leading-tight tracking-normal">
+                  Chat on WhatsApp
+                </span>
                 <span className="block truncate text-xs text-cream/60">{settings.whatsapp}</span>
               </span>
             </button>
 
-            <div className="space-y-4 rounded-xl border border-stone bg-mist p-6 text-sm">
+            <div className="space-y-4 rounded-xl border border-stone bg-mist p-5 text-sm sm:p-6">
               <p className="eyebrow text-gold">Showroom</p>
-              <p className="flex gap-3">
+              <p className="flex min-w-0 gap-3">
                 <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-gold" />
                 {settings.address}
               </p>
-              <p className="flex gap-3">
+              <p className="flex min-w-0 gap-3">
                 <Phone className="mt-0.5 h-4 w-4 shrink-0 text-gold" />
                 {settings.phone}
               </p>
-              <p className="flex gap-3">
+              <p className="flex min-w-0 gap-3">
                 <Mail className="mt-0.5 h-4 w-4 shrink-0 text-gold" />
                 <span className="break-all">{settings.email}</span>
               </p>
-              <p className="flex gap-3">
+              <p className="flex min-w-0 gap-3">
                 <Clock className="mt-0.5 h-4 w-4 shrink-0 text-gold" />
                 {settings.hours}
               </p>

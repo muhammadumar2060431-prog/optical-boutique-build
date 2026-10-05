@@ -1,9 +1,10 @@
-﻿import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { ArrowLeft, Clock } from "lucide-react";
 import { SiteLayout } from "@/components/site/SiteLayout";
 import { blogReadingMinutes, fetchBlogPostBySlug } from "@/lib/blog-data";
 import type { BlogBlock } from "@/lib/blog-types";
 import { getSiteUrl } from "@/lib/utils";
+import { serializeJsonForHtml } from "@/lib/security";
 
 export const Route = createFileRoute("/blog/$slug")({
   loader: async ({ params }) => {
@@ -15,7 +16,7 @@ export const Route = createFileRoute("/blog/$slug")({
     post
       ? {
           meta: [
-            { title: post.seoTitle || post.title + " | OPTIQUE Journal" },
+            { title: post.seoTitle || post.title + " | Nigah Journal" },
             { name: "description", content: post.seoDescription || post.excerpt },
             { name: "keywords", content: post.keywords.join(", ") },
             { name: "author", content: post.author },
@@ -102,7 +103,7 @@ function BlogArticle() {
       <main className="bg-white text-zinc-950">
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(schema).replace(/</g, "\u003c") }}
+          dangerouslySetInnerHTML={{ __html: serializeJsonForHtml(schema) }}
         />
         <article>
           <header className="mx-auto max-w-4xl px-4 pb-10 pt-12 text-center sm:px-6 sm:pb-14 sm:pt-20">

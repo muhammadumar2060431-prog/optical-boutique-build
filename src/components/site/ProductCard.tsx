@@ -31,6 +31,7 @@ export function ProductCard({ product }: { product: Product }) {
   const subImagesList = getProductSubImages(product);
   const [failedImages, setFailedImages] = useState<string[]>([]);
   const [loadedHoverImage, setLoadedHoverImage] = useState<string | null>(null);
+  const [requestedHoverImage, setRequestedHoverImage] = useState<string | null>(null);
   const imageCandidates = [
     product.image,
     ...subImagesList,
@@ -60,6 +61,13 @@ export function ProductCard({ product }: { product: Product }) {
       to="/product/$slug"
       params={{ slug: product.slug }}
       className="group flex min-w-0 flex-col overflow-hidden rounded-xl border border-stone bg-card transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[var(--shadow-lens)]"
+      onPointerEnter={(event) => {
+        if (event.pointerType !== "touch" && hoverImg) setRequestedHoverImage(hoverImg);
+      }}
+      onFocus={(event) => {
+        if (event.currentTarget.matches(":focus-visible") && hoverImg)
+          setRequestedHoverImage(hoverImg);
+      }}
     >
       <div className="relative aspect-square overflow-hidden bg-card">
         {/* Primary Image */}
@@ -87,7 +95,7 @@ export function ProductCard({ product }: { product: Product }) {
         )}
 
         {/* Hover image - crossfade on hover/touch */}
-        {hoverImg ? (
+        {hoverImg && requestedHoverImage === hoverImg ? (
           <img
             src={hoverImg}
             alt={`${product.name} - alternate view`}

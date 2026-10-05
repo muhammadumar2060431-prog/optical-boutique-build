@@ -8,7 +8,6 @@ import { ProductCard } from "@/components/site/ProductCard";
 import { ProductImage } from "@/components/site/ProductImage";
 import { Reveal } from "@/components/site/Reveal";
 import { SiteLayout } from "@/components/site/SiteLayout";
-import { WhatsAppIcon } from "@/components/site/WhatsAppIcon";
 import { useWhatsAppModal } from "@/components/site/WhatsAppModal";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -21,8 +20,9 @@ import { supabase } from "@/lib/supabase";
 import { mapDbProductToStore } from "@/lib/supabaseSync";
 import { getProductSubImages } from "@/lib/product-images";
 import { trackMetaEvent } from "@/lib/meta-events";
+import { breadcrumbSchema, jsonLdScript, productSchema } from "@/lib/schema";
 import type { Product } from "@/lib/types";
-import { formatPrice, newId, useStore } from "@/lib/store";
+import { formatPrice, useStore } from "@/lib/store";
 import { cn, getSiteUrl } from "@/lib/utils";
 
 export const Route = createFileRoute("/product/$slug")({
@@ -49,7 +49,8 @@ export const Route = createFileRoute("/product/$slug")({
     // 2. Fallback to client localStorage if available
     if (typeof window !== "undefined") {
       try {
-        const raw = localStorage.getItem("optique_v1_products");
+        const raw =
+          localStorage.getItem("optique_v1_products") ?? localStorage.getItem("nigah_v1_products");
         if (raw) {
           const prods: Product[] = JSON.parse(raw);
           const found = prods.find((p) => p.slug === params.slug);
@@ -65,7 +66,7 @@ export const Route = createFileRoute("/product/$slug")({
   head: ({ loaderData, params }) => {
     const product = loaderData?.product;
     const url = getSiteUrl(`/product/${params.slug}`);
-    const title = product ? `${product.name} - OPTIQUE Eyewear` : "Product - OPTIQUE Eyewear";
+    const title = product ? `${product.name} - Nigah Eyewear` : "Product - Nigah Eyewear";
     const description = product?.description
       ? product.description.slice(0, 155)
       : "Frame and lens details, colour options, stock and fitting information.";
@@ -92,26 +93,14 @@ export const Route = createFileRoute("/product/$slug")({
       links: [{ rel: "canonical", href: url }],
       scripts: product
         ? [
-            {
-              type: "application/ld+json",
-              children: JSON.stringify({
-                "@context": "https://schema.org",
-                "@type": "Product",
-                name: product.name,
-                description: product.description,
-                image: [ogImageUrl],
-                offers: {
-                  "@type": "Offer",
-                  price: product.salePrice ?? product.price,
-                  priceCurrency: "PKR",
-                  url,
-                  availability:
-                    product.stock > 0
-                      ? "https://schema.org/InStock"
-                      : "https://schema.org/OutOfStock",
-                },
-              }),
-            },
+            jsonLdScript([
+              productSchema(product, `/product/${params.slug}`),
+              breadcrumbSchema([
+                { name: "Home", url: getSiteUrl("/") },
+                { name: "Products", url: getSiteUrl("/glasses") },
+                { name: product.name, url },
+              ]),
+            ]),
           ]
         : [],
     };
@@ -130,7 +119,7 @@ function ProductPage() {
     stockStatus,
     productStock,
     testimonials,
-    saveTestimonial,
+    addCustomerReview,
     socialReels,
   } = useStore();
 
@@ -153,6 +142,7 @@ function ProductPage() {
   const [revTitle, setRevTitle] = useState("");
   const [revQuote, setRevQuote] = useState("");
   const [revImage, setRevImage] = useState<string | null>(null);
+  const [reviewSubmitting, setReviewSubmitting] = useState(false);
   const [sortBy, setSortBy] = useState<"newest" | "highest" | "lowest">("newest");
 
   useEffect(() => {
@@ -276,8 +266,9 @@ function ProductPage() {
   const outOfStock = status === "Out of stock";
   const related = getRelatedProducts(product);
 
-  const handleReviewSubmit = (e: React.FormEvent) => {
+  const handleReviewSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (reviewSubmitting) return;
     if (!revEmail.trim() || !revEmail.includes("@")) {
       toast.error("Valid customer email is required to submit a review.");
       return;
@@ -291,9 +282,8 @@ function ProductPage() {
       return;
     }
 
-    saveTestimonial({
-      id: newId("review"),
-      source: "customer",
+    setReviewSubmitting(true);
+    const result = await addCustomerReview({
       name: revName.trim(),
       email: revEmail.trim(),
       productId: product.id,
@@ -301,17 +291,19 @@ function ProductPage() {
       title: revTitle.trim() || "Customer Review",
       quote: revQuote.trim(),
       rating: revRating,
-      verified: true,
-      createdAt: new Date().toISOString(),
-      photo: null,
       reviewImage: revImage,
     });
+    setReviewSubmitting(false);
+
+    if (!result.ok) {
+      toast.error(result.message);
+      return;
+    }
 
     toast.success("Thank you! Your review has been submitted successfully.", {
       description: "Your feedback is now visible under this product.",
     });
 
-    // Reset form
     setRevEmail("");
     setRevName("");
     setRevTitle("");
@@ -322,9 +314,9 @@ function ProductPage() {
 
   return (
     <SiteLayout>
-      <div className="mx-auto min-w-0 max-w-7xl px-4 py-10 sm:px-6 sm:py-14">
+      <div className="mx-auto min-w-0 max-w-7xl px-4 py-7 sm:px-6 sm:py-14">
         {/* Breadcrumb */}
-        <nav className="flex min-w-0 flex-wrap items-center gap-2 text-xs tracking-[0.14em] uppercase text-ink-muted">
+        <nav className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-[10px] tracking-[0.16em] uppercase text-ink-muted sm:text-xs sm:tracking-[0.14em]">
           <Link to="/" className="hover:text-gold">
             Home
           </Link>
@@ -342,28 +334,30 @@ function ProductPage() {
             </>
           )}
           <span>/</span>
-          <span className="min-w-0 break-words text-ink font-semibold">{product.name}</span>
+          <span className="hidden min-w-0 break-words font-semibold text-ink sm:inline">
+            {product.name}
+          </span>
         </nav>
 
-        <div className="mt-8 grid min-w-0 grid-cols-[minmax(0,1fr)] gap-10 lg:grid-cols-2">
+        <div className="mt-6 grid min-w-0 grid-cols-[minmax(0,1fr)] gap-7 sm:mt-8 sm:gap-10 lg:grid-cols-2">
           {/* Gallery / Images */}
           <div className="min-w-0 space-y-4">
-            <div className="lens-ring relative w-full min-w-0 max-w-full overflow-hidden rounded-2xl bg-jet border border-stone">
+            <div className="lens-ring relative w-full min-w-0 max-w-full overflow-hidden rounded-2xl border border-stone bg-jet">
               <ProductImage
                 key={mainImage}
                 src={mainImage}
                 alt={product.name}
                 width={1024}
                 height={1024}
-                className="rise-in aspect-square w-full max-w-full object-cover"
+                className="rise-in aspect-[1/0.98] w-full max-w-full object-cover sm:aspect-square"
               />
 
               {/* Floating Badges */}
-              <div className="absolute top-4 left-4 flex flex-col gap-2 z-10">
+              <div className="absolute left-3 top-3 z-10 flex flex-col gap-2 sm:left-4 sm:top-4">
                 {product.salePrice && (
                   <Badge
                     variant="destructive"
-                    className="px-3 py-1 text-xs font-bold uppercase tracking-wider shadow-md"
+                    className="px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider shadow-md sm:px-3 sm:text-xs"
                   >
                     Sale Offer
                   </Badge>
@@ -413,23 +407,23 @@ function ProductPage() {
           {/* Product Details & Purchase Actions */}
           <div className="min-w-0 space-y-6">
             <div className="space-y-2.5">
-              <div className="flex items-center justify-between">
-                <span className="eyebrow text-gold font-bold">
+              <div className="flex min-w-0 flex-wrap items-center justify-between gap-2">
+                <span className="eyebrow min-w-0 text-gold font-bold">
                   {collection?.name || category?.name}
                 </span>
                 {product.sku && (
-                  <span className="text-xs font-mono text-ink-muted border border-stone rounded-md px-2 py-0.5">
+                  <span className="shrink-0 rounded-md border border-stone px-2 py-0.5 font-mono text-[11px] text-ink-muted sm:text-xs">
                     SKU: {product.sku}
                   </span>
                 )}
               </div>
 
-              <p className="min-w-0 break-words text-lg sm:text-xl font-medium leading-snug text-foreground">
+              <p className="min-w-0 break-words pr-12 text-[1.55rem] font-medium leading-tight tracking-normal text-foreground sm:pr-0 sm:text-xl sm:leading-snug">
                 {product.name}
               </p>
 
               {/* Rating summary subheader */}
-              <div className="flex items-center gap-2 pt-1">
+              <div className="flex min-w-0 flex-wrap items-center gap-2 pt-1 pr-12 sm:pr-0">
                 <div className="flex text-amber-500">
                   {Array.from({ length: 5 }).map((_, i) => (
                     <Star
@@ -503,7 +497,7 @@ function ProductPage() {
             {/* Interactive Colour Swatches */}
             {product.variants.length > 0 && (
               <div className="space-y-3 rounded-xl border border-stone-200 bg-[#F5F5F5] p-4">
-                <div className="flex items-center justify-between">
+                <div className="flex min-w-0 flex-wrap items-center justify-between gap-2">
                   <p className="eyebrow text-ink">
                     Select Colour:{" "}
                     <span className="text-ink font-semibold normal-case">
@@ -592,21 +586,6 @@ function ProductPage() {
                     }}
                   >
                     <ShoppingBag className="mr-2 h-4 w-4" /> Add to bag
-                  </Button>
-                  <Button
-                    type="button"
-                    size="lg"
-                    onClick={() =>
-                      openWhatsAppModal({
-                        productName: product.name,
-                        productId: product.id,
-                        variantId: variant?.id ?? null,
-                        variantLabel: variant?.label ?? null,
-                      })
-                    }
-                    className="min-h-12 rounded-full px-8 bg-[#25D366] hover:bg-[#20BA5A] text-white font-bold tracking-wider border-0 shadow-md cursor-pointer"
-                  >
-                    <WhatsAppIcon className="mr-2 h-5 w-5 text-white" /> ORDER ON WHATSAPP
                   </Button>
                 </>
               )}
@@ -799,11 +778,16 @@ function ProductPage() {
                   variant="outline"
                   className="min-h-11 rounded-full"
                   onClick={() => setReviewFormOpen(false)}
+                  disabled={reviewSubmitting}
                 >
                   Cancel
                 </Button>
-                <Button type="submit" className="min-h-11 rounded-full px-8 font-semibold">
-                  Submit Review
+                <Button
+                  type="submit"
+                  disabled={reviewSubmitting}
+                  className="min-h-11 rounded-full px-8 font-semibold"
+                >
+                  {reviewSubmitting ? "Submitting..." : "Submit Review"}
                 </Button>
               </div>
             </form>
@@ -1006,10 +990,6 @@ function ProductPage() {
         <section className="mt-16 sm:mt-20 border-t border-stone/60 pt-14">
           <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
             <div>
-              <p className="eyebrow text-gold font-bold tracking-[0.2em] uppercase text-xs sm:text-sm flex items-center gap-2">
-                <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
-                <span>VERIFIED CUSTOMER PROOFS & CARDS</span>
-              </p>
               <h2 className="mt-1.5 font-display text-3xl sm:text-4xl text-foreground font-semibold">
                 Customer Testimonials & Proof Cards
               </h2>
@@ -1054,7 +1034,7 @@ function ProductPage() {
 
                   {/* Bottom Info & Quote (Matching Image 3) */}
                   <div className="absolute inset-x-0 bottom-0 p-4 space-y-2 z-10">
-                    <div className="flex items-center justify-between">
+                    <div className="flex min-w-0 flex-wrap items-center justify-between gap-2">
                       <p className="text-xs font-bold text-white truncate drop-shadow-sm">
                         {t.name}
                       </p>

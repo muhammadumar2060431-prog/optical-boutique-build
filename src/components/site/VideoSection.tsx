@@ -21,6 +21,8 @@ export function VideoSection({ heading = "Inside our warehouse" }: { heading?: s
                 className="h-full w-full"
                 src={`https://www.youtube.com/embed/${video.videoId}`}
                 title={heading}
+                loading="lazy"
+                referrerPolicy="strict-origin-when-cross-origin"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen
               />

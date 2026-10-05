@@ -1,5 +1,5 @@
 # =============================================================
-#  OPTIQUE Eyewear — Search Engine Robots Configuration
+#  Nigah Eyewear — Search Engine Robots Configuration
 # =============================================================
 
 User-agent: *
@@ -17,3 +17,4 @@ Crawl-delay: 1
 
 # Sitemap Location
 Sitemap: https://www.nigah.store/sitemap.xml
+

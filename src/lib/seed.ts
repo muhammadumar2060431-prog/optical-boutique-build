@@ -51,7 +51,7 @@ export const seedSettings: StoreSettings = {
   address: "",
   hours: "",
   lowStockThreshold: 5,
-  adminEmail: import.meta.env.VITE_ADMIN_EMAIL || "admin@optique.com",
+  adminEmail: "",
   aboutHeadline: "",
   aboutBody: "",
 };

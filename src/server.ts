@@ -72,8 +72,27 @@ function isH3SwallowedErrorBody(body: string): boolean {
   }
 }
 
+function shouldRedirectToHttps(request: Request) {
+  if (process.env["NODE_ENV"] !== "production") return false;
+  const url = new URL(request.url);
+  const host = request.headers.get("host") ?? url.host;
+  if (/^(localhost|127\.0\.0\.1|0\.0\.0\.0)(:|$)/i.test(host)) return false;
+  const forwardedProto = request.headers.get("x-forwarded-proto")?.split(",")[0]?.trim();
+  if (forwardedProto === "https") return false;
+  return url.protocol === "http:" || forwardedProto === "http";
+}
+
 const serverEntry: ServerEntry = {
   async fetch(request: Request, env: unknown, ctx: unknown) {
+    if (shouldRedirectToHttps(request)) {
+      const url = new URL(request.url);
+      url.protocol = "https:";
+      return new Response(null, {
+        status: 308,
+        headers: { Location: url.toString() },
+      });
+    }
+
     try {
       const handler = await getServerEntry();
       const response = await handler.fetch(request, env, ctx);

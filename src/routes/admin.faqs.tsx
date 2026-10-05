@@ -227,10 +227,9 @@ function AdminFaqs() {
                   variant="ghost"
                   aria-label="Delete"
                   className="text-destructive hover:bg-destructive/10"
-                  onClick={() => {
+                  onClick={async () => {
                     if (confirm(`Delete the question "${faq.question}"?`)) {
-                      deleteFaq(faq.id);
-                      toast.success("FAQ deleted.");
+                      if (await deleteFaq(faq.id)) toast.success("FAQ deleted.");
                     }
                   }}
                 >

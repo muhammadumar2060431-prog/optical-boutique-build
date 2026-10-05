@@ -6,7 +6,7 @@ export const healthHandler = withApi(
   () =>
     json({
       status: "ok",
-      service: "optique-web",
+      service: "nigah-web",
       apiVersion: "v1",
       timestamp: new Date().toISOString(),
       uptimeSeconds: Math.floor((Date.now() - startedAt) / 1_000),

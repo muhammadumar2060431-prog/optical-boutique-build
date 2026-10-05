@@ -9,13 +9,13 @@ import { getSiteUrl } from "@/lib/utils";
 export const Route = createFileRoute("/returns-policy")({
   head: () => ({
     meta: [
-      { title: "Returns, Replacements & Refund Policy - OPTIQUE Eyewear" },
+      { title: "Returns, Replacements & Refund Policy - Nigah Eyewear" },
       {
         name: "description",
         content:
-          "Our 7-day hassle-free replacement guarantee, custom prescription lens guarantee, exchange guidelines, and return procedures at OPTIQUE Optical Boutique.",
+          "Our 7-day hassle-free replacement guarantee, custom prescription lens guarantee, exchange guidelines, and return procedures at Nigah Optical Boutique.",
       },
-      { property: "og:title", content: "Returns, Replacements & Refund Policy - OPTIQUE Eyewear" },
+      { property: "og:title", content: "Returns, Replacements & Refund Policy - Nigah Eyewear" },
       {
         property: "og:description",
         content:
@@ -39,15 +39,15 @@ function ReturnsPolicyPage() {
           {/* Header */}
           <Reveal>
             <div className="text-center max-w-2xl mx-auto mb-16">
-              <span className="inline-block px-3.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-[0.2em] bg-stone-100 text-stone-800 border border-stone-200 mb-4">
+              <span className="inline-block max-w-full rounded-full border border-stone-200 bg-stone-100 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-stone-800 sm:px-3.5 sm:text-[11px] sm:tracking-[0.2em] mb-4">
                 Peace of Mind Guarantee
               </span>
-              <h1 className="font-display text-3xl sm:text-5xl font-semibold text-black tracking-tight">
+              <h1 className="font-display text-3xl font-semibold leading-tight tracking-normal text-black sm:text-5xl sm:tracking-tight">
                 Returns & Exchange Policy
               </h1>
               <p className="mt-4 text-sm sm:text-base text-zinc-600 leading-relaxed">
-                At OPTIQUE, we stand behind the optical accuracy and craftsmanship of every frame
-                and lens we dispense. Here is our straightforward replacement and refund policy.
+                At Nigah, we stand behind the optical accuracy and craftsmanship of every frame and
+                lens we dispense. Here is our straightforward replacement and refund policy.
               </p>
             </div>
           </Reveal>
@@ -90,7 +90,7 @@ function ReturnsPolicyPage() {
           <div className="space-y-12 text-zinc-800 leading-relaxed">
             {/* Section 1 */}
             <section className="space-y-4 border-b border-stone-200 pb-10">
-              <h2 className="font-display text-2xl font-semibold text-black">
+              <h2 className="font-display text-xl font-semibold leading-snug text-black sm:text-2xl">
                 1. 7-Day Frame & Sunglasses Replacement
               </h2>
               <p className="text-sm sm:text-base text-zinc-600">
@@ -125,7 +125,7 @@ function ReturnsPolicyPage() {
 
             {/* Section 2 */}
             <section className="space-y-4 border-b border-stone-200 pb-10">
-              <h2 className="font-display text-2xl font-semibold text-black">
+              <h2 className="font-display text-xl font-semibold leading-snug text-black sm:text-2xl">
                 2. Custom Prescription Lenses Policy
               </h2>
               <p className="text-sm sm:text-base text-zinc-600">
@@ -154,7 +154,7 @@ function ReturnsPolicyPage() {
 
             {/* Section 3 */}
             <section className="space-y-4 border-b border-stone-200 pb-10">
-              <h2 className="font-display text-2xl font-semibold text-black">
+              <h2 className="font-display text-xl font-semibold leading-snug text-black sm:text-2xl">
                 3. Damaged in Transit or Defective Items
               </h2>
               <p className="text-sm sm:text-base text-zinc-600">
@@ -174,7 +174,7 @@ function ReturnsPolicyPage() {
 
             {/* Section 4 */}
             <section className="space-y-4 border-b border-stone-200 pb-10">
-              <h2 className="font-display text-2xl font-semibold text-black">
+              <h2 className="font-display text-xl font-semibold leading-snug text-black sm:text-2xl">
                 4. Step-by-Step Return Process
               </h2>
               <div className="grid gap-4 sm:grid-cols-3 pt-2">
@@ -206,13 +206,13 @@ function ReturnsPolicyPage() {
 
             {/* Section 5 */}
             <section className="space-y-4">
-              <h2 className="font-display text-2xl font-semibold text-black">
+              <h2 className="font-display text-xl font-semibold leading-snug text-black sm:text-2xl">
                 5. Refund Method & Processing Time
               </h2>
               <p className="text-sm sm:text-base text-zinc-600">
                 Approved refunds are processed via{" "}
                 <strong className="text-black">
-                  Direct Online Bank Transfer, JazzCash, EasyPaisa, or OPTIQUE Store Credit Voucher
+                  Direct Online Bank Transfer, JazzCash, EasyPaisa, or Nigah Store Credit Voucher
                 </strong>{" "}
                 within 3 to 5 business days after our quality assurance team verifies the returned
                 parcel.
@@ -221,7 +221,7 @@ function ReturnsPolicyPage() {
           </div>
 
           {/* Help Box */}
-          <div className="mt-16 rounded-2xl border border-stone-300 bg-stone-50 p-6 sm:p-8 flex flex-col sm:flex-row items-center justify-between gap-6">
+          <div className="mt-12 flex flex-col items-center justify-between gap-5 rounded-2xl border border-stone-300 bg-stone-50 p-5 sm:mt-16 sm:flex-row sm:gap-6 sm:p-8">
             <div className="space-y-1 text-center sm:text-left">
               <h4 className="font-display text-lg font-semibold text-black">
                 Need assistance with a replacement or return?
@@ -234,7 +234,7 @@ function ReturnsPolicyPage() {
               href={`https://wa.me/${settings.whatsapp.replace(/[^0-9]/g, "")}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex min-h-11 items-center justify-center rounded-full bg-[#25D366] hover:bg-[#20BA5A] px-6 text-xs font-bold uppercase tracking-[0.16em] text-white shadow-md shrink-0"
+              className="inline-flex min-h-11 w-full max-w-xs items-center justify-center rounded-full bg-[#25D366] px-5 text-center text-xs font-bold uppercase tracking-[0.1em] text-white shadow-md hover:bg-[#20BA5A] sm:w-auto sm:px-6 sm:tracking-[0.16em] shrink-0"
             >
               WhatsApp Support
             </a>

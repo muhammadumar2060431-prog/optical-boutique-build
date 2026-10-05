@@ -20,6 +20,8 @@ interface RateBucket {
 }
 
 const buckets = new Map<string, RateBucket>();
+const MAX_RATE_BUCKETS = 10_000;
+let nextBucketCleanupAt = 0;
 
 export class ApiError extends Error {
   readonly status: number;
@@ -80,6 +82,42 @@ export function json(data: unknown, init: ResponseInit = {}) {
   return Response.json(data, init);
 }
 
+export async function readJsonBody(request: Request, maxBytes: number): Promise<unknown> {
+  const declaredLength = Number(request.headers.get("content-length") ?? 0);
+  if (declaredLength > maxBytes) {
+    throw new ApiError(413, "PAYLOAD_TOO_LARGE", "The submitted data is too large.");
+  }
+  if (!request.body) {
+    throw new ApiError(400, "INVALID_JSON", "The request body must be valid JSON.");
+  }
+
+  const reader = request.body.getReader();
+  const decoder = new TextDecoder();
+  const chunks: string[] = [];
+  let bytesRead = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      bytesRead += value.byteLength;
+      if (bytesRead > maxBytes) {
+        await reader.cancel();
+        throw new ApiError(413, "PAYLOAD_TOO_LARGE", "The submitted data is too large.");
+      }
+      chunks.push(decoder.decode(value, { stream: true }));
+    }
+    chunks.push(decoder.decode());
+  } finally {
+    reader.releaseLock();
+  }
+
+  try {
+    return JSON.parse(chunks.join(""));
+  } catch {
+    throw new ApiError(400, "INVALID_JSON", "The request body must be valid JSON.");
+  }
+}
+
 function getRequestId(request: Request) {
   const supplied = request.headers.get("x-request-id")?.trim();
   return supplied && /^[A-Za-z0-9._-]{8,100}$/.test(supplied) ? supplied : crypto.randomUUID();
@@ -87,8 +125,17 @@ function getRequestId(request: Request) {
 
 function rateLimit(request: Request, name: string, max: number, windowMs: number) {
   const now = Date.now();
+  if (now >= nextBucketCleanupAt) {
+    for (const [key, bucket] of buckets) {
+      if (bucket.resetAt <= now) buckets.delete(key);
+    }
+    nextBucketCleanupAt = now + 60_000;
+  }
   const key = `${name}:${clientAddress(request)}`;
   const existing = buckets.get(key);
+  if (!existing && buckets.size >= MAX_RATE_BUCKETS) {
+    return { allowed: false, remaining: 0, retryAfter: Math.ceil(windowMs / 1_000) };
+  }
   const bucket =
     !existing || existing.resetAt <= now ? { count: 0, resetAt: now + windowMs } : existing;
   bucket.count += 1;
@@ -199,4 +246,5 @@ export function withApi(handler: ApiHandler, options: ApiOptions) {
 
 export function resetRateLimitsForTests() {
   buckets.clear();
+  nextBucketCleanupAt = 0;
 }

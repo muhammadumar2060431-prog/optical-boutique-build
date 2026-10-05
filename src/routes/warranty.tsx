@@ -9,13 +9,13 @@ import { getSiteUrl } from "@/lib/utils";
 export const Route = createFileRoute("/warranty")({
   head: () => ({
     meta: [
-      { title: "Optical Warranty & Authenticity Guarantee — OPTIQUE Eyewear" },
+      { title: "Optical Warranty & Authenticity Guarantee — Nigah Eyewear" },
       {
         name: "description",
         content:
-          "Our 1-year frame warranty, optical lens coating guarantee, free lifetime adjustments, and 100% authenticity promise at OPTIQUE Optical Boutique.",
+          "Our 1-year frame warranty, optical lens coating guarantee, free lifetime adjustments, and 100% authenticity promise at Nigah Optical Boutique.",
       },
-      { property: "og:title", content: "Warranty & Authenticity Guarantee — OPTIQUE Eyewear" },
+      { property: "og:title", content: "Warranty & Authenticity Guarantee — Nigah Eyewear" },
       {
         property: "og:description",
         content:
@@ -39,14 +39,14 @@ function WarrantyPage() {
           {/* Header */}
           <Reveal>
             <div className="text-center max-w-2xl mx-auto mb-16">
-              <span className="inline-block px-3.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-[0.2em] bg-stone-100 text-stone-800 border border-stone-200 mb-4">
+              <span className="inline-block max-w-full rounded-full border border-stone-200 bg-stone-100 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-stone-800 sm:px-3.5 sm:text-[11px] sm:tracking-[0.2em] mb-4">
                 Boutique Craftsmanship Guarantee
               </span>
-              <h1 className="font-display text-3xl sm:text-5xl font-semibold text-black tracking-tight">
+              <h1 className="font-display text-3xl font-semibold leading-tight tracking-normal text-black sm:text-5xl sm:tracking-tight">
                 Warranty & Authenticity Promise
               </h1>
               <p className="mt-4 text-sm sm:text-base text-zinc-600 leading-relaxed">
-                Every frame and lens dispensed by OPTIQUE reflects precision engineering and premium
+                Every frame and lens dispensed by Nigah reflects precision engineering and premium
                 optical standards. Here is how we protect your investment.
               </p>
             </div>
@@ -93,11 +93,11 @@ function WarrantyPage() {
           <div className="space-y-12 text-zinc-800 leading-relaxed">
             {/* Section 1 */}
             <section className="space-y-4 border-b border-stone-200 pb-10">
-              <h2 className="font-display text-2xl font-semibold text-black">
+              <h2 className="font-display text-xl font-semibold leading-snug text-black sm:text-2xl">
                 1. 1-Year Comprehensive Frame Warranty
               </h2>
               <p className="text-sm sm:text-base text-zinc-600">
-                All eyeglasses and sunglasses frames purchased from OPTIQUE carry a full{" "}
+                All eyeglasses and sunglasses frames purchased from Nigah carry a full{" "}
                 <strong className="text-black">12-month manufacturing warranty</strong> covering:
               </p>
               <ul className="space-y-2 text-sm text-zinc-700">
@@ -131,7 +131,7 @@ function WarrantyPage() {
 
             {/* Section 2 */}
             <section className="space-y-4 border-b border-stone-200 pb-10">
-              <h2 className="font-display text-2xl font-semibold text-black">
+              <h2 className="font-display text-xl font-semibold leading-snug text-black sm:text-2xl">
                 2. Optical Lens Coating Guarantee
               </h2>
               <p className="text-sm sm:text-base text-zinc-600">
@@ -143,11 +143,11 @@ function WarrantyPage() {
 
             {/* Section 3 */}
             <section className="space-y-4 border-b border-stone-200 pb-10">
-              <h2 className="font-display text-2xl font-semibold text-black">
+              <h2 className="font-display text-xl font-semibold leading-snug text-black sm:text-2xl">
                 3. Complimentary Lifetime Boutique Care
               </h2>
               <p className="text-sm sm:text-base text-zinc-600">
-                Regardless of when you purchased your eyewear, every OPTIQUE client enjoys free
+                Regardless of when you purchased your eyewear, every Nigah client enjoys free
                 lifetime aftercare at our Lahore boutique or via WhatsApp concierge:
               </p>
               <div className="grid gap-4 sm:grid-cols-3 pt-2">
@@ -175,7 +175,7 @@ function WarrantyPage() {
 
             {/* Section 4 */}
             <section className="space-y-4 border-b border-stone-200 pb-10">
-              <h2 className="font-display text-2xl font-semibold text-black">
+              <h2 className="font-display text-xl font-semibold leading-snug text-black sm:text-2xl">
                 4. What is Not Covered (Exclusions)
               </h2>
               <ul className="space-y-2 text-sm text-zinc-700">
@@ -211,7 +211,7 @@ function WarrantyPage() {
 
             {/* Section 5 */}
             <section className="space-y-4">
-              <h2 className="font-display text-2xl font-semibold text-black">
+              <h2 className="font-display text-xl font-semibold leading-snug text-black sm:text-2xl">
                 5. How to File a Warranty Claim
               </h2>
               <p className="text-sm sm:text-base text-zinc-600">
@@ -227,7 +227,7 @@ function WarrantyPage() {
           </div>
 
           {/* Contact Box */}
-          <div className="mt-16 rounded-2xl border border-stone-300 bg-stone-50 p-6 sm:p-8 flex flex-col sm:flex-row items-center justify-between gap-6">
+          <div className="mt-12 flex flex-col items-center justify-between gap-5 rounded-2xl border border-stone-300 bg-stone-50 p-5 sm:mt-16 sm:flex-row sm:gap-6 sm:p-8">
             <div className="space-y-1 text-center sm:text-left">
               <h4 className="font-display text-lg font-semibold text-black">
                 Need a frame adjustment or warranty check?
@@ -239,7 +239,7 @@ function WarrantyPage() {
             <Link
               to="/contact"
               search={{ product: undefined }}
-              className="inline-flex min-h-11 items-center justify-center rounded-full bg-black px-6 text-xs font-semibold uppercase tracking-[0.16em] text-white hover:bg-zinc-800 shadow-md shrink-0"
+              className="inline-flex min-h-11 w-full max-w-xs items-center justify-center rounded-full bg-black px-5 text-center text-xs font-semibold uppercase tracking-[0.1em] text-white shadow-md hover:bg-zinc-800 sm:w-auto sm:px-6 sm:tracking-[0.16em] shrink-0"
             >
               Contact Warranty Desk
             </Link>

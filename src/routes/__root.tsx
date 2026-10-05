@@ -15,6 +15,12 @@ import { StoreProvider } from "@/lib/store";
 import { CartProvider } from "@/lib/cart";
 import { WhatsAppModalProvider } from "@/components/site/WhatsAppModal";
 import { Toaster } from "@/components/ui/sonner";
+import {
+  jsonLdScript,
+  opticianBusinessSchema,
+  organizationSchema,
+  websiteSchema,
+} from "@/lib/schema";
 
 function NotFoundComponent() {
   return (
@@ -231,13 +237,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "OPTIQUE — Premium Eyeglasses, Sunglasses & Contact Lenses" },
+      { title: "Nigah — Premium Eyeglasses, Sunglasses & Contact Lenses" },
       {
         name: "description",
         content:
           "Discover handcrafted designer eyeglasses, premium sunglasses, and precision contact lenses. Experience unmatched clarity, comfort, and bespoke styling.",
       },
-      { property: "og:title", content: "OPTIQUE — Premium Eyewear & Optical Boutique" },
+      { property: "og:title", content: "Nigah — Premium Eyewear & Optical Boutique" },
       {
         property: "og:description",
         content:
@@ -248,8 +254,12 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:image", content: "/brand-logo.png" },
     ],
+    scripts: [jsonLdScript([organizationSchema(), opticianBusinessSchema(), websiteSchema()])],
     links: [
       { rel: "stylesheet", href: appCss },
+      ...(import.meta.env.VITE_SUPABASE_URL
+        ? [{ rel: "preconnect", href: new URL(import.meta.env.VITE_SUPABASE_URL).origin }]
+        : []),
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {

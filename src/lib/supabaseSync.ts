@@ -1,5 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any, no-empty -- Legacy Supabase schema variants are normalized at this boundary. */
 import { supabase } from "./supabase";
+import { deleteDatabaseRecord, requireDatabaseAdmin } from "./database-delete.ts";
+import { createMutationQueue } from "./mutation-queue.ts";
+import {
+  publicStorefrontData,
+  PUBLIC_SETTINGS_COLUMNS,
+  PUBLIC_TESTIMONIAL_COLUMNS,
+} from "./public-storefront.ts";
 import type { MetaEventInput } from "./meta-events.types";
 import { escapePostgrestFilter, sanitizeDbInput } from "./security";
 import type {
@@ -108,7 +115,7 @@ export async function uploadImageToStorage(
         throw new Error(
           "Storage denied this upload (" +
             status +
-            "). Sign in again; if it persists, check the optique-images upload policy.",
+            "). Sign in again; if it persists, check the Nigah images upload policy.",
         );
       }
       throw new Error(
@@ -201,12 +208,11 @@ export function mapDbProductToStore(raw: any): Product {
 
   // subImages = all gallery angles
   const rawSubImages = rawDetails?.subImages ?? raw.subImages ?? raw.sub_images;
-  const subImages: string[] =
-    Array.isArray(rawSubImages) && rawSubImages.length > 0
-      ? rawSubImages.filter((s: any) => typeof s === "string" && s.trim().length > 0)
-      : images.length > 1
-        ? images.slice(1)
-        : [];
+  const subImages: string[] = Array.isArray(rawSubImages)
+    ? rawSubImages.filter((s: any) => typeof s === "string" && s.trim().length > 0)
+    : images.length > 1
+      ? images.slice(1)
+      : [];
 
   return {
     id: raw.id,
@@ -219,9 +225,10 @@ export function mapDbProductToStore(raw: any): Product {
       : raw.salePrice
         ? Number(raw.salePrice)
         : null,
-    categoryId: raw.category_id || raw.categoryId || "cat-glasses",
-    collectionId:
-      (Array.isArray(raw.collection_ids) && raw.collection_ids[0]) || raw.collectionId || null,
+    categoryId: raw.category_id !== undefined ? raw.category_id || "" : raw.categoryId || "",
+    collectionId: Array.isArray(raw.collection_ids)
+      ? raw.collection_ids[0] || null
+      : raw.collectionId || null,
     image: primaryImage,
     hoverImage: hoverFromDb || null,
     subImages,
@@ -387,7 +394,7 @@ function mapStoreTestimonialToDb(t: Testimonial): any {
     avatar: img,
     verified: t.verified ?? true,
     // Product association fields - saved so product pages filter correctly
-    email: t.email || null,
+    ...(t.email !== undefined ? { email: t.email } : {}),
     product_id: t.productId || null,
     product_name: t.productName || null,
     title: t.title || null,
@@ -474,11 +481,66 @@ export function mapDbQueryToStore(raw: any): ContactQuery {
   };
 }
 
+type InitialSupabaseDataOptions = {
+  includePrivate?: boolean;
+  bypassStorefrontApi?: boolean;
+};
+
+export type InitialSupabaseData = {
+  products: Product[] | null;
+  categories: Category[] | null;
+  collections: Collection[] | null;
+  orders: Order[] | null;
+  queries: ContactQuery[] | null;
+  heroSlides: HeroSlide[] | null;
+  brands: Brand[] | null;
+  socialReels: SocialReel[] | null;
+  testimonials: Testimonial[] | null;
+  faqs: FAQItem[] | null;
+  subscribers: Subscriber[] | null;
+  settings: StoreSettings | null;
+  announcement: AnnouncementSettings | null;
+  video: VideoSettings | null;
+};
+
 /**
  * Fetch all storefront data from Supabase.
  */
-export async function fetchInitialSupabaseData(options: { includePrivate?: boolean } = {}) {
+async function fetchPrivateTestimonials() {
+  await requireDatabaseAdmin(supabase);
+  const result = await supabase.rpc("admin_testimonials_v1");
+  if (result.error?.code === "PGRST202" || result.error?.code === "42883") {
+    return supabase.from("testimonials").select("*").order("sort_order", { ascending: true });
+  }
+  return result;
+}
+
+async function fetchPrivateSettings() {
+  await requireDatabaseAdmin(supabase);
+  const result = await supabase.rpc("admin_store_settings_v1").maybeSingle();
+  if (result.error?.code === "PGRST202" || result.error?.code === "42883") {
+    return supabase.from("store_settings").select("*").eq("id", "default").single();
+  }
+  return result;
+}
+
+export async function fetchInitialSupabaseData(
+  options: InitialSupabaseDataOptions = {},
+): Promise<InitialSupabaseData | null> {
   const includePrivate = options.includePrivate === true;
+
+  if (!includePrivate && !options.bypassStorefrontApi && typeof window !== "undefined") {
+    try {
+      const response = await fetch("/api/v1/storefront", {
+        credentials: "same-origin",
+        headers: { Accept: "application/json" },
+      });
+      const payload = (await response.json().catch(() => null)) as {
+        data?: InitialSupabaseData | null;
+      } | null;
+      if (response.ok && payload?.data) return publicStorefrontData(payload.data);
+    } catch {}
+  }
 
   try {
     const [
@@ -517,12 +579,23 @@ export async function fetchInitialSupabaseData(options: { includePrivate?: boole
       supabase.from("hero_slides").select("*").order("sort_order", { ascending: true }),
       supabase.from("brands").select("*").order("sort_order", { ascending: true }),
       supabase.from("social_reels").select("*").order("sort_order", { ascending: true }),
-      supabase.from("testimonials").select("*").order("sort_order", { ascending: true }),
+      includePrivate
+        ? fetchPrivateTestimonials()
+        : supabase
+            .from("testimonials")
+            .select(PUBLIC_TESTIMONIAL_COLUMNS)
+            .order("sort_order", { ascending: true }),
       supabase.from("faqs").select("*").order("sort_order", { ascending: true }),
       includePrivate
         ? supabase.from("subscribers").select("*").order("created_at", { ascending: false })
         : Promise.resolve({ data: null, error: null }),
-      supabase.from("store_settings").select("*").eq("id", "default").single(),
+      includePrivate
+        ? fetchPrivateSettings()
+        : supabase
+            .from("store_settings")
+            .select(PUBLIC_SETTINGS_COLUMNS)
+            .eq("id", "default")
+            .single(),
       supabase.from("announcements").select("*").eq("id", "default").single(),
       supabase.from("video_settings").select("*").eq("id", "default").single(),
     ]);
@@ -530,7 +603,7 @@ export async function fetchInitialSupabaseData(options: { includePrivate?: boole
     const settingsRaw = settingsRes.status === "fulfilled" ? (settingsRes.value.data as any) : null;
     const settings: StoreSettings | null = settingsRaw
       ? {
-          storeName: settingsRaw.store_name || settingsRaw.storeName || "OPTIQUE",
+          storeName: settingsRaw.store_name || settingsRaw.storeName || "Nigah",
           whatsapp: settingsRaw.whatsapp || "",
           phone: settingsRaw.phone || "",
           email: settingsRaw.email || "",
@@ -538,11 +611,7 @@ export async function fetchInitialSupabaseData(options: { includePrivate?: boole
           hours: settingsRaw.hours || "",
           logo: settingsRaw.logo || null,
           lowStockThreshold: settingsRaw.low_stock_threshold || settingsRaw.lowStockThreshold || 3,
-          adminEmail:
-            settingsRaw.admin_email ||
-            settingsRaw.adminEmail ||
-            import.meta.env.VITE_ADMIN_EMAIL ||
-            "",
+          adminEmail: includePrivate ? settingsRaw.admin_email || settingsRaw.adminEmail || "" : "",
           aboutHeadline: settingsRaw.about_headline || settingsRaw.aboutHeadline || "",
           aboutBody: settingsRaw.about_body || settingsRaw.aboutBody || "",
         }
@@ -691,7 +760,7 @@ export async function fetchInitialSupabaseData(options: { includePrivate?: boole
         ? (subscribersRes.value.data as Subscriber[])
         : null;
 
-    return {
+    const result: InitialSupabaseData = {
       products,
       categories,
       collections,
@@ -707,6 +776,7 @@ export async function fetchInitialSupabaseData(options: { includePrivate?: boole
       announcement,
       video,
     };
+    return includePrivate ? result : publicStorefrontData(result);
   } catch {
     return null;
   }
@@ -719,20 +789,30 @@ async function uploadProductImageData(product: Product): Promise<Product> {
   const uploadIfNeeded = async (image: string | null | undefined): Promise<string | null> => {
     if (!image) return null;
     if (!image.startsWith("data:image/")) return image;
-    return (await uploadImageToStorage(image, "products")) ?? image;
+    return requireStoredImage(image, "products");
   };
 
   const sourceSubImages = Array.isArray(product.subImages) ? product.subImages : [];
-  const [image, hoverImage, subImages] = await Promise.all([
+  const sourceVariants = Array.isArray(product.variants) ? product.variants : [];
+  const [image, hoverImage, subImages, newArrivalImage, variants] = await Promise.all([
     uploadIfNeeded(product.image),
     uploadIfNeeded(product.hoverImage),
     Promise.all(sourceSubImages.map((subImage) => uploadIfNeeded(subImage))),
+    uploadIfNeeded(product.newArrivalImage),
+    Promise.all(
+      sourceVariants.map(async (variant) => ({
+        ...variant,
+        image: (await uploadIfNeeded(variant.image)) ?? variant.image,
+      })),
+    ),
   ]);
 
   const normalizedSubImages = subImages.filter((value): value is string => Boolean(value));
   const changed =
     image !== product.image ||
     hoverImage !== (product.hoverImage ?? null) ||
+    newArrivalImage !== (product.newArrivalImage ?? null) ||
+    variants.some((variant, index) => variant.image !== sourceVariants[index]?.image) ||
     normalizedSubImages.some((value, index) => value !== sourceSubImages[index]);
 
   return changed
@@ -741,11 +821,27 @@ async function uploadProductImageData(product: Product): Promise<Product> {
         image: image ?? product.image,
         hoverImage,
         subImages: normalizedSubImages,
+        newArrivalImage,
+        variants,
       }
     : product;
 }
 
-export async function dbUpsertProduct(product: Product) {
+const productMutations = createMutationQueue();
+const deletedProductIds = new Set<string>();
+
+export function markProductDeleted(id: string) {
+  deletedProductIds.add(id);
+}
+
+export function dbUpsertProduct(product: Product) {
+  return productMutations(product.id, () => upsertProduct(product));
+}
+
+async function upsertProduct(product: Product) {
+  if (deletedProductIds.has(product.id)) {
+    return { success: false, error: new Error("This product was deleted. Refresh before saving.") };
+  }
   try {
     const storedProduct = await uploadProductImageData(product);
     const payload = sanitizeDbInput(mapStoreProductToDb(storedProduct));
@@ -763,13 +859,17 @@ export async function dbUpsertProduct(product: Product) {
   }
 }
 export async function dbDeleteProduct(id: string) {
-  try {
-    const cleanId = escapePostgrestFilter(id);
-    if (!cleanId) return;
-    await supabase.from("products").delete().eq("id", cleanId);
-  } catch (e) {
-    console.error("Failed to delete product from Supabase:", e);
-  }
+  return productMutations(id, async () => {
+    const deleted = await deleteDatabaseRecord(supabase, "products", id);
+    if (deleted) markProductDeleted(id);
+    return deleted;
+  });
+}
+
+async function requireStoredImage(image: string, folder: string): Promise<string> {
+  const url = await uploadImageToStorage(image, folder, { throwOnError: true });
+  if (!url) throw new Error("The image could not be saved to Storage.");
+  return url;
 }
 
 export async function dbUpsertCategory(category: Category) {
@@ -777,51 +877,39 @@ export async function dbUpsertCategory(category: Category) {
     let image = category.image ?? null;
     const banner = category.banner ? { ...category.banner } : null;
     if (image && image.startsWith("data:")) {
-      image = (await uploadImageToStorage(image, "categories")) || image;
+      image = await requireStoredImage(image, "categories");
     }
     if (banner?.image && banner.image.startsWith("data:")) {
-      const bannerUrl = await uploadImageToStorage(banner.image, "categories");
-      if (bannerUrl) banner.image = bannerUrl;
+      banner.image = await requireStoredImage(banner.image, "categories");
     }
     const payload = sanitizeDbInput(mapStoreCategoryToDb({ ...category, image, banner }));
-    await supabase.from("categories").upsert(payload);
+    const { error } = await supabase.from("categories").upsert(payload);
+    if (error) throw error;
   } catch (e) {
     console.error("Failed to sync category to Supabase:", e);
   }
 }
 
 export async function dbDeleteCategory(id: string) {
-  try {
-    const cleanId = escapePostgrestFilter(id);
-    if (!cleanId) return;
-    await supabase.from("categories").delete().eq("id", cleanId);
-  } catch (e) {
-    console.error("Failed to delete category from Supabase:", e);
-  }
+  return deleteDatabaseRecord(supabase, "categories", id);
 }
 
 export async function dbUpsertCollection(collection: Collection) {
   try {
     const banner = collection.banner ? { ...collection.banner } : null;
     if (banner?.image && banner.image.startsWith("data:")) {
-      const bannerUrl = await uploadImageToStorage(banner.image, "collections");
-      if (bannerUrl) banner.image = bannerUrl;
+      banner.image = await requireStoredImage(banner.image, "collections");
     }
     const payload = sanitizeDbInput(mapStoreCollectionToDb({ ...collection, banner }));
-    await supabase.from("collections").upsert(payload);
+    const { error } = await supabase.from("collections").upsert(payload);
+    if (error) throw error;
   } catch (e) {
     console.error("Failed to sync collection to Supabase:", e);
   }
 }
 
 export async function dbDeleteCollection(id: string) {
-  try {
-    const cleanId = escapePostgrestFilter(id);
-    if (!cleanId) return;
-    await supabase.from("collections").delete().eq("id", cleanId);
-  } catch (e) {
-    console.error("Failed to delete collection from Supabase:", e);
-  }
+  return deleteDatabaseRecord(supabase, "collections", id);
 }
 
 async function postOrdersToApi(
@@ -976,16 +1064,7 @@ export async function dbUpsertHeroSlides(slides: HeroSlide[]): Promise<boolean> 
   }
 }
 export async function dbDeleteHeroSlide(id: string): Promise<boolean> {
-  try {
-    const cleanId = escapePostgrestFilter(id);
-    if (!cleanId) return false;
-    const { error } = await supabase.from("hero_slides").delete().eq("id", cleanId);
-    if (error) throw error;
-    return true;
-  } catch (e) {
-    console.error("Failed to delete hero slide from Supabase:", e);
-    return false;
-  }
+  return deleteDatabaseRecord(supabase, "hero_slides", id);
 }
 
 export async function dbUpsertBrand(brand: Brand) {
@@ -1016,13 +1095,7 @@ export async function dbUpsertBrand(brand: Brand) {
 }
 
 export async function dbDeleteBrand(id: string) {
-  try {
-    const cleanId = escapePostgrestFilter(id);
-    if (!cleanId) return;
-    await supabase.from("brands").delete().eq("id", cleanId);
-  } catch (e) {
-    console.error("Failed to delete brand from Supabase:", e);
-  }
+  return deleteDatabaseRecord(supabase, "brands", id);
 }
 
 export async function dbUpsertSocialReel(reel: SocialReel) {
@@ -1040,13 +1113,7 @@ export async function dbUpsertSocialReel(reel: SocialReel) {
 }
 
 export async function dbDeleteSocialReel(id: string) {
-  try {
-    const cleanId = escapePostgrestFilter(id);
-    if (!cleanId) return;
-    await supabase.from("social_reels").delete().eq("id", cleanId);
-  } catch (e) {
-    console.error("Failed to delete reel from Supabase:", e);
-  }
+  return deleteDatabaseRecord(supabase, "social_reels", id);
 }
 
 export async function dbUpsertTestimonial(t: Testimonial) {
@@ -1054,10 +1121,10 @@ export async function dbUpsertTestimonial(t: Testimonial) {
     let photo = t.photo ?? null;
     let reviewImage = t.reviewImage ?? null;
     if (photo && photo.startsWith("data:")) {
-      photo = (await uploadImageToStorage(photo, "testimonials")) || photo;
+      photo = await requireStoredImage(photo, "testimonials");
     }
     if (reviewImage && reviewImage.startsWith("data:")) {
-      reviewImage = (await uploadImageToStorage(reviewImage, "testimonials")) || reviewImage;
+      reviewImage = await requireStoredImage(reviewImage, "testimonials");
     }
     const updated: Testimonial = { ...t, photo, reviewImage };
     const payload = sanitizeDbInput(mapStoreTestimonialToDb(updated));
@@ -1072,13 +1139,7 @@ export async function dbUpsertTestimonial(t: Testimonial) {
 }
 
 export async function dbDeleteTestimonial(id: string) {
-  try {
-    const cleanId = escapePostgrestFilter(id);
-    if (!cleanId) return;
-    await supabase.from("testimonials").delete().eq("id", cleanId);
-  } catch (e) {
-    console.error("Failed to delete testimonial from Supabase:", e);
-  }
+  return deleteDatabaseRecord(supabase, "testimonials", id);
 }
 
 export async function dbUpsertFaq(faq: FAQItem) {
@@ -1104,13 +1165,7 @@ export async function dbUpsertFaq(faq: FAQItem) {
 }
 
 export async function dbDeleteFaq(id: string) {
-  try {
-    const cleanId = escapePostgrestFilter(id);
-    if (!cleanId) return;
-    await supabase.from("faqs").delete().eq("id", cleanId);
-  } catch (e) {
-    console.error("Failed to delete FAQ from Supabase:", e);
-  }
+  return deleteDatabaseRecord(supabase, "faqs", id);
 }
 
 export async function dbInsertSubscriber(subscriber: Subscriber) {
@@ -1130,13 +1185,7 @@ export async function dbInsertSubscriber(subscriber: Subscriber) {
 }
 
 export async function dbDeleteSubscriber(id: string) {
-  try {
-    const cleanId = escapePostgrestFilter(id);
-    if (!cleanId) return;
-    await supabase.from("subscribers").delete().eq("id", cleanId);
-  } catch (e) {
-    console.error("Failed to delete subscriber from Supabase:", e);
-  }
+  return deleteDatabaseRecord(supabase, "subscribers", id);
 }
 
 export async function dbUpsertSettings(settings: StoreSettings) {
@@ -1147,7 +1196,7 @@ export async function dbUpsertSettings(settings: StoreSettings) {
     }
     const payload: any = {
       id: "default",
-      store_name: settings.storeName || "OPTIQUE",
+      store_name: settings.storeName || "Nigah",
       whatsapp: settings.whatsapp || "",
       phone: settings.phone || "",
       email: settings.email || "",
@@ -1155,7 +1204,7 @@ export async function dbUpsertSettings(settings: StoreSettings) {
       hours: settings.hours || "",
       logo: logo || "",
       low_stock_threshold: settings.lowStockThreshold ?? 3,
-      admin_email: settings.adminEmail || "",
+      ...(settings.adminEmail.trim() ? { admin_email: settings.adminEmail } : {}),
       about_headline: settings.aboutHeadline || "",
       about_body: settings.aboutBody || "",
       updated_at: new Date().toISOString(),
@@ -1222,19 +1271,8 @@ export async function dbUpdateQueryStatus(id: string, status: string) {
 }
 
 export async function dbDeleteQuery(id: string) {
-  try {
-    const deletedAt = new Date().toISOString();
-    await supabase
-      .from("queries")
-      .update({ deleted_at: deletedAt })
-      .eq("id", id)
-      .is("deleted_at", null);
-    await supabase
-      .from("orders")
-      .update({ deleted_at: deletedAt })
-      .eq("id", id)
-      .is("deleted_at", null);
-  } catch (e) {
-    console.error("Failed to delete query from Supabase:", e);
-  }
+  await requireDatabaseAdmin(supabase);
+  const query = await supabase.from("queries").select("id").eq("id", id).maybeSingle();
+  if (query.error) throw query.error;
+  return deleteDatabaseRecord(supabase, query.data ? "queries" : "orders", id);
 }

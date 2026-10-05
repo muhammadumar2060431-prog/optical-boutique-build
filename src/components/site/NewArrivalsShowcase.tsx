@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
@@ -15,16 +15,33 @@ export function NewArrivalsShowcase() {
   }, [products]);
 
   const [currentIndex, setCurrentIndex] = useState(0);
+  const sectionRef = useRef<HTMLElement>(null);
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const section = sectionRef.current;
+    if (!section) return;
+    if (!("IntersectionObserver" in window)) {
+      setVisible(true);
+      return;
+    }
+    const observer = new IntersectionObserver(
+      ([entry]) => setVisible(Boolean(entry?.isIntersecting)),
+      { threshold: 0.1 },
+    );
+    observer.observe(section);
+    return () => observer.disconnect();
+  }, [items.length]);
 
   // Auto-advance every 5 seconds if not hovered
   const [isHovered, setIsHovered] = useState(false);
   useEffect(() => {
-    if (isHovered || items.length <= 1) return;
+    if (!visible || isHovered || items.length <= 1) return;
     const timer = setInterval(() => {
       setCurrentIndex((prev) => (prev + 1) % items.length);
     }, 5000);
     return () => clearInterval(timer);
-  }, [isHovered, items.length]);
+  }, [visible, isHovered, items.length]);
 
   if (items.length === 0) return null;
 
@@ -52,6 +69,7 @@ export function NewArrivalsShowcase() {
 
   return (
     <section
+      ref={sectionRef}
       className="relative w-full overflow-hidden bg-white pt-4 pb-10 sm:pt-6 sm:pb-14 lg:pt-8 lg:pb-16 select-none"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
@@ -62,9 +80,9 @@ export function NewArrivalsShowcase() {
         type="button"
         onClick={prev}
         aria-label="Previous frame"
-        className="absolute left-2 sm:left-6 md:left-8 top-1/2 -translate-y-16 sm:-translate-y-20 z-30 h-11 w-11 sm:h-14 sm:w-14 rounded-full bg-neutral-300/70 hover:bg-neutral-800 hover:text-white backdrop-blur-md text-neutral-800 flex items-center justify-center transition-all duration-200 hover:scale-110 active:scale-95 shadow-md cursor-pointer"
+        className="absolute left-1.5 sm:left-6 md:left-8 top-1/2 -translate-y-14 sm:-translate-y-20 z-30 h-9 w-9 sm:h-14 sm:w-14 rounded-full bg-neutral-300/70 hover:bg-neutral-800 hover:text-white backdrop-blur-md text-neutral-800 flex items-center justify-center transition-all duration-200 hover:scale-110 active:scale-95 shadow-md cursor-pointer"
       >
-        <ChevronLeft className="h-6 w-6 sm:h-8 sm:w-8" />
+        <ChevronLeft className="h-5 w-5 sm:h-8 sm:w-8" />
       </button>
 
       {/* ── Right Navigation Arrow at the extreme right edge of the page ── */}
@@ -72,27 +90,27 @@ export function NewArrivalsShowcase() {
         type="button"
         onClick={next}
         aria-label="Next frame"
-        className="absolute right-2 sm:right-6 md:right-8 top-1/2 -translate-y-16 sm:-translate-y-20 z-30 h-11 w-11 sm:h-14 sm:w-14 rounded-full bg-neutral-300/70 hover:bg-neutral-800 hover:text-white backdrop-blur-md text-neutral-800 flex items-center justify-center transition-all duration-200 hover:scale-110 active:scale-95 shadow-md cursor-pointer"
+        className="absolute right-1.5 sm:right-6 md:right-8 top-1/2 -translate-y-14 sm:-translate-y-20 z-30 h-9 w-9 sm:h-14 sm:w-14 rounded-full bg-neutral-300/70 hover:bg-neutral-800 hover:text-white backdrop-blur-md text-neutral-800 flex items-center justify-center transition-all duration-200 hover:scale-110 active:scale-95 shadow-md cursor-pointer"
       >
-        <ChevronRight className="h-6 w-6 sm:h-8 sm:w-8" />
+        <ChevronRight className="h-5 w-5 sm:h-8 sm:w-8" />
       </button>
 
       <div className="w-full max-w-[1600px] mx-auto px-2 sm:px-6 md:px-12">
         {/* Stage Container with extra height for huge 3D frames */}
-        <div className="relative flex min-h-[320px] w-full items-center justify-center mx-auto sm:min-h-[400px] md:min-h-[440px] lg:min-h-[480px]">
+        <div className="relative flex min-h-[260px] w-full items-center justify-center mx-auto sm:min-h-[400px] md:min-h-[440px] lg:min-h-[480px]">
           {/* 3D Products Stage */}
           <div className="relative w-full flex items-center justify-center">
             {/* Left Product (Extra large, angled, spread to far left with massive gap) */}
             {items.length > 1 && (
               <div
                 onClick={prev}
-                className="absolute left-1 sm:left-4 md:left-10 lg:left-16 z-10 w-48 sm:w-76 md:w-96 lg:w-[420px] opacity-30 hover:opacity-70 transition-all duration-500 cursor-pointer scale-75 lg:scale-80 blur-[0.2px]"
+                className="absolute left-0 sm:left-4 md:left-10 lg:left-16 z-10 w-32 sm:w-76 md:w-96 lg:w-[420px] opacity-30 hover:opacity-70 transition-all duration-500 cursor-pointer scale-75 lg:scale-80 blur-[0.2px]"
               >
                 <div className="relative flex flex-col items-center">
                   <ProductImage
                     src={leftItem.newArrivalImage || leftItem.image}
                     alt={leftItem.name}
-                    className="w-full h-44 sm:h-60 md:h-76 lg:h-88 object-contain mix-blend-multiply drop-shadow-lg"
+                    className="w-full h-32 sm:h-60 md:h-76 lg:h-88 object-contain mix-blend-multiply drop-shadow-lg"
                   />
                   {/* Floor Shadow */}
                   <div className="w-4/5 h-4 sm:h-6 bg-black/15 rounded-[50%] blur-[5px] mt-1" />
@@ -101,14 +119,14 @@ export function NewArrivalsShowcase() {
             )}
 
             {/* Center Active Product (Massive Eye-Catching 3D Frame) */}
-            <div className="relative z-20 w-84 sm:w-[580px] md:w-[740px] lg:w-[900px] flex flex-col items-center">
+            <div className="relative z-20 w-[min(78vw,21rem)] sm:w-[580px] md:w-[740px] lg:w-[900px] flex flex-col items-center">
               <Link
                 to="/product/$slug"
                 params={{ slug: centerItem.slug }}
                 className="group relative flex flex-col items-center w-full"
               >
                 {/* Huge Floating Eyewear */}
-                <div className="relative w-full h-60 sm:h-80 md:h-[400px] lg:h-[460px] flex items-center justify-center float-bounce-active">
+                <div className="relative w-full h-52 sm:h-80 md:h-[400px] lg:h-[460px] flex items-center justify-center float-bounce-active">
                   <ProductImage
                     key={centerItem.id}
                     src={centerItem.newArrivalImage || centerItem.image}
@@ -128,13 +146,13 @@ export function NewArrivalsShowcase() {
             {items.length > 2 && (
               <div
                 onClick={next}
-                className="absolute right-1 sm:right-4 md:right-10 lg:right-16 z-10 w-48 sm:w-76 md:w-96 lg:w-[420px] opacity-30 hover:opacity-70 transition-all duration-500 cursor-pointer scale-75 lg:scale-80 blur-[0.2px]"
+                className="absolute right-0 sm:right-4 md:right-10 lg:right-16 z-10 w-32 sm:w-76 md:w-96 lg:w-[420px] opacity-30 hover:opacity-70 transition-all duration-500 cursor-pointer scale-75 lg:scale-80 blur-[0.2px]"
               >
                 <div className="relative flex flex-col items-center">
                   <ProductImage
                     src={rightItem.newArrivalImage || rightItem.image}
                     alt={rightItem.name}
-                    className="w-full h-44 sm:h-60 md:h-76 lg:h-88 object-contain mix-blend-multiply drop-shadow-lg"
+                    className="w-full h-32 sm:h-60 md:h-76 lg:h-88 object-contain mix-blend-multiply drop-shadow-lg"
                   />
                   {/* Floor Shadow */}
                   <div className="w-4/5 h-4 sm:h-6 bg-black/15 rounded-[50%] blur-[5px] mt-1" />
@@ -145,13 +163,13 @@ export function NewArrivalsShowcase() {
         </div>
 
         {/* Product Details Below Stage */}
-        <div className="text-center mt-6 space-y-4">
+        <div className="text-center mt-3 space-y-4 sm:mt-6">
           <Link
             to="/product/$slug"
             params={{ slug: centerItem.slug }}
-            className="inline-block group"
+            className="inline-block max-w-full group"
           >
-            <h3 className="font-sans text-base sm:text-lg font-medium text-neutral-800 tracking-wide group-hover:text-gold transition-colors">
+            <h3 className="mx-auto max-w-[22rem] break-words px-3 font-sans text-sm font-medium leading-snug text-neutral-800 tracking-normal group-hover:text-gold transition-colors sm:text-lg sm:tracking-wide">
               {centerItem.name}
             </h3>
           </Link>
@@ -161,34 +179,10 @@ export function NewArrivalsShowcase() {
             <Link
               to="/product/$slug"
               params={{ slug: centerItem.slug }}
-              className="inline-flex min-h-11 items-center justify-center rounded-full bg-neutral-900 hover:bg-black text-white px-8 py-2.5 text-xs font-bold tracking-[0.14em] uppercase transition-all duration-200 hover:scale-105 active:scale-95 shadow-md"
+              className="inline-flex min-h-11 items-center justify-center rounded-full bg-neutral-900 hover:bg-black text-white px-7 py-2.5 text-xs font-bold tracking-[0.12em] uppercase transition-all duration-200 hover:scale-105 active:scale-95 shadow-md sm:px-8 sm:tracking-[0.14em]"
             >
               SHOP NOW
             </Link>
-          </div>
-
-          {/* Segmented Line Pagination (Exact match with Image 2) */}
-          <div className="flex items-center justify-center gap-2 pt-6">
-            {items.map((item, idx) => {
-              const isActive = idx === currentIndex;
-              return (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => setCurrentIndex(idx)}
-                  aria-label={`Go to slide ${idx + 1}`}
-                  className="h-6 flex items-center px-1 group cursor-pointer"
-                >
-                  <span
-                    className={`h-[2px] transition-all duration-300 rounded-full ${
-                      isActive
-                        ? "w-8 sm:w-10 bg-neutral-900"
-                        : "w-6 sm:w-8 bg-neutral-300 group-hover:bg-neutral-400"
-                    }`}
-                  />
-                </button>
-              );
-            })}
           </div>
         </div>
       </div>

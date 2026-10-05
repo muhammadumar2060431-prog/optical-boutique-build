@@ -9,13 +9,13 @@ import { getSiteUrl } from "@/lib/utils";
 export const Route = createFileRoute("/shipping-policy")({
   head: () => ({
     meta: [
-      { title: "Shipping & Delivery Policy — OPTIQUE Eyewear Pakistan" },
+      { title: "Shipping & Delivery Policy — Nigah Eyewear Pakistan" },
       {
         name: "description",
         content:
-          "Nationwide express courier delivery details, transit timelines, free shipping thresholds, Cash on Delivery (COD), and optical prescription turnaround times at OPTIQUE.",
+          "Nationwide express courier delivery details, transit timelines, free shipping thresholds, Cash on Delivery (COD), and optical prescription turnaround times at Nigah.",
       },
-      { property: "og:title", content: "Shipping & Delivery Policy — OPTIQUE Eyewear" },
+      { property: "og:title", content: "Shipping & Delivery Policy — Nigah Eyewear" },
       {
         property: "og:description",
         content:
@@ -39,10 +39,10 @@ function ShippingPolicyPage() {
           {/* Header */}
           <Reveal>
             <div className="text-center max-w-2xl mx-auto mb-16">
-              <span className="inline-block px-3.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-[0.2em] bg-stone-100 text-stone-800 border border-stone-200 mb-4">
+              <span className="inline-block max-w-full rounded-full border border-stone-200 bg-stone-100 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-stone-800 sm:px-3.5 sm:text-[11px] sm:tracking-[0.2em] mb-4">
                 Nationwide Delivery
               </span>
-              <h1 className="font-display text-3xl sm:text-5xl font-semibold text-black tracking-tight">
+              <h1 className="font-display text-3xl font-semibold leading-tight tracking-normal text-black sm:text-5xl sm:tracking-tight">
                 Shipping & Delivery Policy
               </h1>
               <p className="mt-4 text-sm sm:text-base text-zinc-600 leading-relaxed">
@@ -87,7 +87,7 @@ function ShippingPolicyPage() {
           <div className="space-y-12 text-zinc-800 leading-relaxed">
             {/* Section 1 */}
             <section className="space-y-4 border-b border-stone-200 pb-10">
-              <h2 className="font-display text-2xl font-semibold text-black">
+              <h2 className="font-display text-xl font-semibold leading-snug text-black sm:text-2xl">
                 1. Order Processing & Verification Timeline
               </h2>
               <p className="text-sm sm:text-base text-zinc-600">
@@ -115,7 +115,7 @@ function ShippingPolicyPage() {
 
             {/* Section 2 */}
             <section className="space-y-4 border-b border-stone-200 pb-10">
-              <h2 className="font-display text-2xl font-semibold text-black">
+              <h2 className="font-display text-xl font-semibold leading-snug text-black sm:text-2xl">
                 2. Nationwide Delivery Timelines & Coverage
               </h2>
               <p className="text-sm sm:text-base text-zinc-600">
@@ -165,7 +165,7 @@ function ShippingPolicyPage() {
 
             {/* Section 3 */}
             <section className="space-y-4 border-b border-stone-200 pb-10">
-              <h2 className="font-display text-2xl font-semibold text-black">
+              <h2 className="font-display text-xl font-semibold leading-snug text-black sm:text-2xl">
                 3. Shipping Rates & Free Delivery
               </h2>
               <ul className="list-disc pl-5 space-y-2 text-sm text-zinc-700">
@@ -184,7 +184,7 @@ function ShippingPolicyPage() {
 
             {/* Section 4 */}
             <section className="space-y-4 border-b border-stone-200 pb-10">
-              <h2 className="font-display text-2xl font-semibold text-black">
+              <h2 className="font-display text-xl font-semibold leading-snug text-black sm:text-2xl">
                 4. Cash on Delivery (COD) & Tracking Updates
               </h2>
               <p className="text-sm sm:text-base text-zinc-600">
@@ -207,7 +207,7 @@ function ShippingPolicyPage() {
 
             {/* Section 5 */}
             <section className="space-y-4">
-              <h2 className="font-display text-2xl font-semibold text-black">
+              <h2 className="font-display text-xl font-semibold leading-snug text-black sm:text-2xl">
                 5. Damaged Parcel or Missing Items
               </h2>
               <p className="text-sm sm:text-base text-zinc-600">
@@ -223,7 +223,7 @@ function ShippingPolicyPage() {
           </div>
 
           {/* Help Callout */}
-          <div className="mt-16 rounded-2xl border border-stone-300 bg-stone-50 p-6 sm:p-8 flex flex-col sm:flex-row items-center justify-between gap-6">
+          <div className="mt-12 flex flex-col items-center justify-between gap-5 rounded-2xl border border-stone-300 bg-stone-50 p-5 sm:mt-16 sm:flex-row sm:gap-6 sm:p-8">
             <div className="space-y-1 text-center sm:text-left">
               <h4 className="font-display text-lg font-semibold text-black">
                 Have a question about your shipment?
@@ -235,7 +235,7 @@ function ShippingPolicyPage() {
             <Link
               to="/contact"
               search={{ product: undefined }}
-              className="inline-flex min-h-11 items-center justify-center rounded-full bg-black px-6 text-xs font-semibold uppercase tracking-[0.16em] text-white hover:bg-zinc-800 shadow-md shrink-0"
+              className="inline-flex min-h-11 w-full max-w-xs items-center justify-center rounded-full bg-black px-5 text-center text-xs font-semibold uppercase tracking-[0.1em] text-white shadow-md hover:bg-zinc-800 sm:w-auto sm:px-6 sm:tracking-[0.16em] shrink-0"
             >
               Contact Support
             </Link>

@@ -153,7 +153,7 @@ CREATE TABLE IF NOT EXISTS public.subscribers (
 
 CREATE TABLE IF NOT EXISTS public.store_settings (
   id TEXT PRIMARY KEY DEFAULT 'default',
-  store_name TEXT NOT NULL DEFAULT 'OPTIQUE',
+  store_name TEXT NOT NULL DEFAULT 'Nigah',
   whatsapp TEXT NOT NULL DEFAULT '',
   phone TEXT NOT NULL DEFAULT '',
   email TEXT NOT NULL DEFAULT '',
@@ -188,3 +188,4 @@ CREATE TABLE IF NOT EXISTS public.video_settings (
   enabled BOOLEAN NOT NULL DEFAULT true,
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+

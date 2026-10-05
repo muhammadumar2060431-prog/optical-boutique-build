@@ -12,8 +12,8 @@ const ADMIN_EMAIL = Deno.env.get("ADMIN_EMAIL") || "shop.nigah@gmail.com";
 // ─── IMPORTANT ─────────────────────────────────────────────────────────────
 // Using Resend's default sending domain until a custom domain is verified.
 // Once you verify your domain on resend.com/domains, change this to:
-//   "OPTIQUE <hello@yourdomain.com>"
-const FROM_EMAIL = Deno.env.get("RESEND_FROM_EMAIL") || "OPTIQUE <onboarding@resend.dev>";
+//   "Nigah <hello@yourdomain.com>"
+const FROM_EMAIL = Deno.env.get("RESEND_FROM_EMAIL") || "Nigah <onboarding@resend.dev>";
 
 async function secretsMatch(
   provided: string | null,
@@ -136,7 +136,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
         customer_name: record.customer_name || record.customerName || "Valued Customer",
         contact: record.email || record.phone || record.contact || "N/A",
         product_name:
-          firstItem.productName || record.product_name || record.productName || "OPTIQUE Frames",
+          firstItem.productName || record.product_name || record.productName || "Nigah Frames",
         variant_label: firstItem.variantLabel || record.variant_label || record.variantLabel || "",
         source: record.source || firstItem.source || "Website",
         message: record.address
@@ -180,7 +180,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
       if (customerEmail) {
         const custRes = await sendEmail(
           customerEmail,
-          "We received your inquiry — OPTIQUE Boutique",
+          "We received your inquiry — Nigah Boutique",
           getQueryEmailTemplate(normalizedQuery),
         );
         results.push({ target: "customer", email: customerEmail, ...custRes });
@@ -203,7 +203,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
       const subRes = await sendEmail(
         record.email,
-        "Welcome to OPTIQUE — You're on the list! 👓",
+        "Welcome to Nigah — You're on the list! 👓",
         getSubscriberEmailTemplate(),
       );
       results.push({ target: "subscriber", email: record.email, ...subRes });
@@ -211,7 +211,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
       const adminRes = await sendEmail(
         ADMIN_EMAIL,
         `📧 New Subscriber: ${record.email}`,
-        `<p>A new user <strong>${record.email}</strong> subscribed to the OPTIQUE newsletter.</p>`,
+        `<p>A new user <strong>${record.email}</strong> subscribed to the Nigah newsletter.</p>`,
       );
       results.push({ target: "admin", email: ADMIN_EMAIL, ...adminRes });
     } else {

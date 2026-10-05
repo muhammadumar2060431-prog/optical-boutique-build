@@ -20,6 +20,7 @@ export interface OrderReceipt {
 }
 
 const KEY = "optique.lastOrder.v1";
+const LEGACY_KEY = "nigah.lastOrder.v1";
 
 export function saveOrderReceipt(receipt: OrderReceipt) {
   try {
@@ -31,7 +32,11 @@ export function saveOrderReceipt(receipt: OrderReceipt) {
 
 export function loadOrderReceipt(reference?: string): OrderReceipt | null {
   try {
-    const raw = window.localStorage.getItem(KEY);
+    let raw = window.localStorage.getItem(KEY);
+    if (!raw) {
+      raw = window.localStorage.getItem(LEGACY_KEY);
+      if (raw) window.localStorage.setItem(KEY, raw);
+    }
     if (!raw) return null;
     const parsed = JSON.parse(raw) as OrderReceipt;
     if (!parsed || typeof parsed.reference !== "string" || !Array.isArray(parsed.lines))

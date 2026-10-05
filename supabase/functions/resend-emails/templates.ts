@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any -- Email templates accept normalized webhook records from multiple table shapes. */
 /**
- * Professional HTML Email Templates for OPTIQUE Boutique Eyewear
+ * Professional HTML Email Templates for Nigah Boutique Eyewear
  * =================================================================
  * - Order Confirmation (Customer + Admin Notification)
  * - Query Received (Customer Confirmation + Admin Alert)
@@ -18,7 +18,7 @@ function baseWrapper(content: string): string {
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>OPTIQUE Boutique Eyewear</title>
+  <title>Nigah Boutique Eyewear</title>
 </head>
 <body style="margin:0;padding:0;background-color:${LIGHT_BG};font-family:'Segoe UI',Arial,sans-serif;-webkit-text-size-adjust:100%;">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:${LIGHT_BG};">
@@ -29,7 +29,7 @@ function baseWrapper(content: string): string {
           <!-- Header -->
           <tr>
             <td style="background-color:${DARK_COLOR};padding:32px 40px;text-align:center;">
-              <h1 style="margin:0;color:${BRAND_COLOR};font-size:26px;font-weight:700;letter-spacing:6px;text-transform:uppercase;">OPTIQUE</h1>
+              <h1 style="margin:0;color:${BRAND_COLOR};font-size:26px;font-weight:700;letter-spacing:6px;text-transform:uppercase;">Nigah</h1>
               <p style="margin:6px 0 0;color:#888;font-size:11px;letter-spacing:3px;text-transform:uppercase;">Boutique Eyewear</p>
             </td>
           </tr>
@@ -40,7 +40,7 @@ function baseWrapper(content: string): string {
           <!-- Footer -->
           <tr>
             <td style="background-color:#f0ece4;padding:24px 40px;text-align:center;border-top:1px solid ${BORDER_COLOR};">
-              <p style="margin:0 0 8px;color:#888;font-size:12px;">© ${new Date().getFullYear()} OPTIQUE Boutique Eyewear. All rights reserved.</p>
+              <p style="margin:0 0 8px;color:#888;font-size:12px;">© ${new Date().getFullYear()} Nigah Boutique Eyewear. All rights reserved.</p>
               <p style="margin:0;color:#aaa;font-size:11px;">
                 If you have any questions, reply to this email or WhatsApp us directly.
               </p>
@@ -114,7 +114,7 @@ export function getOrderEmailTemplate(order: any): string {
           </ul>
         </div>
 
-        <p style="margin:0;color:#555;font-size:14px;">Warm regards,<br/><strong style="color:${DARK_COLOR};">The OPTIQUE Team</strong></p>
+        <p style="margin:0;color:#555;font-size:14px;">Warm regards,<br/><strong style="color:${DARK_COLOR};">The Nigah Team</strong></p>
       </td>
     </tr>`;
   return baseWrapper(content);
@@ -185,7 +185,7 @@ export function getQueryEmailTemplate(query: any): string {
           Meanwhile, you can also reach us instantly on WhatsApp for the quickest response.
         </p>
 
-        <p style="margin:0;color:#555;font-size:14px;">Kind regards,<br/><strong style="color:${DARK_COLOR};">The OPTIQUE Team</strong></p>
+        <p style="margin:0;color:#555;font-size:14px;">Kind regards,<br/><strong style="color:${DARK_COLOR};">The Nigah Team</strong></p>
       </td>
     </tr>`;
   return baseWrapper(content);
@@ -228,7 +228,7 @@ export function getSubscriberEmailTemplate(): string {
           <p style="margin:0;font-size:40px;">👓</p>
         </div>
         <p style="margin:0 0 4px;color:#888;font-size:12px;text-transform:uppercase;letter-spacing:2px;">You're in!</p>
-        <h2 style="margin:0 0 16px;color:${DARK_COLOR};font-size:24px;">Welcome to OPTIQUE</h2>
+        <h2 style="margin:0 0 16px;color:${DARK_COLOR};font-size:24px;">Welcome to Nigah</h2>
         <p style="margin:0 0 24px;color:#555;font-size:14px;line-height:1.8;max-width:440px;margin-left:auto;margin-right:auto;">
           Thank you for subscribing! You're now part of an exclusive circle that gets first access to new collections, expert optical advice, and special offers.
         </p>
@@ -243,7 +243,7 @@ export function getSubscriberEmailTemplate(): string {
           </ul>
         </div>
 
-        <a href="https://optique-boutique.com" style="display:inline-block;background-color:${BRAND_COLOR};color:#fff;padding:14px 32px;text-decoration:none;border-radius:30px;font-weight:700;letter-spacing:2px;text-transform:uppercase;font-size:12px;">Explore the Collection</a>
+        <a href="https://www.nigah.store" style="display:inline-block;background-color:${BRAND_COLOR};color:#fff;padding:14px 32px;text-decoration:none;border-radius:30px;font-weight:700;letter-spacing:2px;text-transform:uppercase;font-size:12px;">Explore the Collection</a>
 
         <p style="margin:28px 0 0;color:#aaa;font-size:12px;">Subscribed by mistake? Simply ignore this email.</p>
       </td>

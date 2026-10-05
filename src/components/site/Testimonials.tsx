@@ -1,4 +1,4 @@
-﻿import { useState } from "react";
+import { useState } from "react";
 import { CheckCircle2, Maximize2, Star, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -26,19 +26,19 @@ export function Testimonials() {
   const items = [...singleBlock, ...singleBlock];
 
   return (
-    <section className="bg-background py-16 sm:py-24 overflow-hidden border-b border-stone/40">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 mb-10 text-center sm:text-left">
+    <section className="overflow-hidden border-b border-stone/40 bg-background py-12 sm:py-24">
+      <div className="mx-auto mb-8 max-w-7xl px-4 text-center sm:mb-10 sm:px-6 sm:text-left">
         <Reveal>
           <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
             <div>
               <p className="eyebrow text-gold font-bold tracking-[0.2em] uppercase text-xs sm:text-sm">
                 Word of mouth
               </p>
-              <h2 className="mt-2 font-display text-3xl sm:text-4xl text-foreground font-semibold">
+              <h2 className="mx-auto mt-2 max-w-[11ch] font-display text-[2.35rem] font-semibold leading-tight tracking-normal text-foreground sm:mx-0 sm:max-w-none sm:text-4xl">
                 Customer Reviews & Proofs
               </h2>
             </div>
-            <p className="text-xs sm:text-sm text-ink-muted max-w-sm">
+            <p className="mx-auto max-w-sm text-sm leading-relaxed text-ink-muted sm:mx-0">
               Real screenshots from WhatsApp chats, Facebook reviews, and happy customer photos.
               Click to enlarge.
             </p>
@@ -57,7 +57,7 @@ export function Testimonials() {
                 <div
                   key={`${t.id}-${i}`}
                   onClick={() => setSelectedReview(t)}
-                  className="group relative w-[220px] sm:w-[260px] aspect-[9/16] shrink-0 rounded-2xl overflow-hidden border border-stone/80 bg-jet shadow-md cursor-pointer transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl hover:border-gold/70"
+                  className="group relative aspect-[9/16] w-[190px] shrink-0 cursor-pointer overflow-hidden rounded-2xl border border-stone/80 bg-jet shadow-md transition-all duration-300 hover:-translate-y-1.5 hover:border-gold/70 hover:shadow-xl sm:w-[260px]"
                 >
                   {/* Review Screenshot Image (Matching Reference Image) */}
                   <img
@@ -115,7 +115,7 @@ export function Testimonials() {
             return (
               <figure
                 key={`${t.id}-${i}`}
-                className="flex w-[300px] sm:w-[360px] shrink-0 flex-col gap-4 rounded-2xl border border-stone bg-card p-6 sm:p-7 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-gold/60 hover:shadow-md"
+                className="flex w-[260px] shrink-0 flex-col gap-4 rounded-2xl border border-stone bg-card p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-gold/60 hover:shadow-md sm:w-[360px] sm:p-7"
               >
                 <div className="flex items-center justify-between">
                   <div className="flex gap-1">

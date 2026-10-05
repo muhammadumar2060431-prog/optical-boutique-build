@@ -1,0 +1,50 @@
+import assert from "node:assert/strict";
+import { it } from "node:test";
+import { ImageOptimizer } from "../src/lib/image-optimizer.ts";
+
+it("preserves smaller original encodings without bypassing resize limits", async () => {
+  const previousImage = globalThis.Image;
+  const documentDescriptor = Object.getOwnPropertyDescriptor(globalThis, "document");
+  class FakeImage {
+    width = 100;
+    height = 50;
+    onload: (() => void) | null = null;
+    set src(_value: string) {
+      queueMicrotask(() => this.onload?.());
+    }
+  }
+  const canvas = {
+    width: 0,
+    height: 0,
+    getContext: () => ({ drawImage: () => undefined }),
+    toBlob: (callback: (blob: Blob) => void) =>
+      callback(new Blob([new Uint8Array(200)], { type: "image/webp" })),
+  };
+  globalThis.Image = FakeImage as unknown as typeof Image;
+  Object.defineProperty(globalThis, "document", {
+    configurable: true,
+    value: { createElement: () => canvas },
+  });
+  try {
+    const source = "data:image/avif;base64,AAAA";
+    const preserved = await new ImageOptimizer({
+      maxWidth: 200,
+      maxHeight: 200,
+      quality: 0.7,
+    }).optimize(source);
+    assert.equal(preserved.type, "image/avif");
+    assert.equal(preserved.size, 3);
+    const resized = await new ImageOptimizer({
+      maxWidth: 50,
+      maxHeight: 50,
+      quality: 0.7,
+    }).optimize(source);
+    assert.equal(resized.type, "image/webp");
+    assert.equal(canvas.width, 50);
+    assert.equal(canvas.height, 25);
+  } finally {
+    globalThis.Image = previousImage;
+    if (documentDescriptor) Object.defineProperty(globalThis, "document", documentDescriptor);
+    else Reflect.deleteProperty(globalThis, "document");
+  }
+});

@@ -1,5 +1,5 @@
 import { createContactQuerySchema, type CreateContactQueryInput } from "./contracts.ts";
-import { ApiError, json } from "./http.server.ts";
+import { json, readJsonBody } from "./http.server.ts";
 import { limitContactRequests, type ContactRateLimitResult } from "./contact-rate-limit.server.ts";
 
 export interface ContactRepository {
@@ -7,18 +7,6 @@ export interface ContactRepository {
 }
 
 type ContactLimiter = (request: Request) => Promise<ContactRateLimitResult>;
-
-async function readJson(request: Request) {
-  const length = Number(request.headers.get("content-length") ?? 0);
-  if (length > 20_000) {
-    throw new ApiError(413, "PAYLOAD_TOO_LARGE", "The request is too large.");
-  }
-  try {
-    return await request.json();
-  } catch {
-    throw new ApiError(400, "INVALID_JSON", "The request body must be valid JSON.");
-  }
-}
 
 function rateHeaders(rate: ContactRateLimitResult) {
   return {
@@ -50,7 +38,7 @@ export function createContactHandler(
       );
     }
 
-    const input = createContactQuerySchema.parse(await readJson(request));
+    const input = createContactQuerySchema.parse(await readJsonBody(request, 20_000));
     const query = await repository.create(input);
     return json({ data: query }, { status: 201, headers: rateHeaders(rate) });
   };

@@ -36,6 +36,7 @@ interface CartApi {
 const CartContext = createContext<CartApi | null>(null);
 
 const STORAGE_KEY = "optique.cart.v1";
+const LEGACY_STORAGE_KEY = "nigah.cart.v1";
 
 function isCartItem(value: unknown): value is CartItem {
   if (!value || typeof value !== "object") return false;
@@ -57,7 +58,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
   // Restore after mount so SSR markup and first client render match.
   useEffect(() => {
     try {
-      const raw = window.localStorage.getItem(STORAGE_KEY);
+      let raw = window.localStorage.getItem(STORAGE_KEY);
+      if (!raw) {
+        raw = window.localStorage.getItem(LEGACY_STORAGE_KEY);
+        if (raw) window.localStorage.setItem(STORAGE_KEY, raw);
+      }
       if (raw) {
         const parsed: unknown = JSON.parse(raw);
         if (Array.isArray(parsed)) {

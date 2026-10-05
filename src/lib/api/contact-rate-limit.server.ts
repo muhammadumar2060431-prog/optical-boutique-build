@@ -37,7 +37,7 @@ function getContactLimiter() {
   contactLimiter = new Ratelimit({
     redis: new Redis({ url, token }),
     limiter: Ratelimit.slidingWindow(CONTACT_RATE_LIMIT, "1 h"),
-    prefix: "nigah:contact",
+    prefix: "optique:contact",
   });
   return contactLimiter;
 }

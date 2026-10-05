@@ -1,4 +1,4 @@
-﻿import { useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowRight, Clock } from "lucide-react";
 import { SiteLayout } from "@/components/site/SiteLayout";
@@ -9,18 +9,18 @@ export const Route = createFileRoute("/blog/")({
   loader: () => fetchBlogPosts(false),
   head: () => ({
     meta: [
-      { title: "Eyewear Journal | Frame, Lens & Eye Care Guides | OPTIQUE" },
+      { title: "Eyewear Journal | Frame, Lens & Eye Care Guides | Nigah" },
       {
         name: "description",
         content:
-          "Expert eyewear guides, lens advice, frame styling tips and eye care insights from OPTIQUE.",
+          "Expert eyewear guides, lens advice, frame styling tips and eye care insights from Nigah.",
       },
       {
         name: "keywords",
         content:
           "eyewear blog, eyeglasses guide, sunglasses tips, lens care, frame styling Pakistan",
       },
-      { property: "og:title", content: "The OPTIQUE Eyewear Journal" },
+      { property: "og:title", content: "The Nigah Eyewear Journal" },
       { property: "og:type", content: "website" },
       { property: "og:url", content: getSiteUrl("/blog") },
     ],
@@ -44,7 +44,7 @@ function BlogPage() {
       <main className="bg-white text-zinc-950">
         <header className="mx-auto max-w-7xl px-4 pb-10 pt-14 sm:px-6 sm:pt-20 lg:px-8">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500">
-            OPTIQUE editorial
+            Nigah editorial
           </p>
           <div className="mt-3 flex flex-col justify-between gap-5 md:flex-row md:items-end">
             <div>

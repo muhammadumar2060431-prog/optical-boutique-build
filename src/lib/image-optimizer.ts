@@ -63,7 +63,17 @@ export class ImageOptimizer {
     context.imageSmoothingQuality = "high";
     context.drawImage(image, 0, 0, width, height);
 
-    return canvasToBlob(canvas, this.outputType, this.quality);
+    const encoded = await canvasToBlob(canvas, this.outputType, this.quality);
+    if (scale === 1 && dataUrl.startsWith("data:image/")) {
+      const original = await (await fetch(dataUrl)).blob();
+      if (
+        ["image/jpeg", "image/png", "image/webp", "image/avif"].includes(original.type) &&
+        original.size <= encoded.size
+      ) {
+        return original;
+      }
+    }
+    return encoded;
   }
 
   static toDataUrl(blob: Blob): Promise<string> {

@@ -11,13 +11,13 @@ import { getSiteUrl } from "@/lib/utils";
 export const Route = createFileRoute("/cart")({
   head: () => ({
     meta: [
-      { title: "Shopping Bag — OPTIQUE Eyewear" },
+      { title: "Shopping Bag — Nigah Eyewear" },
       {
         name: "description",
         content:
           "Review your selected frames, prescription sunglasses, and contact lenses before checkout.",
       },
-      { property: "og:title", content: "Shopping Bag — OPTIQUE Eyewear" },
+      { property: "og:title", content: "Shopping Bag — Nigah Eyewear" },
       {
         property: "og:description",
         content: "Review your selected frames and lenses before checkout.",
@@ -47,9 +47,9 @@ function CartPage() {
 
   return (
     <SiteLayout>
-      <div className="mx-auto max-w-5xl px-4 py-12 sm:px-6 sm:py-16">
+      <div className="mx-auto w-full max-w-5xl overflow-x-clip px-4 py-10 sm:px-6 sm:py-16">
         <p className="eyebrow text-gold">Your selection</p>
-        <h1 className="mt-2 font-display text-4xl sm:text-5xl">Shopping Bag</h1>
+        <h1 className="mt-2 font-display text-3xl tracking-normal sm:text-5xl">Shopping Bag</h1>
 
         {items.length === 0 ? (
           <div className="mt-10 rounded-xl border border-dashed border-stone bg-card px-6 py-20 text-center">
@@ -66,18 +66,20 @@ function CartPage() {
             </Link>
           </div>
         ) : (
-          <div className="mt-10 grid gap-10 lg:grid-cols-[1fr_320px]">
-            <ul className="divide-y divide-stone rounded-xl border border-stone bg-card">
+          <div className="mt-8 grid min-w-0 gap-8 lg:mt-10 lg:grid-cols-[minmax(0,1fr)_320px]">
+            <ul className="min-w-0 divide-y divide-stone rounded-xl border border-stone bg-card">
               {lines.map(({ item, stock, outOfStock, exceeds }) => (
                 <li key={item.key} className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center">
                   <ProductImage
                     src={item.image}
                     alt={item.name}
                     loading="lazy"
-                    className="h-24 w-24 shrink-0 rounded-lg bg-jet object-cover"
+                    className="h-20 w-20 shrink-0 rounded-lg bg-jet object-cover sm:h-24 sm:w-24"
                   />
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-foreground leading-snug">{item.name}</p>
+                    <p className="break-words text-sm font-medium leading-snug text-foreground">
+                      {item.name}
+                    </p>
                     {item.variantLabel && (
                       <p className="text-xs tracking-[0.14em] uppercase text-ink-muted">
                         {item.variantLabel}
@@ -98,13 +100,13 @@ function CartPage() {
                       <p className="mt-1 text-xs text-ink-muted">Only {stock} left in stock</p>
                     ) : null}
                   </div>
-                  <div className="flex items-center gap-3">
+                  <div className="flex min-w-0 flex-wrap items-center gap-3">
                     <div className="flex items-center rounded-full border border-stone">
                       <button
                         type="button"
                         aria-label={`Decrease quantity of ${item.name}`}
                         onClick={() => setQty(item.key, item.qty - 1)}
-                        className="grid h-11 w-11 place-items-center rounded-full text-ink-muted transition-colors hover:text-gold"
+                        className="grid h-10 w-10 place-items-center rounded-full sm:h-11 sm:w-11 text-ink-muted transition-colors hover:text-gold"
                       >
                         <Minus className="h-4 w-4" />
                       </button>
@@ -114,7 +116,7 @@ function CartPage() {
                         aria-label={`Increase quantity of ${item.name}`}
                         disabled={item.qty >= stock}
                         onClick={() => setQty(item.key, item.qty + 1)}
-                        className="grid h-11 w-11 place-items-center rounded-full text-ink-muted transition-colors hover:text-gold disabled:cursor-not-allowed disabled:opacity-40"
+                        className="grid h-10 w-10 place-items-center rounded-full sm:h-11 sm:w-11 text-ink-muted transition-colors hover:text-gold disabled:cursor-not-allowed disabled:opacity-40"
                       >
                         <Plus className="h-4 w-4" />
                       </button>
@@ -123,7 +125,7 @@ function CartPage() {
                       type="button"
                       aria-label={`Remove ${item.name}`}
                       onClick={() => removeItem(item.key)}
-                      className="grid h-11 w-11 place-items-center rounded-full border border-stone text-ink-muted transition-colors hover:border-destructive hover:text-destructive"
+                      className="grid h-10 w-10 place-items-center rounded-full sm:h-11 sm:w-11 border border-stone text-ink-muted transition-colors hover:border-destructive hover:text-destructive"
                     >
                       <Trash2 className="h-4 w-4" />
                     </button>
@@ -132,16 +134,16 @@ function CartPage() {
               ))}
             </ul>
 
-            <aside className="h-fit rounded-xl border border-stone bg-mist p-6">
+            <aside className="h-fit min-w-0 rounded-xl border border-stone bg-mist p-4 sm:p-6">
               <h2 className="font-display text-2xl">Summary</h2>
               <dl className="mt-4 space-y-2 text-sm">
-                <div className="flex justify-between">
+                <div className="flex min-w-0 justify-between gap-4">
                   <dt className="text-ink-muted">Subtotal</dt>
                   <dd className="font-semibold">{formatPrice(subtotal)}</dd>
                 </div>
-                <div className="flex justify-between">
+                <div className="flex min-w-0 justify-between gap-4">
                   <dt className="text-ink-muted">Delivery</dt>
-                  <dd className="text-ink-muted">Confirmed at checkout</dd>
+                  <dd className="text-right text-ink-muted">Confirmed at checkout</dd>
                 </div>
               </dl>
               {blocked ? (

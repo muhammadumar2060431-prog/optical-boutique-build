@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { KeyRound, Loader2, LogIn, ShieldCheck, UserPlus } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -38,6 +38,7 @@ async function postAuth(path: string, body: unknown) {
 
 export function AdminAuthPanel() {
   const { login } = useStore();
+  const navigate = useNavigate();
   const [mode, setMode] = useState<Mode>("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -111,6 +112,7 @@ export function AdminAuthPanel() {
       if (mode === "login") {
         const result = await login(email.trim(), password);
         if (!result.success) throw new Error(result.error ?? "Incorrect email or password.");
+        await navigate({ to: "/admin", replace: true });
         return;
       }
 

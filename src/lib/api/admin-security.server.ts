@@ -3,7 +3,7 @@ import { Buffer } from "node:buffer";
 import { createClient, type SupabaseClient, type User } from "@supabase/supabase-js";
 import { z } from "zod";
 
-import { ApiError, json } from "./http.server.ts";
+import { ApiError, json, readJsonBody } from "./http.server.ts";
 
 const answersSchema = z.object({
   school: z.string().trim().min(2).max(100),
@@ -92,13 +92,6 @@ function serviceClient(url: string, serviceKey: string) {
   return createClient(url, serviceKey, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
-}
-
-function rejectOversizedPayload(request: Request) {
-  const contentLength = Number(request.headers.get("content-length") ?? "0");
-  if (contentLength > 16_384) {
-    throw new ApiError(413, "PAYLOAD_TOO_LARGE", "The submitted data is too large.");
-  }
 }
 
 function clientAddress(request: Request) {
@@ -308,8 +301,7 @@ export async function adminSignupStatusHandler() {
 }
 
 export async function adminSignupHandler(request: Request) {
-  rejectOversizedPayload(request);
-  const input = signupSchema.parse(await request.json());
+  const input = signupSchema.parse(await readJsonBody(request, 16_384));
   const settings = config();
   const service = serviceClient(settings.url, settings.serviceKey);
   const buckets = await throttleBuckets(request, "admin-signup", input.email);
@@ -374,8 +366,7 @@ export async function adminSignupHandler(request: Request) {
 }
 
 export async function adminRecoverHandler(request: Request) {
-  rejectOversizedPayload(request);
-  const input = recoverySchema.parse(await request.json());
+  const input = recoverySchema.parse(await readJsonBody(request, 16_384));
   const settings = config();
   const service = serviceClient(settings.url, settings.serviceKey);
   const identity = input.action === "verify" ? input.email : await digest(input.recoveryToken);
@@ -473,8 +464,7 @@ export async function adminRecoverHandler(request: Request) {
 }
 
 export async function adminCredentialsHandler(request: Request) {
-  rejectOversizedPayload(request);
-  const input = credentialsSchema.parse(await request.json());
+  const input = credentialsSchema.parse(await readJsonBody(request, 16_384));
   const settings = config();
   const service = serviceClient(settings.url, settings.serviceKey);
   const token = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
