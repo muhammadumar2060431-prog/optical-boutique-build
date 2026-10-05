@@ -959,6 +959,10 @@ function ProductDialog({
                         subImages: cleanSubImages,
                       },
                     });
+                  } catch (error) {
+                    toast.error(
+                      error instanceof Error ? error.message : "Product could not be saved.",
+                    );
                   } finally {
                     setIsSaving(false);
                   }
