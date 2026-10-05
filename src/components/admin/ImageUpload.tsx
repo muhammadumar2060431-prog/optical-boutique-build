@@ -123,6 +123,7 @@ export function ImageUpload({
   };
 
   const processAndUploadImage = async (croppedDataUrl: string) => {
+    let stage = "Image processing";
     try {
       const optimizer = new ImageOptimizer({
         maxWidth,
@@ -131,11 +132,12 @@ export function ImageUpload({
         outputType: "image/webp",
       });
       const optimizedImage = await optimizer.optimize(croppedDataUrl);
+      stage = "Image upload";
       await persistImage(optimizedImage);
     } catch (processingError) {
       setError(
         processingError instanceof Error
-          ? processingError.message
+          ? `${stage}: ${processingError.message}`
           : "The image could not be processed or uploaded. Please try again.",
       );
     } finally {

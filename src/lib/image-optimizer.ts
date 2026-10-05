@@ -1,3 +1,5 @@
+import { imageDataUrlToBlob } from "./image-data.ts";
+
 export interface ImageOptimizationOptions {
   maxWidth: number;
   maxHeight: number;
@@ -65,7 +67,7 @@ export class ImageOptimizer {
 
     const encoded = await canvasToBlob(canvas, this.outputType, this.quality);
     if (scale === 1 && dataUrl.startsWith("data:image/")) {
-      const original = await (await fetch(dataUrl)).blob();
+      const original = imageDataUrlToBlob(dataUrl);
       if (
         ["image/jpeg", "image/png", "image/webp", "image/avif"].includes(original.type) &&
         original.size <= encoded.size

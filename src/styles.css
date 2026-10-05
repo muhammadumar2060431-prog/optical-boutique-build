@@ -282,7 +282,7 @@
   align-items: center;
   gap: 80px;
   white-space: nowrap;
-  animation: brands-scroll 24s linear infinite;
+  animation: brands-scroll 28s linear infinite;
   will-change: transform;
 }
 

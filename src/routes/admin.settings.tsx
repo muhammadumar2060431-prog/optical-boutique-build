@@ -25,6 +25,7 @@ function AdminSettings() {
   const [friend, setFriend] = useState("");
   const [city, setCity] = useState("");
   const [updatingCredentials, setUpdatingCredentials] = useState(false);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
 
   useEffect(() => {
     setForm(settings);
@@ -125,6 +126,7 @@ function AdminSettings() {
           optional
           value={form.logo}
           onChange={(logo) => setForm({ ...form, logo })}
+          onUploadingChange={setUploadingLogo}
           hint="400 x 120 px - Max 80 KB - PNG transparent background recommended"
           aspectHint="Wide logo"
           storageFolder="settings"
@@ -132,6 +134,7 @@ function AdminSettings() {
 
         <Button
           className="min-h-11 rounded-full"
+          disabled={uploadingLogo}
           onClick={() => {
             if (!window.confirm("Are you sure you want to save these settings?")) return;
             updateSettings(form);

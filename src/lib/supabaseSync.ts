@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any, no-empty -- Legacy Supabase schema variants are normalized at this boundary. */
 import { supabase } from "./supabase";
+import { imageDataUrlToBlob } from "./image-data.ts";
 import { deleteDatabaseRecord, requireDatabaseAdmin } from "./database-delete.ts";
 import { createMutationQueue } from "./mutation-queue.ts";
 import {
@@ -73,8 +74,9 @@ export async function uploadImageToStorage(
 ): Promise<string | null> {
   if (typeof image === "string" && !image.startsWith("data:image/")) return null;
 
+  let stage = "image preparation";
   try {
-    const blob = typeof image === "string" ? await (await fetch(image)).blob() : image;
+    const blob = typeof image === "string" ? imageDataUrlToBlob(image) : image;
     if (!STORAGE_IMAGE_MIME_TYPES.has(blob.type)) {
       throw new Error("Use a JPG, PNG, WebP, or AVIF image.");
     }
@@ -83,8 +85,10 @@ export async function uploadImageToStorage(
     }
 
     if (options.throwOnError) {
+      stage = "admin session check";
       const { data: auth, error: authError } = await supabase.auth.getSession();
-      if (authError || !auth.session) {
+      if (authError) throw authError;
+      if (!auth.session) {
         throw new Error("Your admin session has expired. Sign in again and retry the upload.");
       }
     }
@@ -92,6 +96,7 @@ export async function uploadImageToStorage(
     const extension = imageExtension(blob.type);
     const fileName = `${sanitizeStorageFolder(folder)}/${createStorageId()}.${extension}`;
     const storage = supabase.storage.from(STORAGE_BUCKET);
+    stage = "storage upload";
     let { data, error } = await storage.upload(fileName, blob, {
       upsert: false,
       contentType: blob.type,
@@ -127,7 +132,10 @@ export async function uploadImageToStorage(
     return storage.getPublicUrl(data.path).data.publicUrl;
   } catch (error) {
     console.warn("[uploadImageToStorage] Exception:", error);
-    if (options.throwOnError) throw error;
+    if (options.throwOnError) {
+      const message = error instanceof Error ? error.message : "An unexpected error occurred.";
+      throw new Error(`Image ${stage} failed: ${message}`, { cause: error });
+    }
     return null;
   }
 }

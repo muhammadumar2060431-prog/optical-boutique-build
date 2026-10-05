@@ -1,7 +1,28 @@
+import { useEffect, useRef, useState } from "react";
 import { useStore } from "@/lib/store";
+
+const SCROLL_PIXELS_PER_SECOND = 60;
 
 export function AnnouncementBar() {
   const { announcement } = useStore();
+  const trackRef = useRef<HTMLDivElement>(null);
+  const [duration, setDuration] = useState(0);
+
+  useEffect(() => {
+    const track = trackRef.current;
+    if (!track) return;
+
+    // Each loop travels half the duplicated track at a constant pixel speed.
+    const updateDuration = () => {
+      setDuration(track.getBoundingClientRect().width / 2 / SCROLL_PIXELS_PER_SECOND);
+    };
+    const observer = new ResizeObserver(updateDuration);
+    observer.observe(track);
+    updateDuration();
+
+    return () => observer.disconnect();
+  }, [announcement?.enabled, announcement?.messages]);
+
   if (!announcement?.enabled || !Array.isArray(announcement?.messages)) return null;
 
   const items = announcement.messages.filter((m) => typeof m === "string" && m.trim().length > 0);
@@ -20,7 +41,14 @@ export function AnnouncementBar() {
       style={{ backgroundColor: announcement.background, color: announcement.textColor }}
       aria-label="Store announcements"
     >
-      <div className="marquee-track max-w-none whitespace-nowrap">
+      <div
+        ref={trackRef}
+        className="marquee-track max-w-none whitespace-nowrap"
+        style={{
+          animationDuration: duration > 0 ? `${duration}s` : undefined,
+          animationPlayState: duration > 0 ? "running" : "paused",
+        }}
+      >
         {sequence.map((msg, i) => (
           <span key={`${msg}-${i}`} className="flex items-center">
             <span className="px-4 sm:px-6">{msg}</span>

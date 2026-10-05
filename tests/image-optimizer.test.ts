@@ -4,6 +4,7 @@ import { ImageOptimizer } from "../src/lib/image-optimizer.ts";
 
 it("preserves smaller original encodings without bypassing resize limits", async () => {
   const previousImage = globalThis.Image;
+  const previousFetch = globalThis.fetch;
   const documentDescriptor = Object.getOwnPropertyDescriptor(globalThis, "document");
   class FakeImage {
     width = 100;
@@ -21,6 +22,9 @@ it("preserves smaller original encodings without bypassing resize limits", async
       callback(new Blob([new Uint8Array(200)], { type: "image/webp" })),
   };
   globalThis.Image = FakeImage as unknown as typeof Image;
+  globalThis.fetch = async () => {
+    throw new TypeError("Failed to fetch");
+  };
   Object.defineProperty(globalThis, "document", {
     configurable: true,
     value: { createElement: () => canvas },
@@ -44,6 +48,7 @@ it("preserves smaller original encodings without bypassing resize limits", async
     assert.equal(canvas.height, 25);
   } finally {
     globalThis.Image = previousImage;
+    globalThis.fetch = previousFetch;
     if (documentDescriptor) Object.defineProperty(globalThis, "document", documentDescriptor);
     else Reflect.deleteProperty(globalThis, "document");
   }

@@ -4,6 +4,7 @@ import { Menu, ShoppingBag, X } from "lucide-react";
 
 import { useCart } from "@/lib/cart";
 import { useStore } from "@/lib/store";
+import { sanitizeImageSrc } from "@/lib/security";
 import { cn } from "@/lib/utils";
 
 const links = [
@@ -21,6 +22,10 @@ export function Navbar() {
   const { count } = useCart();
   const [scrolled, setScrolled] = useState(false);
   const [openMenu, setOpenMenu] = useState(false);
+  const [failedLogo, setFailedLogo] = useState<string | null>(null);
+  const configuredLogo = sanitizeImageSrc(settings.logo);
+  const logoSrc =
+    configuredLogo && configuredLogo !== failedLogo ? configuredLogo : "/brand-logo.png";
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
@@ -44,13 +49,19 @@ export function Navbar() {
         {/* Logo */}
         <Link
           to="/"
-          className="mr-4 flex shrink-0 items-center sm:mr-6"
+          className="mr-4 flex h-10 w-28 shrink-0 items-center overflow-hidden sm:mr-6 sm:h-12 sm:w-32"
           aria-label={settings.storeName}
         >
           <img
-            src="/brand-logo.png"
+            src={logoSrc}
             alt={settings.storeName}
-            className="h-7 w-auto object-contain sm:h-9"
+            className={cn(
+              "h-full w-full",
+              logoSrc === "/brand-logo.png" ? "object-cover" : "object-contain",
+            )}
+            onError={() => {
+              if (logoSrc !== "/brand-logo.png") setFailedLogo(logoSrc);
+            }}
           />
         </Link>
 
