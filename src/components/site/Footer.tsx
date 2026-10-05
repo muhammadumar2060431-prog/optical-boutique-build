@@ -95,7 +95,7 @@ export function Footer() {
             &copy; {new Date().getFullYear()} {settings.storeName || "Nigah Eyewear"}. All rights
             reserved.
           </p>
-          <p className="text-right">producted by devnex</p>
+          <p className="text-right">A Project by Devnex Innovation</p>
         </div>
       </div>
     </footer>

@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { z } from "zod";
 
 import { SiteLayout } from "@/components/site/SiteLayout";
+import { PageFaqs } from "@/components/site/PageFaqs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -232,6 +233,7 @@ function CheckoutPage() {
           >
             Browse the collection
           </Link>
+          <PageFaqs page="checkout" />
         </div>
       </SiteLayout>
     );
@@ -356,42 +358,45 @@ function CheckoutPage() {
             </p>
           </form>
 
-          <aside className="h-fit min-w-0 max-w-full overflow-hidden rounded-xl border border-stone bg-mist p-4 sm:p-6">
-            <h2 className="font-display text-2xl tracking-normal">Order summary</h2>
-            <ul className="mt-4 space-y-4 text-sm">
-              {stockLines.map(({ item, stock }) => (
-                <li
-                  key={item.key}
-                  className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-start gap-3"
-                >
-                  <span className="min-w-0 pr-1">
-                    <span className="block min-w-0 break-words leading-snug">{item.name}</span>
-                    <span className="mt-1 block text-xs leading-snug text-ink-muted">
-                      {item.variantLabel ? `${item.variantLabel} · ` : ""}Qty {item.qty}
-                    </span>
-                    {(stock <= 0 || item.qty > stock) && (
-                      <span className="block text-xs font-semibold text-destructive">
-                        {stock <= 0 ? "Out of stock" : `Only ${stock} left`}
+          <div className="min-w-0">
+            <aside className="h-fit min-w-0 max-w-full overflow-hidden rounded-xl border border-stone bg-mist p-4 sm:p-6">
+              <h2 className="font-display text-2xl tracking-normal">Order summary</h2>
+              <ul className="mt-4 space-y-4 text-sm">
+                {stockLines.map(({ item, stock }) => (
+                  <li
+                    key={item.key}
+                    className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-start gap-3"
+                  >
+                    <span className="min-w-0 pr-1">
+                      <span className="block min-w-0 break-words leading-snug">{item.name}</span>
+                      <span className="mt-1 block text-xs leading-snug text-ink-muted">
+                        {item.variantLabel ? `${item.variantLabel} · ` : ""}Qty {item.qty}
                       </span>
-                    )}
-                  </span>
-                  <span className="shrink-0 whitespace-nowrap text-right text-sm font-semibold">
-                    {formatPrice(item.price * item.qty)}
-                  </span>
-                </li>
-              ))}
-            </ul>
-            <div className="mt-5 flex min-w-0 justify-between gap-4 border-t border-stone pt-4 text-sm">
-              <span className="text-ink-muted">Subtotal</span>
-              <span className="font-semibold text-gold">{formatPrice(subtotal)}</span>
-            </div>
-            <Link
-              to="/cart"
-              className="mt-4 block text-xs tracking-[0.16em] uppercase text-ink-muted transition-colors hover:text-gold"
-            >
-              Edit bag
-            </Link>
-          </aside>
+                      {(stock <= 0 || item.qty > stock) && (
+                        <span className="block text-xs font-semibold text-destructive">
+                          {stock <= 0 ? "Out of stock" : `Only ${stock} left`}
+                        </span>
+                      )}
+                    </span>
+                    <span className="shrink-0 whitespace-nowrap text-right text-sm font-semibold">
+                      {formatPrice(item.price * item.qty)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              <div className="mt-5 flex min-w-0 justify-between gap-4 border-t border-stone pt-4 text-sm">
+                <span className="text-ink-muted">Subtotal</span>
+                <span className="font-semibold text-gold">{formatPrice(subtotal)}</span>
+              </div>
+              <Link
+                to="/cart"
+                className="mt-4 block text-xs tracking-[0.16em] uppercase text-ink-muted transition-colors hover:text-gold"
+              >
+                Edit bag
+              </Link>
+            </aside>
+            <PageFaqs page="checkout" />
+          </div>
         </div>
       </div>
     </SiteLayout>

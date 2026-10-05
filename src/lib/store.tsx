@@ -233,7 +233,7 @@ interface StoreApi extends StoreState {
   deleteSocialReel: (id: string) => Promise<boolean>;
   moveSocialReel: (id: string, dir: -1 | 1) => void;
   setSocialReels: (reels: SocialReel[]) => void;
-  saveFaq: (faq: FAQItem) => void;
+  saveFaq: (faq: FAQItem) => Promise<boolean>;
   deleteFaq: (id: string) => Promise<boolean>;
   moveFaq: (id: string, dir: -1 | 1) => void;
   setFaqs: (faqs: FAQItem[]) => void;
@@ -1937,8 +1937,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  const saveFaq = useCallback<StoreApi["saveFaq"]>((faq) => {
+  const saveFaq = useCallback<StoreApi["saveFaq"]>(async (faq) => {
     const fullFaq = { ...faq, id: faq.id || uid("faq") };
+    if (isSupabaseConfigured && !(await dbUpsertFaq(fullFaq))) return false;
     setFaqsState((prev) => {
       const idx = prev.findIndex((f) => f.id === fullFaq.id);
       if (idx >= 0) {
@@ -1951,7 +1952,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       saveItem("faqs", next);
       return next;
     });
-    dbUpsertFaq(fullFaq);
+    return true;
   }, []);
 
   const deleteFaq = useCallback<StoreApi["deleteFaq"]>((id) => {

@@ -3,6 +3,7 @@ import { createFileRoute, useSearch } from "@tanstack/react-router";
 import { CheckCircle2, Clock, Mail, MapPin, Phone } from "lucide-react";
 
 import { SiteLayout } from "@/components/site/SiteLayout";
+import { PageFaqs } from "@/components/site/PageFaqs";
 import { WhatsAppIcon } from "@/components/site/WhatsAppIcon";
 import { useWhatsAppModal } from "@/components/site/WhatsAppModal";
 import { Button } from "@/components/ui/button";
@@ -283,6 +284,7 @@ function ContactPage() {
                 {settings.hours}
               </p>
             </div>
+            <PageFaqs page="contact" />
           </aside>
         </div>
       </section>

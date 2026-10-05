@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 
 import { Reveal } from "@/components/site/Reveal";
 import { SiteLayout } from "@/components/site/SiteLayout";
+import { PageFaqs } from "@/components/site/PageFaqs";
 import { VideoSection } from "@/components/site/VideoSection";
 import { getSiteUrl } from "@/lib/utils";
 
@@ -233,6 +234,9 @@ function AboutPage() {
 
       {/* ── VIDEO SECTION ── */}
       <VideoSection heading="Inside our workshop" />
+      <div className="mx-auto w-full max-w-5xl px-4 sm:px-6">
+        <PageFaqs page="about" />
+      </div>
     </SiteLayout>
   );
 }

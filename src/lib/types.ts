@@ -191,8 +191,11 @@ export interface FAQItem {
   category?: string;
   enabled: boolean;
   showOnHome?: boolean;
+  showOnPages?: FAQPage[];
   sortOrder?: number;
 }
+
+export type FAQPage = "home" | "about" | "contact" | "cart" | "checkout" | "tracking";
 
 export interface Subscriber {
   id: ID;

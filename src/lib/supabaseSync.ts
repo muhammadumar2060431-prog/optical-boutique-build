@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any, no-empty -- Legacy Supabase schema variants are normalized at this boundary. */
 import { supabase } from "./supabase";
 import { imageDataUrlToBlob } from "./image-data.ts";
+import { faqPages } from "./faq-pages.ts";
 import { deleteDatabaseRecord, requireDatabaseAdmin } from "./database-delete.ts";
 import { createMutationQueue } from "./mutation-queue.ts";
 import {
@@ -445,7 +446,8 @@ function mapStoreFaqToDb(f: FAQItem): any {
     answer: f.answer,
     category: f.category || "General",
     enabled: f.enabled ?? true,
-    show_on_home: f.showOnHome ?? false,
+    show_on_home: faqPages(f).includes("home"),
+    show_on_pages: faqPages(f),
     sort_order: f.sortOrder ?? 0,
   };
 }
@@ -458,6 +460,11 @@ export function mapDbFaqToStore(raw: any): FAQItem {
     category: raw.category || "General",
     enabled: raw.enabled ?? true,
     showOnHome: raw.show_on_home ?? raw.showOnHome ?? false,
+    showOnPages: Array.isArray(raw.show_on_pages)
+      ? raw.show_on_pages
+      : Array.isArray(raw.showOnPages)
+        ? raw.showOnPages
+        : undefined,
     sortOrder: raw.sort_order ?? raw.sortOrder ?? 0,
   };
 }
@@ -1150,7 +1157,7 @@ export async function dbDeleteTestimonial(id: string) {
   return deleteDatabaseRecord(supabase, "testimonials", id);
 }
 
-export async function dbUpsertFaq(faq: FAQItem) {
+export async function dbUpsertFaq(faq: FAQItem): Promise<boolean> {
   try {
     const payload = sanitizeDbInput(mapStoreFaqToDb(faq));
     const { error } = await supabase.from("faqs").upsert(payload);
@@ -1162,13 +1169,17 @@ export async function dbUpsertFaq(faq: FAQItem) {
         const legacyPayload = { ...payload };
         delete legacyPayload.show_on_home;
         delete legacyPayload.showOnHome;
-        await supabase.from("faqs").upsert(legacyPayload);
+        const { error: legacyError } = await supabase.from("faqs").upsert(legacyPayload);
+        if (legacyError) return false;
       } else {
         console.error("Failed to sync FAQ to Supabase:", error);
+        return false;
       }
     }
+    return true;
   } catch (e) {
     console.error("Failed to sync FAQ to Supabase:", e);
+    return false;
   }
 }
 

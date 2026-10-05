@@ -14,6 +14,7 @@ import {
 import { toast } from "sonner";
 
 import { SiteLayout } from "@/components/site/SiteLayout";
+import { PageFaqs } from "@/components/site/PageFaqs";
 import { WhatsAppIcon } from "@/components/site/WhatsAppIcon";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -595,6 +596,7 @@ function OrderStatusPage() {
             </a>
           </div>
         </section>
+        <PageFaqs page="tracking" />
       </div>
     </SiteLayout>
   );

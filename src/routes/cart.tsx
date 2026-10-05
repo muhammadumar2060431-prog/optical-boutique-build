@@ -2,6 +2,7 @@ import { Link, createFileRoute } from "@tanstack/react-router";
 import { Minus, Plus, ShoppingBag, Trash2 } from "lucide-react";
 
 import { SiteLayout } from "@/components/site/SiteLayout";
+import { PageFaqs } from "@/components/site/PageFaqs";
 import { ProductImage } from "@/components/site/ProductImage";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/lib/cart";
@@ -171,6 +172,7 @@ function CartPage() {
             </aside>
           </div>
         )}
+        <PageFaqs page="cart" />
       </div>
     </SiteLayout>
   );

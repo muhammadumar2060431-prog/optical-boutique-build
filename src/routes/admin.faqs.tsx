@@ -11,6 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { newId, useStore } from "@/lib/store";
 import type { FAQItem } from "@/lib/types";
+import { FAQ_PAGES, faqPages, setFaqPage } from "@/lib/faq-pages";
 
 export const Route = createFileRoute("/admin/faqs")({
   component: AdminFaqs,
@@ -31,6 +32,7 @@ const blankFaq = (): FAQItem => ({
   category: "Prescription & Lenses",
   enabled: true,
   showOnHome: false,
+  showOnPages: [],
 });
 
 function AdminFaqs() {
@@ -38,6 +40,15 @@ function AdminFaqs() {
   const [draft, setDraft] = useState<FAQItem | null>(null);
   const [filterQuery, setFilterQuery] = useState("");
   const [filterCategory, setFilterCategory] = useState("All");
+  const [saving, setSaving] = useState(false);
+  const persistFaq = async (faq: FAQItem) => {
+    const ok = await saveFaq(faq);
+    if (!ok)
+      toast.error(
+        "FAQ could not be saved. Check your connection and apply the FAQ page placements migration.",
+      );
+    return ok;
+  };
 
   const categories = useMemo(() => {
     const set = new Set<string>();
@@ -152,9 +163,11 @@ function AdminFaqs() {
                       {faq.category}
                     </span>
                   )}
-                  {faq.showOnHome && (
+                  {faqPages(faq).length > 0 && (
                     <span className="rounded-full bg-emerald-500/10 text-emerald-600 border border-emerald-500/30 px-2 py-0.5 text-[10px] font-semibold">
-                      Featured on Home
+                      {FAQ_PAGES.filter((page) => faqPages(faq).includes(page.id))
+                        .map((page) => page.label)
+                        .join(", ")}
                     </span>
                   )}
                   {faq.enabled === false && (
@@ -177,9 +190,9 @@ function AdminFaqs() {
                 >
                   <span className="text-[10px] text-ink-muted font-medium">Home</span>
                   <Switch
-                    checked={!!faq.showOnHome}
-                    onCheckedChange={(showOnHome) => {
-                      saveFaq({ ...faq, showOnHome });
+                    checked={faqPages(faq).includes("home")}
+                    onCheckedChange={async (showOnHome) => {
+                      if (!(await persistFaq(setFaqPage(faq, "home", showOnHome)))) return;
                       toast.success(
                         showOnHome ? "FAQ added to Homepage." : "FAQ removed from Homepage.",
                       );
@@ -194,8 +207,8 @@ function AdminFaqs() {
                   </span>
                   <Switch
                     checked={faq.enabled !== false}
-                    onCheckedChange={(enabled) => {
-                      saveFaq({ ...faq, enabled });
+                    onCheckedChange={async (enabled) => {
+                      if (!(await persistFaq({ ...faq, enabled }))) return;
                       toast.success(enabled ? "FAQ published." : "FAQ hidden.");
                     }}
                   />
@@ -306,21 +319,22 @@ function AdminFaqs() {
                   </div>
                 </div>
 
-                {/* Show on Home Page Toggle */}
-                <div className="flex items-center justify-between rounded-xl border border-stone bg-card p-4">
-                  <div className="space-y-0.5">
-                    <Label htmlFor="faq-home" className="text-sm font-semibold">
-                      Featured on Home Page
-                    </Label>
-                    <p className="text-xs text-ink-muted">
-                      When enabled, this FAQ will be featured in the homepage FAQ section.
-                    </p>
+                <div className="space-y-3 rounded-lg border border-stone bg-card p-4">
+                  <p className="text-sm font-semibold">Featured Pages</p>
+                  <div className="max-h-56 overflow-y-auto overscroll-contain divide-y divide-stone pr-2">
+                    {FAQ_PAGES.map((page) => (
+                      <div key={page.id} className="flex items-center justify-between gap-4 py-3">
+                        <Label htmlFor={`faq-page-${page.id}`}>{page.label}</Label>
+                        <Switch
+                          id={`faq-page-${page.id}`}
+                          checked={faqPages(draft).includes(page.id)}
+                          onCheckedChange={(enabled) =>
+                            setDraft(setFaqPage(draft, page.id, enabled))
+                          }
+                        />
+                      </div>
+                    ))}
                   </div>
-                  <Switch
-                    id="faq-home"
-                    checked={draft.showOnHome ?? false}
-                    onCheckedChange={(v) => setDraft({ ...draft, showOnHome: v })}
-                  />
                 </div>
 
                 {/* Enabled Toggle */}
@@ -343,7 +357,8 @@ function AdminFaqs() {
                 {/* Save Button */}
                 <Button
                   className="min-h-11 w-full rounded-full font-semibold"
-                  onClick={() => {
+                  disabled={saving}
+                  onClick={async () => {
                     if (!draft.question.trim()) {
                       toast.error("Please enter a question.");
                       return;
@@ -355,13 +370,16 @@ function AdminFaqs() {
                     if (!window.confirm("Are you sure you want to save this FAQ?")) {
                       return;
                     }
-                    saveFaq({
+                    setSaving(true);
+                    const ok = await persistFaq({
                       ...draft,
                       id: draft.id || newId("faq"),
                       question: draft.question.trim(),
                       answer: draft.answer.trim(),
                       category: draft.category?.trim() || "General",
                     });
+                    setSaving(false);
+                    if (!ok) return;
                     setDraft(null);
                     toast.success("FAQ saved successfully.");
                   }}

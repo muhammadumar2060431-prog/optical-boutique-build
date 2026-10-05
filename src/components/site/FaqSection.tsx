@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useStore } from "@/lib/store";
 import { Reveal } from "./Reveal";
+import { faqsForPage } from "@/lib/faq-pages";
 
 interface FaqSectionProps {
   isHomepage?: boolean;
@@ -20,10 +21,7 @@ export function FaqSection({ isHomepage = false }: FaqSectionProps) {
     const allLive = faqs.filter((f) => f.enabled !== false);
     if (!isHomepage) return allLive;
 
-    // Homepage mode: show FAQs that have showOnHome = true
-    const featured = allLive.filter((f) => f.showOnHome === true);
-    // Fall back to all live FAQs if admin hasn't toggled specific ones yet
-    return featured.length > 0 ? featured : allLive;
+    return faqsForPage(allLive, "home");
   }, [faqs, isHomepage]);
 
   const categories = useMemo(() => {
@@ -127,7 +125,13 @@ export function FaqSection({ isHomepage = false }: FaqSectionProps) {
               </Button>
             </div>
           ) : (
-            <div className="space-y-3.5">
+            <div
+              className={
+                isHomepage
+                  ? "max-h-[32rem] space-y-3.5 overflow-y-auto overscroll-contain p-1"
+                  : "space-y-3.5"
+              }
+            >
               {filteredFaqs.map((faq, index) => {
                 const isOpen = openId === faq.id;
                 return (
