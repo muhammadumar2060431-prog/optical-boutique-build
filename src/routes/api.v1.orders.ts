@@ -12,7 +12,7 @@ const listOrders = withApi(({ request }) => orderHandlers.list(request), {
 const createOrders = withApi(({ request }) => orderHandlers.create(request), {
   name: "api.v1.orders.create",
   methods: ["POST"],
-  rateLimit: { max: 8, windowMs: 60_000 },
+  rateLimit: { max: 8, windowMs: 60_000, distributed: true, failClosed: true },
 });
 
 export const Route = createFileRoute("/api/v1/orders")({

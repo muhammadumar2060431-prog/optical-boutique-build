@@ -1,6 +1,7 @@
 import { createOrdersSchema, updateOrderSchema } from "./contracts.ts";
 import { ApiError, json, readJsonBody } from "./http.server.ts";
 import { logger } from "./logger.server.ts";
+import { clientAddress } from "./client-address.ts";
 import type { MetaEventInput } from "../meta-events.types.ts";
 
 export interface OrdersRepository {
@@ -31,11 +32,7 @@ async function sha256(value: unknown) {
 }
 
 async function requestRateKey(request: Request) {
-  const address =
-    request.headers.get("cf-connecting-ip") ??
-    request.headers.get("x-real-ip") ??
-    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
-    "unknown";
+  const address = clientAddress(request);
   return `orders:${await sha256(address)}`;
 }
 

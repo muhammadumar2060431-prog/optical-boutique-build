@@ -7,6 +7,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useStore } from "@/lib/store";
+import { useCatalogPage } from "@/lib/catalog-page";
 import type { Category } from "@/lib/types";
 
 import { ProductCard } from "./ProductCard";
@@ -33,7 +34,7 @@ function visiblePages(currentPage: number, totalPages: number) {
 }
 
 export function CategoryView({ category }: { category: Category }) {
-  const { getProductsPage, getCollections } = useStore();
+  const { getCollections } = useStore();
   const [sort, setSort] = useState<Sort>("newest");
   const [minPrice, setMinPrice] = useState<string>("");
   const [maxPrice, setMaxPrice] = useState<string>("");
@@ -54,19 +55,18 @@ export function CategoryView({ category }: { category: Category }) {
   // Get collections belonging to this category
   const collections = useMemo(() => getCollections(category.id), [getCollections, category.id]);
 
-  const pageResult = useMemo(() => {
-    const minVal = minPrice !== "" ? Number(minPrice) || 0 : undefined;
-    const maxVal = maxPrice !== "" && Number(maxPrice) > 0 ? Number(maxPrice) : undefined;
-
-    return getProductsPage({
-      categoryId: category.id,
-      ...(minVal !== undefined ? { minPrice: minVal } : {}),
-      ...(maxVal !== undefined ? { maxPrice: maxVal } : {}),
-      sort,
-      page,
-      pageSize: PRODUCTS_PER_PAGE,
-    });
-  }, [getProductsPage, category.id, minPrice, maxPrice, sort, page]);
+  const catalog = useCatalogPage({
+    categoryId: category.id,
+    ...(minPrice !== "" ? { minPrice: Math.max(0, Number(minPrice) || 0) } : {}),
+    ...(Number(maxPrice) > 0 ? { maxPrice: Number(maxPrice) } : {}),
+    sort,
+    page,
+    pageSize: PRODUCTS_PER_PAGE,
+  });
+  const pageResult = catalog.result;
+  useEffect(() => {
+    if (catalog.data && page > catalog.data.totalPages) setPage(catalog.data.totalPages);
+  }, [catalog.data, page]);
 
   const shownFrom = pageResult.total === 0 ? 0 : (pageResult.page - 1) * pageResult.pageSize + 1;
   const shownTo = Math.min(pageResult.page * pageResult.pageSize, pageResult.total);
@@ -198,7 +198,16 @@ export function CategoryView({ category }: { category: Category }) {
 
       {/* 3. Paginated Product Grid */}
       <div className="mx-auto max-w-7xl px-4 pb-20 sm:px-6 mt-10">
-        {pageResult.items.length > 0 ? (
+        {catalog.isLoading ? (
+          <p role="status">Loading products...</p>
+        ) : catalog.error ? (
+          <div role="alert">
+            <p>{catalog.error.message}</p>
+            <button type="button" onClick={() => void catalog.refetch()} className="mt-2 underline">
+              Retry
+            </button>
+          </div>
+        ) : pageResult.items.length > 0 ? (
           <>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 sm:gap-6 md:grid-cols-4">
               {pageResult.items.map((p, i) => (

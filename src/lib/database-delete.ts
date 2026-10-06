@@ -17,10 +17,29 @@ export type DeletableTable =
 export async function requireDatabaseAdmin(client: SupabaseClient) {
   const user = await client.auth.getUser();
   if (user.error || !user.data.user)
-    throw new Error("Sign in with your admin account before deleting.");
+    throw new Error("Sign in with your admin account before changing records.");
   const admin = await client.rpc("is_admin");
   if (admin.error || admin.data !== true)
     throw new Error("Administrator permission could not be verified.");
+}
+
+export async function updateInquiryStatus(
+  client: SupabaseClient,
+  id: string,
+  status: "New" | "Responded" | "Archived",
+): Promise<boolean> {
+  if (!id || id !== id.trim() || id.length > 100) throw new Error("Invalid record ID.");
+  await requireDatabaseAdmin(client);
+  const existing = await client.from("queries").select("id").eq("id", id).maybeSingle();
+  if (existing.error) throw existing.error;
+  const table = existing.data ? "queries" : "orders";
+  let mutation = client.from(table).update({ status }).eq("id", id).is("deleted_at", null);
+  if (table === "orders") mutation = mutation.eq("source", "form");
+  const result = await mutation.select("id");
+  if (result.error) throw result.error;
+  if (result.data?.length !== 1 || result.data[0]?.id !== id)
+    throw new Error("Database did not confirm the status change. Refresh and try again.");
+  return true;
 }
 
 export async function deleteDatabaseRecord(

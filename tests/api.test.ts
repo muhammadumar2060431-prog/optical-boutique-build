@@ -176,6 +176,36 @@ describe("API transport controls", () => {
     assert.equal(body.status, "ok");
     assert.equal(body.apiVersion, "v1");
   });
+  it("blocks a distributed limit before performing a write", async () => {
+    let called = false;
+    const handler = withApi(
+      () => {
+        called = true;
+        return Response.json({ ok: true });
+      },
+      {
+        name: "test.distributed",
+        rateLimit: { max: 3, windowMs: 60_000, distributed: true },
+      },
+      async () => ({ allowed: false, remaining: 0, retryAfter: 30 }),
+    );
+    const response = await handler({ request: request("/api/v1/test") });
+    assert.equal(response.status, 429);
+    assert.equal(response.headers.get("retry-after"), "30");
+    assert.equal(called, false);
+  });
+  it("retains the local limit when the distributed store is unavailable", async () => {
+    const handler = withApi(
+      () => Response.json({ ok: true }),
+      {
+        name: "test.distributed-fallback",
+        rateLimit: { max: 1, windowMs: 60_000, distributed: true },
+      },
+      async () => null,
+    );
+    assert.equal((await handler({ request: request("/api/v1/test") })).status, 200);
+    assert.equal((await handler({ request: request("/api/v1/test") })).status, 429);
+  });
   it("never exposes unexpected exception details", async () => {
     const handler = withApi(
       () => {
@@ -187,6 +217,24 @@ describe("API transport controls", () => {
     const body = JSON.stringify(await response.json());
     assert.equal(response.status, 500);
     assert.equal(body.includes("database-password"), false);
+  });
+  it("fails closed before writes when persistent abuse protection is unavailable", async () => {
+    let called = false;
+    const handler = withApi(
+      () => {
+        called = true;
+        return Response.json({ ok: true });
+      },
+      {
+        name: "test.fail-closed",
+        rateLimit: { max: 5, windowMs: 60000, distributed: true, failClosed: true },
+      },
+      async () => null,
+    );
+    const response = await handler({ request: request("/api/v1/test") });
+    assert.equal(response.status, 503);
+    assert.equal(response.headers.get("retry-after"), "30");
+    assert.equal(called, false);
   });
 });
 describe("Browser security headers", () => {

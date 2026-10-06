@@ -2,7 +2,11 @@
 import { supabase } from "./supabase";
 import { imageDataUrlToBlob } from "./image-data.ts";
 import { faqPages } from "./faq-pages.ts";
-import { deleteDatabaseRecord, requireDatabaseAdmin } from "./database-delete.ts";
+import {
+  deleteDatabaseRecord,
+  requireDatabaseAdmin,
+  updateInquiryStatus,
+} from "./database-delete.ts";
 import { createMutationQueue } from "./mutation-queue.ts";
 import {
   publicStorefrontData,
@@ -470,19 +474,6 @@ export function mapDbFaqToStore(raw: any): FAQItem {
   };
 }
 
-function mapStoreQueryToDb(q: ContactQuery): any {
-  return {
-    id: q.id,
-    name: q.name,
-    contact: q.contact,
-    product_name: q.productName,
-    product_id: q.productId || null,
-    message: q.message,
-    status: q.status || "New",
-    created_at: q.createdAt || new Date().toISOString(),
-  };
-}
-
 export function mapDbQueryToStore(raw: any): ContactQuery {
   return {
     id: raw.id,
@@ -578,20 +569,8 @@ export async function fetchInitialSupabaseData(
       supabase.from("products").select("*"),
       supabase.from("categories").select("*").order("sort_order", { ascending: true }),
       supabase.from("collections").select("*").order("sort_order", { ascending: true }),
-      includePrivate
-        ? supabase
-            .from("orders")
-            .select("*")
-            .is("deleted_at", null)
-            .order("created_at", { ascending: false })
-        : Promise.resolve({ data: null, error: null }),
-      includePrivate
-        ? supabase
-            .from("queries")
-            .select("*")
-            .is("deleted_at", null)
-            .order("created_at", { ascending: false })
-        : Promise.resolve({ data: null, error: null }),
+      Promise.resolve({ data: null, error: null }),
+      Promise.resolve({ data: null, error: null }),
       supabase.from("hero_slides").select("*").order("sort_order", { ascending: true }),
       supabase.from("brands").select("*").order("sort_order", { ascending: true }),
       supabase.from("social_reels").select("*").order("sort_order", { ascending: true }),
@@ -602,9 +581,7 @@ export async function fetchInitialSupabaseData(
             .select(PUBLIC_TESTIMONIAL_COLUMNS)
             .order("sort_order", { ascending: true }),
       supabase.from("faqs").select("*").order("sort_order", { ascending: true }),
-      includePrivate
-        ? supabase.from("subscribers").select("*").order("created_at", { ascending: false })
-        : Promise.resolve({ data: null, error: null }),
+      Promise.resolve({ data: null, error: null }),
       includePrivate
         ? fetchPrivateSettings()
         : supabase
@@ -1215,22 +1192,6 @@ export async function dbDeleteFaq(id: string) {
   return deleteDatabaseRecord(supabase, "faqs", id);
 }
 
-export async function dbInsertSubscriber(subscriber: Subscriber) {
-  try {
-    const payload = sanitizeDbInput({
-      id: subscriber.id,
-      email: subscriber.email,
-    });
-    const { error } = await supabase.rpc("subscribe_email", {
-      p_id: payload.id,
-      p_email: payload.email,
-    });
-    if (error) throw error;
-  } catch (e) {
-    console.error("Failed to save subscriber to Supabase:", e);
-  }
-}
-
 export async function dbDeleteSubscriber(id: string) {
   return deleteDatabaseRecord(supabase, "subscribers", id);
 }
@@ -1299,22 +1260,8 @@ export async function dbUpsertVideo(video: VideoSettings) {
     console.error("Failed to save video settings to Supabase:", error);
   }
 }
-export async function dbInsertQuery(query: ContactQuery) {
-  try {
-    const payload = sanitizeDbInput(mapStoreQueryToDb(query));
-    const { error } = await supabase.from("queries").insert(payload);
-    if (error) throw error;
-  } catch (error) {
-    console.error("Failed to save query to Supabase:", error);
-  }
-}
-export async function dbUpdateQueryStatus(id: string, status: string) {
-  try {
-    await supabase.from("queries").update({ status }).eq("id", id).is("deleted_at", null);
-    await supabase.from("orders").update({ status }).eq("id", id).is("deleted_at", null);
-  } catch (e) {
-    console.error("Failed to update query status in Supabase:", e);
-  }
+export async function dbUpdateQueryStatus(id: string, status: ContactQuery["status"]) {
+  return updateInquiryStatus(supabase, id, status);
 }
 
 export async function dbDeleteQuery(id: string) {

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { deleteDatabaseRecord } from "../src/lib/database-delete.ts";
+import { deleteDatabaseRecord, updateInquiryStatus } from "../src/lib/database-delete.ts";
 import { createMutationQueue } from "../src/lib/mutation-queue.ts";
 
 function mockClient(
@@ -13,6 +13,7 @@ function mockClient(
     error?: boolean;
     returnedRows?: number;
     alreadyDeleted?: boolean;
+    missingQuery?: boolean;
   } = {},
 ) {
   const writes: { table: string; kind: string; filters: [string, unknown][]; patch?: unknown }[] =
@@ -66,9 +67,10 @@ function mockClient(
           return query;
         },
         maybeSingle: async () => ({
-          data: config.missing
-            ? null
-            : { id: "item", deleted_at: config.alreadyDeleted ? "2026-10-01" : null },
+          data:
+            config.missing || (config.missingQuery && table === "queries")
+              ? null
+              : { id: "item", deleted_at: config.alreadyDeleted ? "2026-10-01" : null },
           error: null,
         }),
         then: (resolve: (value: ReturnType<typeof result>) => unknown) =>
@@ -142,6 +144,27 @@ describe("database deletion safety", () => {
     const mock = mockClient({ alreadyDeleted: true });
     assert.equal(await deleteDatabaseRecord(mock.client, "queries", "item"), true);
     assert.equal(mock.writes.length, 0);
+  });
+});
+
+describe("inquiry status safety", () => {
+  it("updates only the query even if an order shares its ID", async () => {
+    const mock = mockClient();
+    assert.equal(await updateInquiryStatus(mock.client, "item", "Responded"), true);
+    assert.equal(mock.writes.length, 1);
+    assert.equal(mock.writes[0]?.table, "queries");
+  });
+  it("restricts legacy order inquiries to their form source", async () => {
+    const mock = mockClient({ missingQuery: true });
+    await updateInquiryStatus(mock.client, "item", "Archived");
+    assert.equal(mock.writes[0]?.table, "orders");
+    assert.ok(mock.writes[0]?.filters.some(([key, value]) => key === "source" && value === "form"));
+  });
+  it("rejects unconfirmed and unauthorized updates", async () => {
+    for (const config of [{ admin: false }, { returnedRows: 0 }, { error: true }]) {
+      const mock = mockClient(config);
+      await assert.rejects(updateInquiryStatus(mock.client, "item", "Responded"));
+    }
   });
 });
 

@@ -257,7 +257,7 @@ const repository: OrdersRepository = {
   },
 
   async track(reference) {
-    const { data, error } = await anonymousClient().rpc("lookup_order_by_reference", {
+    const { data, error } = await serviceClient().rpc("lookup_order_by_reference", {
       p_reference: reference,
     });
     if (error) databaseError(error);

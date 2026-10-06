@@ -14,6 +14,8 @@ import {
 import { supabase, isSupabaseConfigured } from "./supabase";
 import { invalidatePublicStorefront } from "./storefront-invalidate.ts";
 import { publicBrowserCache } from "./public-browser-cache.ts";
+import { stableCheckoutOrderIds } from "./checkout-attempt.ts";
+import { useQueryClient } from "@tanstack/react-query";
 import { isAdminActivityExpired } from "./admin-session";
 import {
   fetchInitialSupabaseData,
@@ -44,7 +46,6 @@ import {
   dbUpsertSettings,
   dbUpsertAnnouncement,
   dbUpsertVideo,
-  dbInsertQuery,
   dbUpdateQueryStatus,
   dbDeleteQuery,
   mapDbProductToStore,
@@ -182,6 +183,10 @@ interface StoreApi extends StoreState {
     idempotencyKey?: string,
     metaEvent?: MetaEventInput,
   ) => Promise<Order[] | null>;
+  rememberAdminRecords: (
+    kind: "orders" | "queries" | "subscribers" | "products",
+    rows: Array<Order | ContactQuery | Subscriber | Product>,
+  ) => void;
   /** Customer-facing lookup: every order sharing one reference code. */
   getOrdersByReference: (reference: string) => Order[];
   setOrderStatus: (orderId: string, status: OrderStatus) => Promise<boolean>;
@@ -191,8 +196,7 @@ interface StoreApi extends StoreState {
     trackingNumber: string | null,
     status?: OrderStatus,
   ) => Promise<boolean>;
-  addQuery: (data: Omit<ContactQuery, "id" | "createdAt" | "status">) => ContactQuery;
-  setQueryStatus: (id: string, status: "New" | "Responded" | "Archived") => void;
+  setQueryStatus: (id: string, status: "New" | "Responded" | "Archived") => Promise<boolean>;
   deleteQuery: (id: string) => Promise<boolean>;
   saveProduct: (product: Product) => Promise<void> | void;
   deleteProduct: (id: string) => Promise<boolean>;
@@ -419,7 +423,7 @@ function persistWithFeedback(operation: Promise<boolean>, toastId: string, label
     });
 }
 
-function parseOrderRecord(raw: any, existing?: Order): Order {
+export function parseOrderRecord(raw: any, existing?: Order): Order {
   return {
     id: raw?.id || existing?.id || "ord-" + Math.random().toString(36).slice(2, 9),
     reference:
@@ -480,6 +484,7 @@ function parseOrderRecord(raw: any, existing?: Order): Order {
 }
 
 export function StoreProvider({ children }: { children: ReactNode }) {
+  const queryClient = useQueryClient();
   // Keep the first browser render identical to SSR; cache is applied after mount.
   const [categories, setCategories] = useState<Category[]>(seedCategories);
   const [collections, setCollections] = useState<Collection[]>(seedCollections);
@@ -658,6 +663,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, []);
   useEffect(() => {
     if (isAdmin) return;
+    queryClient.removeQueries({
+      predicate: (query) =>
+        typeof query.queryKey[0] === "string" && query.queryKey[0].startsWith("admin-"),
+    });
     setOrders([]);
     setQueries([]);
     setSubscribersState([]);
@@ -1368,19 +1377,21 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const addOrders = useCallback<StoreApi["addOrders"]>(async (data, idempotencyKey, metaEvent) => {
-    const orders = data.map((entry) => {
+    const key = idempotencyKey ?? `checkout:${crypto.randomUUID()}`;
+    const ids = await stableCheckoutOrderIds(key, data.length);
+    const orders = data.map((entry, index) => {
       const { stockDeducted = false, ...rest } = entry;
       return {
         ...rest,
         reference: rest.reference?.trim() || newOrderReference(),
-        id: uid("ord"),
+        id: ids[index]!,
         createdAt: nowIso(),
         status: "New" as const,
         stockDeducted,
       };
     });
 
-    const saved = await dbInsertOrders(orders, idempotencyKey, metaEvent);
+    const saved = await dbInsertOrders(orders, key, metaEvent);
     if (!saved) return null;
     const persisted = saved.map((item) => parseOrderRecord(item));
     setOrders((prev) => [
@@ -1388,6 +1399,19 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       ...prev.filter((item) => !persisted.some((savedOrder) => savedOrder.id === item.id)),
     ]);
     return persisted;
+  }, []);
+
+  const rememberAdminRecords = useCallback<StoreApi["rememberAdminRecords"]>((kind, rows) => {
+    if (kind === "orders") setOrders(rows as Order[]);
+    else if (kind === "queries") setQueries(rows as ContactQuery[]);
+    else if (kind === "subscribers") setSubscribersState(rows as Subscriber[]);
+    else
+      setProducts((current) =>
+        [
+          ...(rows as Product[]),
+          ...current.filter((product) => !rows.some((row) => row.id === product.id)),
+        ].slice(0, 1000),
+      );
   }, []);
 
   const getOrdersByReference = useCallback<StoreApi["getOrdersByReference"]>(
@@ -1451,21 +1475,15 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     [],
   );
 
-  const addQuery = useCallback<StoreApi["addQuery"]>((data) => {
-    const query: ContactQuery = {
-      ...data,
-      id: uid("qry"),
-      createdAt: nowIso(),
-      status: "New",
-    };
-    setQueries((prev) => [query, ...prev]);
-    dbInsertQuery(query);
-    return query;
-  }, []);
-
-  const setQueryStatus = useCallback<StoreApi["setQueryStatus"]>((id, status) => {
-    setQueries((prev) => prev.map((q) => (q.id === id ? { ...q, status } : q)));
-    dbUpdateQueryStatus(id, status);
+  const setQueryStatus = useCallback<StoreApi["setQueryStatus"]>(async (id, status) => {
+    try {
+      if (isSupabaseConfigured && !(await dbUpdateQueryStatus(id, status))) return false;
+      setQueries((prev) => prev.map((q) => (q.id === id ? { ...q, status } : q)));
+      return true;
+    } catch {
+      toast.error("Status could not be saved. Check your connection and admin permissions.");
+      return false;
+    }
   }, []);
 
   const deleteQuery = useCallback<StoreApi["deleteQuery"]>((id) => {
@@ -2239,10 +2257,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       stockStatus,
       addOrder,
       addOrders,
+      rememberAdminRecords,
       getOrdersByReference,
       setOrderStatus,
       updateOrderCourier,
-      addQuery,
       setQueryStatus,
       deleteQuery,
       saveProduct,
@@ -2317,10 +2335,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       stockStatus,
       addOrder,
       addOrders,
+      rememberAdminRecords,
       getOrdersByReference,
       setOrderStatus,
       updateOrderCourier,
-      addQuery,
       setQueryStatus,
       deleteQuery,
       saveProduct,

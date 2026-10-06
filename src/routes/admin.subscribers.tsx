@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { CheckCircle2, Copy, Download, Mail, Search, Trash2 } from "lucide-react";
 import { toast } from "sonner";
@@ -7,54 +7,81 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useStore } from "@/lib/store";
+import { useAdminRecords, fetchAdminRecords } from "@/lib/admin-records";
+import { RecordPagination } from "@/components/admin/RecordPagination";
 
 export const Route = createFileRoute("/admin/subscribers")({
   component: AdminSubscribers,
 });
 
 function AdminSubscribers() {
-  const { subscribers, deleteSubscriber } = useStore();
+  const { deleteSubscriber } = useStore();
   const [searchQuery, setSearchQuery] = useState("");
-
-  const filteredSubscribers = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase();
-    if (!q) return subscribers;
-    return subscribers.filter((s) => s.email.toLowerCase().includes(q));
-  }, [subscribers, searchQuery]);
-
-  const handleCopyAllEmails = () => {
-    if (!subscribers.length) {
-      toast.error("No subscribers to copy.");
-      return;
+  const [exporting, setExporting] = useState(false);
+  const records = useAdminRecords("subscribers", searchQuery);
+  const filteredSubscribers = records.rows;
+  const subscribers = records.rows;
+  const loadAll = async () => {
+    const all = [];
+    for (let page = 1; page <= 20000; page++) {
+      const batch = await fetchAdminRecords("subscribers", page);
+      all.push(...batch.rows);
+      if (all.length >= batch.total) return all;
+      if (batch.rows.length === 0) throw new Error("Subscriber list changed. Retry the export.");
     }
-    const allEmails = subscribers.map((s) => s.email).join(", ");
-    navigator.clipboard.writeText(allEmails);
-    toast.success(
-      `Copied ${subscribers.length} subscriber email${subscribers.length > 1 ? "s" : ""} to clipboard!`,
-    );
+    throw new Error("Subscriber export is too large.");
   };
 
-  const handleExportCSV = () => {
-    if (!subscribers.length) {
-      toast.error("No subscribers to export.");
-      return;
+  const handleCopyAllEmails = async () => {
+    setExporting(true);
+    try {
+      const subscribers = await loadAll();
+      if (!subscribers.length) {
+        toast.error("No subscribers to copy.");
+        return;
+      }
+      const allEmails = subscribers.map((s) => s.email).join(", ");
+      await navigator.clipboard.writeText(allEmails);
+      toast.success(
+        `Copied ${subscribers.length} subscriber email${subscribers.length > 1 ? "s" : ""} to clipboard!`,
+      );
+    } catch {
+      toast.error("Subscribers could not be copied. Please retry.");
+    } finally {
+      setExporting(false);
     }
-    const header = "Email,Date Subscribed,Status\n";
-    const rows = subscribers
-      .map(
-        (s) =>
-          `"${s.email}","${new Date(s.createdAt).toLocaleDateString()}","${s.status || "Active"}"`,
-      )
-      .join("\n");
-    const blob = new Blob([header + rows], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute("download", `subscribers_${new Date().toISOString().slice(0, 10)}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    toast.success("Subscribers list exported as CSV.");
+  };
+
+  const handleExportCSV = async () => {
+    setExporting(true);
+    try {
+      const subscribers = await loadAll();
+      if (!subscribers.length) {
+        toast.error("No subscribers to export.");
+        return;
+      }
+      const header = "Email,Date Subscribed,Status\n";
+      const rows = subscribers
+        .map(
+          (s) =>
+            `"${s.email}","${new Date(s.createdAt).toLocaleDateString()}","${s.status || "Active"}"`,
+        )
+        .join("\n");
+      const blob = new Blob([header + rows], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", `subscribers_${new Date().toISOString().slice(0, 10)}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      toast.success("Subscribers list exported as CSV.");
+    } catch {
+      toast.error("Subscribers could not be exported. Please retry.");
+    } finally {
+      setExporting(false);
+    }
   };
 
   return (
@@ -75,11 +102,21 @@ function AdminSubscribers() {
         </div>
 
         <div className="flex items-center gap-2">
-          <Button variant="outline" className="rounded-full text-xs" onClick={handleCopyAllEmails}>
-            <Copy className="mr-1.5 h-3.5 w-3.5" /> Copy All Emails ({subscribers.length})
+          <Button
+            variant="outline"
+            className="rounded-full text-xs"
+            disabled={exporting}
+            onClick={handleCopyAllEmails}
+          >
+            <Copy className="mr-1.5 h-3.5 w-3.5" /> Copy All Emails
           </Button>
 
-          <Button variant="outline" className="rounded-full text-xs" onClick={handleExportCSV}>
+          <Button
+            variant="outline"
+            className="rounded-full text-xs"
+            disabled={exporting}
+            onClick={handleExportCSV}
+          >
             <Download className="mr-1.5 h-3.5 w-3.5" /> Export CSV
           </Button>
         </div>
@@ -98,8 +135,7 @@ function AdminSubscribers() {
         </div>
 
         <div className="text-xs text-ink-muted">
-          Total Subscribers:{" "}
-          <span className="font-semibold text-foreground">{subscribers.length}</span>
+          Total Subscribers: <span className="font-semibold text-foreground">{records.total}</span>
         </div>
       </div>
 
@@ -174,10 +210,12 @@ function AdminSubscribers() {
                           variant="ghost"
                           className="h-8 w-8 text-destructive hover:bg-destructive/10 rounded-lg"
                           title="Delete Subscriber"
-                          onClick={() => {
+                          onClick={async () => {
                             if (confirm(`Remove ${s.email} from subscribers?`)) {
-                              deleteSubscriber(s.id);
-                              toast.success("Subscriber removed.");
+                              if (await deleteSubscriber(s.id)) {
+                                toast.success("Subscriber removed.");
+                                void records.refetch();
+                              }
                             }
                           }}
                         >
@@ -192,6 +230,14 @@ function AdminSubscribers() {
           </div>
         </div>
       )}
+      <RecordPagination
+        page={records.page}
+        total={records.total}
+        busy={records.isFetching}
+        error={records.error}
+        onPage={records.setPage}
+        onRefresh={() => void records.refetch()}
+      />
     </div>
   );
 }

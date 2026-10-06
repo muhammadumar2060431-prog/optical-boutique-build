@@ -33,6 +33,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { getProductSubImages } from "@/lib/product-images";
 import { formatPrice, newId, useStore } from "@/lib/store";
 import type { Category, Collection, Product, Variant } from "@/lib/types";
+import { useAdminRecords } from "@/lib/admin-records";
+import { RecordPagination } from "@/components/admin/RecordPagination";
 
 export const Route = createFileRoute("/admin/products")({
   component: AdminProducts,
@@ -105,40 +107,19 @@ function AdminProducts() {
 }
 
 function ProductsTab() {
-  const {
-    products,
-    categories,
-    collections,
-    saveProduct,
-    deleteProduct,
-    moveProduct,
-    productStock,
-  } = useStore();
+  const { categories, collections, saveProduct, deleteProduct, moveProduct, productStock } =
+    useStore();
   const [query, setQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [collectionFilter, setCollectionFilter] = useState("all");
   const [draft, setDraft] = useState<Product | null>(null);
+  const records = useAdminRecords("products", query, "all", categoryFilter, collectionFilter);
+  const list = records.rows;
 
   const availableCollections = useMemo(() => {
     if (categoryFilter === "all") return collections;
     return collections.filter((c) => c.categoryId === categoryFilter);
   }, [collections, categoryFilter]);
-
-  const list = useMemo(
-    () =>
-      products.filter((p) => {
-        if (
-          query &&
-          !p.name.toLowerCase().includes(query.toLowerCase()) &&
-          !p.sku?.toLowerCase().includes(query.toLowerCase())
-        )
-          return false;
-        if (categoryFilter !== "all" && p.categoryId !== categoryFilter) return false;
-        if (collectionFilter !== "all" && p.collectionId !== collectionFilter) return false;
-        return true;
-      }),
-    [products, query, categoryFilter, collectionFilter],
-  );
 
   return (
     <div className="space-y-4">
@@ -203,6 +184,14 @@ function ProductsTab() {
         </Button>
       </div>
 
+      <RecordPagination
+        page={records.page}
+        total={records.total}
+        busy={records.isFetching}
+        error={records.error}
+        onPage={records.setPage}
+        onRefresh={() => void records.refetch()}
+      />
       {list.length === 0 ? (
         <div className="rounded-xl border border-dashed border-[#666666] bg-[#f9f9f9] px-6 py-16 text-center">
           <p className="text-sm font-semibold mb-2">No products found</p>
@@ -334,7 +323,10 @@ function ProductsTab() {
                           aria-label="Delete product"
                           onClick={async () => {
                             if (confirm(`Delete "${p.name}"? This cannot be undone.`)) {
-                              if (await deleteProduct(p.id)) toast.success("Product deleted.");
+                              if (await deleteProduct(p.id)) {
+                                toast.success("Product deleted.");
+                                await records.refetch();
+                              }
                             }
                           }}
                         >
@@ -355,6 +347,7 @@ function ProductsTab() {
         onClose={() => setDraft(null)}
         onSave={async (p) => {
           await saveProduct(p);
+          await records.refetch();
           setDraft(null);
           toast.success("Product and angle images saved successfully.");
         }}

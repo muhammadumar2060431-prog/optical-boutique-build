@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { toast } from "sonner";
 import {
@@ -27,6 +27,8 @@ import {
 import { WhatsAppIcon } from "@/components/site/WhatsAppIcon";
 import { useStore } from "@/lib/store";
 import type { ContactQuery } from "@/lib/types";
+import { useAdminRecords } from "@/lib/admin-records";
+import { RecordPagination } from "@/components/admin/RecordPagination";
 
 export const Route = createFileRoute("/admin/queries")({
   component: AdminQueries,
@@ -231,44 +233,29 @@ function QueryDetailsModal({
 }
 
 function AdminQueries() {
-  const { queries, setQueryStatus, deleteQuery, settings } = useStore();
+  const { setQueryStatus, deleteQuery, settings } = useStore();
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [selected, setSelected] = useState<ContactQuery | null>(null);
 
-  const filtered = useMemo(
-    () =>
-      queries.filter((q) => {
-        if (statusFilter !== "all" && q.status !== statusFilter) return false;
-        if (searchQuery) {
-          const needle = searchQuery.toLowerCase();
-          if (
-            !q.name.toLowerCase().includes(needle) &&
-            !q.contact.toLowerCase().includes(needle) &&
-            !q.productName.toLowerCase().includes(needle) &&
-            !q.message.toLowerCase().includes(needle)
-          ) {
-            return false;
-          }
-        }
-        return true;
-      }),
-    [queries, statusFilter, searchQuery],
-  );
+  const records = useAdminRecords("queries", searchQuery, statusFilter);
+  const filtered = records.rows;
 
-  const changeStatus = (query: ContactQuery, nextStatus: ContactQuery["status"]) => {
-    setQueryStatus(query.id, nextStatus);
+  const changeStatus = async (query: ContactQuery, nextStatus: ContactQuery["status"]) => {
+    if (!(await setQueryStatus(query.id, nextStatus))) return;
     setSelected((prev) => (prev && prev.id === query.id ? { ...prev, status: nextStatus } : prev));
     toast.success(`Query marked as ${nextStatus}`);
+    void records.refetch();
   };
 
-  const handleDelete = (query: ContactQuery) => {
+  const handleDelete = async (query: ContactQuery) => {
     if (!window.confirm(`Archive and remove the inquiry from "${query.name}"?`)) {
       return;
     }
-    deleteQuery(query.id);
+    if (!(await deleteQuery(query.id))) return;
     setSelected(null);
     toast.success("Inquiry archived");
+    void records.refetch();
   };
 
   return (
@@ -281,7 +268,7 @@ function AdminQueries() {
         <div className="flex items-center gap-2 rounded-xl border border-stone/30 bg-zinc-50 px-4 py-2 text-xs font-medium text-zinc-600">
           <MessageSquare className="h-4 w-4 text-gold shrink-0" />
           <span>
-            Total Queries: <strong>{queries.length}</strong>
+            Total Queries: <strong>{records.total}</strong>
           </span>
         </div>
       </header>
@@ -374,6 +361,14 @@ function AdminQueries() {
         </div>
       )}
 
+      <RecordPagination
+        page={records.page}
+        total={records.total}
+        busy={records.isFetching}
+        error={records.error}
+        onPage={records.setPage}
+        onRefresh={() => void records.refetch()}
+      />
       <Dialog open={!!selected} onOpenChange={(v) => !v && setSelected(null)}>
         <DialogContent className="max-w-2xl overflow-hidden p-0 rounded-2xl border-zinc-200 bg-white shadow-2xl">
           {selected && (

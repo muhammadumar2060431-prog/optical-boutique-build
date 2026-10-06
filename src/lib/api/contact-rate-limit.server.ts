@@ -2,6 +2,7 @@ import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
 
 import { logger } from "./logger.server.ts";
+import { clientAddress } from "./client-address.ts";
 
 export interface ContactRateLimitResult {
   success: boolean;
@@ -40,16 +41,6 @@ function getContactLimiter() {
     prefix: "optique:contact",
   });
   return contactLimiter;
-}
-
-function clientAddress(request: Request) {
-  return (
-    request.headers.get("x-vercel-forwarded-for")?.split(",")[0]?.trim() ??
-    request.headers.get("cf-connecting-ip")?.trim() ??
-    request.headers.get("x-real-ip")?.trim() ??
-    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
-    "unknown"
-  );
 }
 
 async function sha256(value: string) {

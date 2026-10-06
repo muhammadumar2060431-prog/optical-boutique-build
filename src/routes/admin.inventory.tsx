@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { Minus, Plus } from "lucide-react";
 import { toast } from "sonner";
@@ -14,16 +14,20 @@ import {
 } from "@/components/ui/select";
 import { useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
+import { useAdminRecords } from "@/lib/admin-records";
+import { RecordPagination } from "@/components/admin/RecordPagination";
 
 export const Route = createFileRoute("/admin/inventory")({
   component: AdminInventory,
 });
 
 function AdminInventory() {
-  const { getInventoryRows, updateStock, settings, categories } = useStore();
+  const { updateStock, settings, categories } = useStore();
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("all");
   const [status, setStatus] = useState("all");
+  const records = useAdminRecords("inventory", query, status, category);
+  const rows = records.rows;
 
   const handleStockChange = async (
     productId: string,
@@ -37,19 +41,9 @@ function AdminInventory() {
     }
     if (await updateStock(productId, variantId, safe)) {
       toast.success(`"${productName}" stock updated to ${safe}.`);
+      await records.refetch();
     }
   };
-
-  const rows = useMemo(
-    () =>
-      getInventoryRows().filter((r) => {
-        if (query && !r.name.toLowerCase().includes(query.toLowerCase())) return false;
-        if (category !== "all" && r.categoryName !== category) return false;
-        if (status !== "all" && r.status !== status) return false;
-        return true;
-      }),
-    [getInventoryRows, query, category, status],
-  );
 
   return (
     <div className="space-y-6">
@@ -100,6 +94,14 @@ function AdminInventory() {
         </Select>
       </div>
 
+      <RecordPagination
+        page={records.page}
+        total={records.total}
+        busy={records.isFetching}
+        error={records.error}
+        onPage={records.setPage}
+        onRefresh={() => void records.refetch()}
+      />
       {rows.length === 0 ? (
         <p className="rounded-xl border border-dashed border-[#666666] bg-[#f9f9f9] px-6 py-16 text-center text-sm text-ink-muted">
           Nothing matches this view. Clear the filters to see all stock.

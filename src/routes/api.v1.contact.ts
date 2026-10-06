@@ -6,7 +6,7 @@ import { withApi } from "@/lib/api/http.server";
 const postContact = withApi(({ request }) => contactHandler(request), {
   name: "api.v1.contact.create",
   methods: ["POST"],
-  rateLimit: { max: 5, windowMs: 60 * 60 * 1_000 },
+  rateLimit: { max: 5, windowMs: 60 * 60 * 1_000, distributed: true, failClosed: true },
 });
 
 export const Route = createFileRoute("/api/v1/contact")({

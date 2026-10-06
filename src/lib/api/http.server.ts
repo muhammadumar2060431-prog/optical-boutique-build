@@ -2,6 +2,8 @@ import { captureException } from "@sentry/tanstackstart-react";
 import { ZodError } from "zod";
 
 import { logger } from "./logger.server.ts";
+import { limitApiRequests } from "./distributed-rate-limit.server.ts";
+import { clientAddress } from "./client-address.ts";
 
 type ApiHandler = (context: {
   request: Request;
@@ -10,7 +12,7 @@ type ApiHandler = (context: {
 
 interface ApiOptions {
   name: string;
-  rateLimit?: { max: number; windowMs: number };
+  rateLimit?: { max: number; windowMs: number; distributed?: boolean; failClosed?: boolean };
   methods?: string[];
 }
 
@@ -48,15 +50,6 @@ function corsOrigin(request: Request) {
   const origin = request.headers.get("origin");
   if (!origin) return null;
   return configuredOrigins(request).has(origin.replace(/\/$/, "")) ? origin : undefined;
-}
-
-function clientAddress(request: Request) {
-  return (
-    request.headers.get("cf-connecting-ip") ??
-    request.headers.get("x-real-ip") ??
-    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
-    "unknown"
-  );
 }
 
 function applyHeaders(response: Response, requestId: string, origin: string | null) {
@@ -178,7 +171,11 @@ function publicError(error: unknown, requestId: string) {
   );
 }
 
-export function withApi(handler: ApiHandler, options: ApiOptions) {
+export function withApi(
+  handler: ApiHandler,
+  options: ApiOptions,
+  distributedLimiter = limitApiRequests,
+) {
   return async ({ request }: { request: Request }) => {
     const startedAt = Date.now();
     const requestId = getRequestId(request);
@@ -199,8 +196,26 @@ export function withApi(handler: ApiHandler, options: ApiOptions) {
       );
     } else {
       const limit = options.rateLimit ?? { max: 60, windowMs: 60_000 };
-      const rate = rateLimit(request, options.name, limit.max, limit.windowMs);
-      if (!rate.allowed) {
+      let rate = rateLimit(request, options.name, limit.max, limit.windowMs);
+      let rateUnavailable = false;
+      if (rate.allowed && options.rateLimit?.distributed) {
+        const sharedRate = await distributedLimiter(
+          options.name,
+          clientAddress(request),
+          limit.max,
+          limit.windowMs,
+        );
+        rateUnavailable = sharedRate === null && Boolean(options.rateLimit.failClosed);
+        rate = sharedRate ?? rate;
+      }
+      if (rateUnavailable) {
+        response = json(
+          {
+            error: { code: "SERVICE_UNAVAILABLE", message: "Please try again shortly.", requestId },
+          },
+          { status: 503, headers: { "Retry-After": "30" } },
+        );
+      } else if (!rate.allowed) {
         response = json(
           {
             error: {

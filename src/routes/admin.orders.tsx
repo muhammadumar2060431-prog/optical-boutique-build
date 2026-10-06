@@ -34,6 +34,8 @@ import { WhatsAppIcon } from "@/components/site/WhatsAppIcon";
 import { SUPPORTED_COURIERS, getCourierTrackingUrl } from "@/lib/couriers";
 import { useStore } from "@/lib/store";
 import type { Order, OrderStatus } from "@/lib/types";
+import { useAdminRecords } from "@/lib/admin-records";
+import { RecordPagination } from "@/components/admin/RecordPagination";
 
 export const Route = createFileRoute("/admin/orders")({
   component: AdminOrders,
@@ -670,31 +672,14 @@ function OrderDetailsModal({
 }
 
 function AdminOrders() {
-  const { orders, setOrderStatus, settings } = useStore();
+  const { setOrderStatus, settings } = useStore();
   const [status, setStatus] = useState<string>("all");
   const [source, setSource] = useState<string>("all");
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<Order | null>(null);
 
-  const filtered = useMemo(
-    () =>
-      orders.filter((o) => {
-        if (o.source === "form") return false;
-        if (status !== "all" && o.status !== status) return false;
-        if (source !== "all" && o.source !== source) return false;
-        if (query) {
-          const q = query.toLowerCase();
-          if (
-            !o.customerName.toLowerCase().includes(q) &&
-            !o.productName.toLowerCase().includes(q) &&
-            !(o.reference || "").toLowerCase().includes(q)
-          )
-            return false;
-        }
-        return true;
-      }),
-    [orders, status, source, query],
-  );
+  const records = useAdminRecords("orders", query, status, source);
+  const filtered = records.rows;
 
   const change = async (order: Order, next: OrderStatus) => {
     if (
@@ -708,6 +693,7 @@ function AdminOrders() {
       return;
     }
     setSelected((prev) => (prev && prev.id === order.id ? { ...prev, status: next } : prev));
+    void records.refetch();
     toast.success(
       next === "Completed"
         ? "Marked as sold — stock updated in Inventory."
@@ -865,6 +851,14 @@ function AdminOrders() {
         </div>
       )}
 
+      <RecordPagination
+        page={records.page}
+        total={records.total}
+        busy={records.isFetching}
+        error={records.error}
+        onPage={records.setPage}
+        onRefresh={() => void records.refetch()}
+      />
       <Dialog open={!!selected} onOpenChange={(v) => !v && setSelected(null)}>
         <DialogContent
           key={selected?.id}

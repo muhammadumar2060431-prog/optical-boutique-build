@@ -6,3 +6,6 @@ enable_anonymous_sign_ins = false
 
 [functions.resend-emails]
 verify_jwt = false
+
+[functions.notification-worker]
+verify_jwt = false

@@ -6,7 +6,7 @@ import { withApi } from "@/lib/api/http.server";
 const createReview = withApi(({ request }) => productReviewHandler(request), {
   name: "api.v1.reviews.create",
   methods: ["POST"],
-  rateLimit: { max: 3, windowMs: 60 * 60_000 },
+  rateLimit: { max: 3, windowMs: 60 * 60_000, distributed: true, failClosed: true },
 });
 
 export const Route = createFileRoute("/api/v1/reviews")({

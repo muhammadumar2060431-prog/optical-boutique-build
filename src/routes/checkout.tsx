@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useCart } from "@/lib/cart";
 import { formatPrice, newOrderReference, useStore } from "@/lib/store";
 import { saveOrderReceipt } from "@/lib/last-order";
+import { reuseCheckoutAttempt, type CheckoutAttempt } from "@/lib/checkout-attempt";
 import {
   createMetaEventId,
   splitMetaName,
@@ -75,6 +76,7 @@ const checkoutSchema = z.object({
 
 type FieldName = "name" | "email" | "phone" | "address" | "notes";
 type Errors = Partial<Record<FieldName, string>>;
+type NewOrderInput = Parameters<ReturnType<typeof useStore>["addOrders"]>[0][number];
 
 function CheckoutPage() {
   const { items, subtotal, clearCart, hydrated } = useCart();
@@ -86,8 +88,14 @@ function CheckoutPage() {
   const [touched, setTouched] = useState<Partial<Record<FieldName, boolean>>>({});
   const [submitting, setSubmitting] = useState(false);
   const submittingRef = useRef(false);
-  const idempotencyKeyRef = useRef("checkout:" + crypto.randomUUID());
-  const purchaseEventIdRef = useRef(createMetaEventId("purchase"));
+  const attemptRef = useRef<CheckoutAttempt<{
+    reference: string;
+    purchaseEvent: Parameters<typeof trackMetaBrowserEvent>[0] & {
+      eventId: string;
+      eventSourceUrl: string;
+    };
+    orders: NewOrderInput[];
+  }> | null>(null);
   const initiateCheckoutTrackedRef = useRef(false);
 
   useEffect(() => {
@@ -145,53 +153,70 @@ function CheckoutPage() {
     submittingRef.current = true;
     setSubmitting(true);
 
-    const reference = newOrderReference();
-    const { firstName, lastName } = splitMetaName(values.name);
-    const purchaseEvent = {
-      eventName: "Purchase" as const,
-      eventId: purchaseEventIdRef.current,
-      eventSourceUrl: window.location.href,
-      userData: {
-        email: values.email,
-        phone: values.phone,
-        firstName,
-        ...(lastName ? { lastName } : {}),
-        externalId: reference,
-      },
-      customData: {
-        value: subtotal,
-        currency: "PKR",
-        contentIds: items.map((item) => item.productId),
-        contentType: "product",
-        contentName: "Order " + reference,
-        numItems: items.reduce((total, item) => total + item.qty, 0),
-      },
-    };
-    const contact = [values.phone.trim(), values.email.trim()].filter(Boolean).join(" · ");
+    const attempt = reuseCheckoutAttempt(
+      JSON.stringify({ values, items }),
+      attemptRef.current,
+      () => {
+        const reference = newOrderReference();
+        const { firstName, lastName } = splitMetaName(values.name);
+        const purchaseEvent = {
+          eventName: "Purchase" as const,
+          eventId: createMetaEventId("purchase"),
+          eventSourceUrl: window.location.href,
+          userData: {
+            email: values.email,
+            phone: values.phone,
+            firstName,
+            ...(lastName ? { lastName } : {}),
+            externalId: reference,
+          },
+          customData: {
+            value: subtotal,
+            currency: "PKR",
+            contentIds: items.map((item) => item.productId),
+            contentType: "product",
+            contentName: "Order " + reference,
+            numItems: items.reduce((total, item) => total + item.qty, 0),
+          },
+        };
+        const contact = [values.phone.trim(), values.email.trim()].filter(Boolean).join(" · ");
 
-    const savedOrders = await addOrders(
-      items.map((item) => ({
-        customerName: values.name.trim(),
-        contact,
-        productId: item.productId,
-        productName: item.name,
-        variantId: item.variantId,
-        variantLabel: item.variantLabel,
-        quantity: item.qty,
-        message: [
-          `Checkout order ${reference} — quantity ${item.qty} (${formatPrice(item.price * item.qty)}).`,
-          `Delivery address: ${values.address.trim()}`,
-          values.notes.trim() ? `Customer notes: ${values.notes.trim()}` : "",
-        ]
-          .filter(Boolean)
-          .join("\n"),
-        reference,
-        source: "cart",
-        stockDeducted: false,
-      })),
-      idempotencyKeyRef.current,
-      purchaseEvent,
+        return {
+          reference,
+          purchaseEvent,
+          orders: items.map((item) => ({
+            customerName: values.name.trim(),
+            contact,
+            productId: item.productId,
+            productName: item.name,
+            variantId: item.variantId,
+            variantLabel: item.variantLabel,
+            quantity: item.qty,
+            message: [
+              `Checkout order ${reference} — quantity ${item.qty} (${formatPrice(item.price * item.qty)}).`,
+              `Delivery address: ${values.address.trim()}`,
+              values.notes.trim() ? `Customer notes: ${values.notes.trim()}` : "",
+            ]
+              .filter(Boolean)
+              .join("\n"),
+            reference,
+            source: "cart" as const,
+            stockDeducted: false,
+          })),
+        };
+      },
     );
+    attemptRef.current = attempt;
+    const { reference, purchaseEvent } = attempt.payload;
+    let savedOrders;
+    try {
+      savedOrders = await addOrders(attempt.payload.orders, attempt.key, purchaseEvent);
+    } catch {
+      savedOrders = null;
+    } finally {
+      submittingRef.current = false;
+      setSubmitting(false);
+    }
 
     if (!savedOrders) {
       submittingRef.current = false;

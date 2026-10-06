@@ -6,7 +6,7 @@ import { withApi } from "@/lib/api/http.server";
 const createSubscriber = withApi(({ request }) => subscriberHandler(request), {
   name: "api.v1.subscribers.create",
   methods: ["POST"],
-  rateLimit: { max: 3, windowMs: 60 * 60_000 },
+  rateLimit: { max: 3, windowMs: 60 * 60_000, distributed: true, failClosed: true },
 });
 
 export const Route = createFileRoute("/api/v1/subscribers")({
