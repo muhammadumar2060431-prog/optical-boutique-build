@@ -1,3 +1,8 @@
+BEGIN;
+
+ALTER TABLE public.faqs
+  ADD COLUMN IF NOT EXISTS show_on_home boolean NOT NULL DEFAULT false;
+
 ALTER TABLE public.faqs
   ADD COLUMN IF NOT EXISTS show_on_pages text[] NOT NULL DEFAULT '{}';
 
@@ -6,5 +11,12 @@ SET show_on_pages = ARRAY['home']
 WHERE show_on_home = true AND show_on_pages = '{}';
 
 ALTER TABLE public.faqs
+  DROP CONSTRAINT IF EXISTS faqs_valid_page_placements;
+
+ALTER TABLE public.faqs
   ADD CONSTRAINT faqs_valid_page_placements
   CHECK (show_on_pages <@ ARRAY['home', 'about', 'contact', 'cart', 'checkout', 'tracking']::text[]);
+
+NOTIFY pgrst, 'reload schema';
+
+COMMIT;

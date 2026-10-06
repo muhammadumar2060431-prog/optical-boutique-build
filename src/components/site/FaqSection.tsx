@@ -125,13 +125,7 @@ export function FaqSection({ isHomepage = false }: FaqSectionProps) {
               </Button>
             </div>
           ) : (
-            <div
-              className={
-                isHomepage
-                  ? "max-h-[32rem] space-y-3.5 overflow-y-auto overscroll-contain p-1"
-                  : "space-y-3.5"
-              }
-            >
+            <div className={isHomepage ? "space-y-3.5 p-1" : "space-y-3.5"}>
               {filteredFaqs.map((faq, index) => {
                 const isOpen = openId === faq.id;
                 return (

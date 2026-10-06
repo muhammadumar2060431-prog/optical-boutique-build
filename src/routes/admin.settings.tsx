@@ -26,6 +26,7 @@ function AdminSettings() {
   const [city, setCity] = useState("");
   const [updatingCredentials, setUpdatingCredentials] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [savingSettings, setSavingSettings] = useState(false);
 
   useEffect(() => {
     setForm(settings);
@@ -90,7 +91,11 @@ function AdminSettings() {
         throw new Error(payload.error?.message ?? "Unable to update credentials.");
       }
 
-      if (emailChanged) updateSettings({ adminEmail: form.adminEmail.trim() });
+      if (emailChanged && !(await updateSettings({ adminEmail: form.adminEmail.trim() }))) {
+        throw new Error(
+          "Login credentials updated, but the settings email could not be saved. Retry saving settings.",
+        );
+      }
       setNewPassword("");
       setSchool("");
       setFriend("");
@@ -134,14 +139,18 @@ function AdminSettings() {
 
         <Button
           className="min-h-11 rounded-full"
-          disabled={uploadingLogo}
-          onClick={() => {
+          disabled={uploadingLogo || savingSettings}
+          onClick={async () => {
             if (!window.confirm("Are you sure you want to save these settings?")) return;
-            updateSettings(form);
-            toast.success("Settings saved. The storefront is already showing them.");
+            setSavingSettings(true);
+            try {
+              if (await updateSettings(form)) toast.success("Settings saved.");
+            } finally {
+              setSavingSettings(false);
+            }
           }}
         >
-          Save settings
+          {savingSettings ? "Saving..." : "Save settings"}
         </Button>
       </div>
 

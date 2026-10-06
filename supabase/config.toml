@@ -3,6 +3,10 @@ project_id = "jebzcorqtizjakontrrl"
 [auth]
 enable_signup = false
 enable_anonymous_sign_ins = false
+minimum_password_length = 10
+
+[auth.email]
+secure_password_change = true
 
 [functions.resend-emails]
 verify_jwt = false

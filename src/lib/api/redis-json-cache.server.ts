@@ -15,7 +15,7 @@ function getRedis() {
           url,
           token,
           retry: { retries: 0 },
-          signal: () => AbortSignal.timeout(15_000),
+          signal: () => AbortSignal.timeout(2_000),
         })
       : null;
   return redisClient;

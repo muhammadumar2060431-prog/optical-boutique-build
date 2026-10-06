@@ -230,7 +230,7 @@ interface StoreApi extends StoreState {
   lockChannel: (channel: string) => void;
   submitVideoUrl: (url: string) => { ok: boolean; error?: string };
   updateVideoCaption: (caption: string) => void;
-  updateSettings: (patch: Partial<StoreSettings>) => void;
+  updateSettings: (patch: Partial<StoreSettings>) => Promise<boolean>;
   saveBrand: (brand: Brand) => void;
   deleteBrand: (id: string) => Promise<boolean>;
   moveBrand: (id: string, dir: -1 | 1) => void;
@@ -309,6 +309,7 @@ function parseYouTubeChannel(url: string): string | null {
 // Keys that come from Supabase: expire after 24h to force a fresh fetch.
 // Orders, settings, subscribers: never expire (always synced live from Supabase).
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+const STOREFRONT_LOAD_TIMEOUT_MS = 8_000;
 const NO_EXPIRY_KEYS = new Set([
   "orders",
   "queries",
@@ -769,6 +770,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
     let isSubscribed = true;
 
+    const loadingTimer = window.setTimeout(() => {
+      if (isSubscribed) setStorefrontReady(true);
+    }, STOREFRONT_LOAD_TIMEOUT_MS);
+
     async function initSupabaseData() {
       // 1. Fetch fresh synchronized data
       const data = await fetchInitialSupabaseData();
@@ -845,6 +850,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     void initSupabaseData()
       .catch(() => undefined)
       .finally(() => {
+        window.clearTimeout(loadingTimer);
         if (isSubscribed) setStorefrontReady(true);
       });
 
@@ -1064,6 +1070,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
     return () => {
       isSubscribed = false;
+      window.clearTimeout(loadingTimer);
       supabase.removeChannel(channel);
     };
   }, [hydrated]);
@@ -1881,13 +1888,23 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  const updateSettings = useCallback<StoreApi["updateSettings"]>((patch) => {
-    setSettings((prev) => {
-      const next = { ...prev, ...patch };
-      dbUpsertSettings(next);
-      return next;
-    });
-  }, []);
+  const updateSettings = useCallback<StoreApi["updateSettings"]>(
+    async (patch) => {
+      const next = { ...settings, ...patch };
+      if (isSupabaseConfigured && !(await dbUpsertSettings(next))) {
+        toast.error("Settings could not be saved. Check your connection and admin permissions.");
+        return false;
+      }
+      setSettings(next);
+      if (isSupabaseConfigured && !(await invalidatePublicStorefront(supabase))) {
+        toast.warning(
+          "Settings saved. Public cache refresh failed; updates may take up to 2 minutes.",
+        );
+      }
+      return true;
+    },
+    [settings],
+  );
 
   const saveBrand = useCallback<StoreApi["saveBrand"]>((brand) => {
     const fullBrand: Brand = {
@@ -1995,6 +2012,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       saveItem("faqs", next);
       return next;
     });
+    if (isSupabaseConfigured && !(await invalidatePublicStorefront(supabase))) {
+      toast.warning("FAQ saved. Public cache refresh failed; updates may take up to 2 minutes.");
+    }
     return true;
   }, []);
 

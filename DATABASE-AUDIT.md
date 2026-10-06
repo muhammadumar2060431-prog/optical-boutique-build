@@ -1,5 +1,35 @@
 # Database and Storage Audit
 
+## Production Follow-up (2026-10-05 Asia/Karachi)
+
+This section supersedes earlier pending-status statements. Release status remains BLOCKED on the items below; this audit does not claim complete production readiness.
+
+### Verified And Fixed
+
+- Management access works. Live FAQ page placements are installed: 23 enabled FAQs, including eight homepage placements. FAQ saves now require a verified admin and a returned database row; successful saves invalidate the public cache.
+- Fixed inquiry status updates that could change both a query and a customer order sharing an ID. Legacy inquiry updates are restricted to `source = 'form'`. Inquiry delete/status success and settings-save success now wait for database confirmation; failed operations retain the local state.
+- Removed inner FAQ scrolling on all public placements. Fourteen desktop/mobile page checks passed, including all 23 FAQs and answer expansion, with no horizontal overflow. A blocked storefront API successfully falls back to public database reads.
+- Storefront loading is bounded without discarding late database results. The browser API request times out after six seconds and falls back to public database reads; Redis cache operations time out after two seconds instead of fifteen.
+- Added shared Redis throttles to review/subscription submissions and order tracking. Automated tests cover distributed denial before writes and local fallback during Redis outages. A live Redis probe confirmed the second synthetic request was denied; its keys expire automatically.
+- Applied `20261005140000_video_read_policy.sql` to deny disabled-video reads by signed-in non-admins. The same transaction verified unchanged fingerprints for 22 application/Storage relations. Independent live policy verification passed.
+- Native Auth previously accepted six-character new passwords with password-change reauthentication disabled. Set minimum length to ten and enabled reauthentication; verified both by a fresh configuration read. Existing user credentials were not changed. Local Supabase configuration matches these settings.
+- Production database workflow probes used synthetic records under actual `authenticated`/`anon` SQL roles and the enrolled admin's JWT claims. Admin FAQ/catalog save/delete, linked deletion prevention, invalid collection-link rejection, and non-admin/anonymous draft/write denial passed. Every fixture was rolled back and its absence verified. This is NOT a real password/browser login test.
+- Data integrity: 38 products; zero broken checked relationships, duplicate slugs/SKUs, invalid ratings, or negative price/stock. All 124 current referenced assets exist and passed public HTTP checks.
+- Storage: 1,271 objects; 1,147 current database-unreferenced candidates. Cross-checked 225 tracked text files: zero exact path matches and two possible filename matches. External and historical deployment references remain unverified; no file was deleted. Inventory: `.tmp/database-audit/asset-reference-review.json`.
+- Fresh encrypted backup: `.tmp/backups/ccfabb15-4e09-4c55-af29-5a6d66a95432`, 21 tables, 125 rows, 1,271 objects, 151 unique blobs, 75,491,074 bytes. Stable snapshot and local row-payload/Storage-byte restore rehearsal passed. DPAPI decryption requires this Windows profile. This is NOT a full schema/Auth restore.
+- Verification: 83 automated tests, typecheck, lint and final production build passed. Fourteen desktop/mobile views passed against both the development app and the actual local production artifact; service-backed synthetic order tracking returned 200 without accessing customer records. Production dependency audit reported zero vulnerabilities. Six configured private secret values were absent from 120 browser build files. Browser evidence: `.tmp/release-audit/browser-results.json`.
+
+### Remaining Release Gates
+
+1. **High: email privacy is still exposed at the database layer.** Live anonymous column privileges allow `testimonials.email` and `store_settings.admin_email`. The local public projection is verified, but `20261002020000_private_contact_columns.sql` must follow compatible production deployment. Stored emails must be preserved.
+2. **High: direct database entry points bypass API abuse controls.** Anonymous order/contact inserts and public subscription/tracking RPC access remain live. Prepared and PostgreSQL-tested `20261005150000_server_only_public_submissions.sql`. Deploy the updated service-backed tracking/submission APIs first, then apply this migration and verify anonymous denial and production admin/service behavior.
+3. **Production hosting/deployment verification is blocked.** Both HTTP checks and a real Edge browser receive 429 Vercel Security Checkpoint on `nigah.store`. No Vercel deployment credential is configured locally. Application fixes remain local; no git push or production application deployment was performed. Resolve the checkpoint and deploy before applying the two compatibility-dependent migrations.
+4. **Full disaster recovery remains unverified.** The Management backup endpoint reports no available backups and PITR disabled. No PostgreSQL connection URL/password or `pg_dump`/`psql` tool is configured locally. An encrypted application/Storage rehearsal cannot substitute for restoring PostgreSQL schema, Auth and extensions into a disposable database.
+5. **Real production admin login/UI workflow remains unverified.** No actual admin password/login session is available. Rollback-only production RLS tests and local browser tests passed, but do not replace a real authenticated production save/delete/linking/cache-refresh check.
+6. **Asset deletion remains unapproved and unproven.** Current database/source absence does not prove external or previous-deployment disuse. Retain the originals until exact-file retention/reference review is complete.
+
+Auth configuration references: [Management Auth configuration](https://supabase.com/docs/reference/api/v1-update-auth-service-config), [Password security](https://supabase.com/docs/guides/auth/password-security).
+
 ## Current Follow-up (2026-10-03 Asia/Karachi)
 
 This section supersedes historical pending-status statements below. No live business record or original image was deleted.

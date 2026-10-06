@@ -541,6 +541,7 @@ export async function fetchInitialSupabaseData(
       const response = await fetch("/api/v1/storefront", {
         credentials: "same-origin",
         headers: { Accept: "application/json" },
+        signal: AbortSignal.timeout(6_000),
       });
       const payload = (await response.json().catch(() => null)) as {
         data?: InitialSupabaseData | null;
@@ -1164,8 +1165,9 @@ export async function dbDeleteTestimonial(id: string) {
 
 export async function dbUpsertFaq(faq: FAQItem): Promise<boolean> {
   try {
+    await requireDatabaseAdmin(supabase);
     const payload = sanitizeDbInput(mapStoreFaqToDb(faq));
-    const { error } = await supabase.from("faqs").upsert(payload);
+    const { data, error } = await supabase.from("faqs").upsert(payload).select("id").single();
     if (error) {
       if (
         isMissingColumnError(error, "show_on_home") ||
@@ -1174,13 +1176,17 @@ export async function dbUpsertFaq(faq: FAQItem): Promise<boolean> {
         const legacyPayload = { ...payload };
         delete legacyPayload.show_on_home;
         delete legacyPayload.showOnHome;
-        const { error: legacyError } = await supabase.from("faqs").upsert(legacyPayload);
-        if (legacyError) return false;
+        const { data: legacyData, error: legacyError } = await supabase
+          .from("faqs")
+          .upsert(legacyPayload)
+          .select("id")
+          .single();
+        if (legacyError || legacyData?.id !== faq.id) return false;
       } else {
         console.error("Failed to sync FAQ to Supabase:", error);
         return false;
       }
-    }
+    } else if (data?.id !== faq.id) return false;
     return true;
   } catch (e) {
     console.error("Failed to sync FAQ to Supabase:", e);
@@ -1196,11 +1202,12 @@ export async function dbDeleteSubscriber(id: string) {
   return deleteDatabaseRecord(supabase, "subscribers", id);
 }
 
-export async function dbUpsertSettings(settings: StoreSettings) {
+export async function dbUpsertSettings(settings: StoreSettings): Promise<boolean> {
   try {
+    await requireDatabaseAdmin(supabase);
     let logo = settings.logo;
     if (logo && logo.startsWith("data:")) {
-      logo = (await uploadImageToStorage(logo, "settings")) || logo;
+      logo = (await uploadImageToStorage(logo, "settings", { throwOnError: true })) || logo;
     }
     const payload: any = {
       id: "default",
@@ -1217,9 +1224,16 @@ export async function dbUpsertSettings(settings: StoreSettings) {
       about_body: settings.aboutBody || "",
       updated_at: new Date().toISOString(),
     };
-    await supabase.from("store_settings").upsert(payload);
+    const { data, error } = await supabase
+      .from("store_settings")
+      .upsert(payload)
+      .select("id")
+      .single();
+    if (error) throw error;
+    return data?.id === "default";
   } catch (e) {
     console.error("Failed to save settings to Supabase:", e);
+    return false;
   }
 }
 

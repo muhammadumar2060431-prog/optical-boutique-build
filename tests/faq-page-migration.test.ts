@@ -15,6 +15,7 @@ it("preserves homepage FAQs and persists valid additional page placements", asyn
       "utf8",
     );
     await db.exec(sql);
+    await db.exec(sql);
     const result = await db.query<{ id: string; show_on_pages: string[] }>(
       "SELECT id, show_on_pages FROM public.faqs ORDER BY id",
     );

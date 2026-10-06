@@ -182,7 +182,11 @@ CREATE TABLE IF NOT EXISTS public.faqs (
   answer TEXT NOT NULL,
   category TEXT DEFAULT 'General',
   enabled BOOLEAN DEFAULT true,
-  sort_order INTEGER DEFAULT 0
+  sort_order INTEGER DEFAULT 0,
+  show_on_home BOOLEAN NOT NULL DEFAULT false,
+  show_on_pages TEXT[] NOT NULL DEFAULT '{}',
+  CONSTRAINT faqs_valid_page_placements
+    CHECK (show_on_pages <@ ARRAY['home', 'about', 'contact', 'cart', 'checkout', 'tracking']::text[])
 );
 
 -- 12. Subscribers
@@ -397,4 +401,19 @@ CREATE INDEX IF NOT EXISTS idx_hero_slides_sort ON public.hero_slides (sort_orde
 CREATE INDEX IF NOT EXISTS idx_brands_sort ON public.brands (sort_order ASC, enabled);
 CREATE INDEX IF NOT EXISTS idx_social_reels_sort ON public.social_reels (sort_order ASC, enabled);
 CREATE INDEX IF NOT EXISTS idx_faqs_sort ON public.faqs (sort_order ASC, enabled);
+
+-- Upgrade existing FAQ tables as well as fresh installations.
+ALTER TABLE public.faqs
+  ADD COLUMN IF NOT EXISTS show_on_home BOOLEAN NOT NULL DEFAULT false,
+  ADD COLUMN IF NOT EXISTS show_on_pages TEXT[] NOT NULL DEFAULT '{}';
+
+UPDATE public.faqs
+SET show_on_pages = ARRAY['home']
+WHERE show_on_home = true AND show_on_pages = '{}';
+
+ALTER TABLE public.faqs DROP CONSTRAINT IF EXISTS faqs_valid_page_placements;
+ALTER TABLE public.faqs ADD CONSTRAINT faqs_valid_page_placements
+  CHECK (show_on_pages <@ ARRAY['home', 'about', 'contact', 'cart', 'checkout', 'tracking']::text[]);
+
+NOTIFY pgrst, 'reload schema';
 

@@ -15,7 +15,7 @@ export function PageFaqs({ page }: { page: FAQPage }) {
       <h2 id={headingId} className="mb-3 text-lg font-semibold">
         Frequently Asked Questions
       </h2>
-      <div className="max-h-80 overflow-y-auto overscroll-contain divide-y divide-stone pr-2">
+      <div className="divide-y divide-stone">
         {selected.map((faq) => (
           <details key={faq.id} className="group py-3">
             <summary className="flex cursor-pointer list-none items-start justify-between gap-3 text-sm font-medium [&::-webkit-details-marker]:hidden">

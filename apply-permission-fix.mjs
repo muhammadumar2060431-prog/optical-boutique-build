@@ -9,11 +9,13 @@ const audit = JSON.parse(await readFile(".tmp/database-audit/management-audit.js
 if (audit.checks.policies.status !== 201) throw new Error("Verified policy inventory required");
 
 const sql = await readFile(
-  process.argv.includes("--catalog-reads")
-    ? "supabase/migrations/20261003010000_limit_public_catalog_reads.sql"
-    : process.argv.includes("--catalog")
-      ? "supabase/migrations/20261002010000_preserve_catalog_and_fix_policy_names.sql"
-      : "supabase/migrations/20261002030000_remove_legacy_public_storage_writes.sql",
+  process.argv.includes("--video-reads")
+    ? "supabase/migrations/20261005140000_video_read_policy.sql"
+    : process.argv.includes("--catalog-reads")
+      ? "supabase/migrations/20261003010000_limit_public_catalog_reads.sql"
+      : process.argv.includes("--catalog")
+        ? "supabase/migrations/20261002010000_preserve_catalog_and_fix_policy_names.sql"
+        : "supabase/migrations/20261002030000_remove_legacy_public_storage_writes.sql",
   "utf8",
 );
 if (!process.argv.includes("--apply")) {
