@@ -18,12 +18,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { useCart } from "@/lib/cart";
 import { supabase } from "@/lib/supabase";
 import { mapDbProductToStore } from "@/lib/supabaseSync";
+import { useProductSelection } from "@/lib/product-selection";
 import { getProductSubImages } from "@/lib/product-images";
 import { trackMetaEvent } from "@/lib/meta-events";
 import { breadcrumbSchema, jsonLdScript, productSchema } from "@/lib/schema";
 import type { Product } from "@/lib/types";
 import { formatPrice, useStore } from "@/lib/store";
-import { cn, getSiteUrl } from "@/lib/utils";
+import { cn, getDiscountPercent, getSiteUrl } from "@/lib/utils";
 
 export const Route = createFileRoute("/product/$slug")({
   loader: async ({ params }) => {
@@ -115,7 +116,7 @@ function ProductPage() {
     getProductBySlug,
     getCategoryById,
     getCollectionById,
-    getRelatedProducts,
+    products,
     stockStatus,
     productStock,
     testimonials,
@@ -127,6 +128,15 @@ function ProductPage() {
   const { openWhatsAppModal } = useWhatsAppModal();
   const navigate = useNavigate();
   const product = getProductBySlug(slug) ?? loadedProduct;
+  const relatedSelection = useProductSelection(
+    {
+      categoryId: product?.categoryId,
+      excludeId: product?.id,
+      enabled: Boolean(product),
+      limit: 4,
+    },
+    products,
+  );
   const trackedViewRef = useRef<string | null>(null);
 
   const [variantId, setVariantId] = useState<string | null>(null);
@@ -261,10 +271,11 @@ function ProductPage() {
       : subImagesList[0] || product.image || "/placeholder.svg");
   const currentPrice = variant?.price ?? product.salePrice ?? product.price;
   const isDiscounted = !!product.salePrice && !variant?.price;
+  const discountPercent = getDiscountPercent(product.price, currentPrice);
   const stock = variant ? variant.stock : productStock(product);
   const status = stockStatus(stock);
   const outOfStock = status === "Out of stock";
-  const related = getRelatedProducts(product);
+  const related = relatedSelection.items;
 
   const handleReviewSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -354,12 +365,13 @@ function ProductPage() {
 
               {/* Floating Badges */}
               <div className="absolute left-3 top-3 z-10 flex flex-col gap-2 sm:left-4 sm:top-4">
-                {product.salePrice && (
+                {discountPercent !== null && (
                   <Badge
                     variant="destructive"
-                    className="px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider shadow-md sm:px-3 sm:text-xs"
+                    aria-label={`${discountPercent}% off`}
+                    className="rounded-sm bg-red-600 px-2.5 py-1 text-[11px] font-bold tracking-normal shadow-sm sm:px-3 sm:text-xs"
                   >
-                    Sale Offer
+                    -{discountPercent}%
                   </Badge>
                 )}
                 {product.isNewArrival && (
@@ -418,7 +430,7 @@ function ProductPage() {
                 )}
               </div>
 
-              <p className="min-w-0 break-words pr-12 text-[1.55rem] font-medium leading-tight tracking-normal text-foreground sm:pr-0 sm:text-xl sm:leading-snug">
+              <p className="min-w-0 break-words pr-10 text-[1.35rem] font-medium leading-tight tracking-normal text-foreground sm:pr-0 sm:text-3xl sm:leading-tight">
                 {product.name}
               </p>
 
@@ -445,8 +457,10 @@ function ProductPage() {
               <div className="flex flex-wrap items-baseline gap-3 pt-1 lg:flex-nowrap">
                 {isDiscounted ? (
                   <>
-                    <p className="text-3xl font-bold text-black">{formatPrice(currentPrice)}</p>
-                    <p className="text-lg text-red-600 line-through font-medium">
+                    <p className="text-2xl font-bold text-black sm:text-3xl">
+                      {formatPrice(currentPrice)}
+                    </p>
+                    <p className="text-base text-red-600 line-through font-medium sm:text-lg">
                       {formatPrice(product.price)}
                     </p>
                     <Badge
@@ -457,7 +471,9 @@ function ProductPage() {
                     </Badge>
                   </>
                 ) : (
-                  <p className="text-3xl font-bold text-black">{formatPrice(currentPrice)}</p>
+                  <p className="text-2xl font-bold text-black sm:text-3xl">
+                    {formatPrice(currentPrice)}
+                  </p>
                 )}
               </div>
             </div>
@@ -466,7 +482,7 @@ function ProductPage() {
               // Use character count as a reliable proxy for "long" description
               // ~60 chars per visual line x 10 lines = 600 chars threshold
               const desc = product.description || "";
-              const LINE_HEIGHT_PX = 24; // matches leading-relaxed at 15px font
+              const LINE_HEIGHT_PX = 22; // matches the mobile description line height
               const MAX_LINES = 8;
               const maxHeightCollapsed = `${LINE_HEIGHT_PX * MAX_LINES}px`;
 
@@ -479,7 +495,7 @@ function ProductPage() {
                       transition: "max-height 0.3s ease",
                     }}
                   >
-                    <p className="text-[15px] leading-relaxed text-black font-medium whitespace-pre-line">
+                    <p className="text-sm leading-[1.55] text-black font-medium whitespace-pre-line sm:text-[15px] sm:leading-relaxed">
                       {desc}
                     </p>
                   </div>

@@ -21,6 +21,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { getCourierTrackingUrl } from "@/lib/couriers";
 import { useStore } from "@/lib/store";
+import { useProductSelection } from "@/lib/product-selection";
 import { whatsappLink } from "@/lib/whatsapp";
 import type { Order, OrderStatus, Product } from "@/lib/types";
 import { getSiteUrl } from "@/lib/utils";
@@ -205,11 +206,19 @@ function OrderStatusPage() {
   //    Previously `orders: allOrders` was also destructured here which loaded
   //    ALL customer orders into client JavaScript memory — any user could
   //    inspect them via browser DevTools. That exposure is now fully removed.
-  const { settings, products } = useStore();
+  const { settings, products: cachedProducts } = useStore();
 
   const [value, setValue] = useState(search.ref ?? "");
   const [query, setQuery] = useState(search.ref?.trim() ?? "");
   const [results, setResults] = useState<TrackedOrder[]>([]);
+  const { items: trackedProducts } = useProductSelection(
+    {
+      ids: results.flatMap((order) => (order.productId ? [order.productId] : [])),
+      limit: 24,
+    },
+    cachedProducts,
+  );
+  const products = [...trackedProducts, ...cachedProducts];
   const [loading, setLoading] = useState(false);
   const [inputError, setInputError] = useState<string | null>(null);
   const [fetchError, setFetchError] = useState<string | null>(null);

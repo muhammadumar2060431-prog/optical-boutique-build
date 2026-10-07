@@ -11,7 +11,10 @@ export function NewArrivalsShowcase() {
 
   // Pick ONLY products explicitly marked as isNewArrival by admin
   const items = useMemo(() => {
-    return products.filter((p) => p.isNewArrival && p.status === "Published");
+    return products
+      .filter((p) => p.isNewArrival && p.status === "Published")
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt) || b.id.localeCompare(a.id))
+      .slice(0, 12);
   }, [products]);
 
   const [currentIndex, setCurrentIndex] = useState(0);

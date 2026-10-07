@@ -1,14 +1,38 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, ChevronDown, RefreshCw } from "lucide-react";
 
 import { ProductCard } from "@/components/site/ProductCard";
 import { Reveal } from "@/components/site/Reveal";
 import { useStore } from "@/lib/store";
+import { isSupabaseConfigured } from "@/lib/supabase";
+import { useFeaturedProductCounts, useInfiniteFeaturedProducts } from "@/lib/product-selection";
 import { cn } from "@/lib/utils";
 
 export function CategoryBestsellersShowcase() {
   const { categories, collections, products } = useStore();
+  const sectionRef = useRef<HTMLElement>(null);
+  const loadMoreRef = useRef<HTMLDivElement>(null);
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    const section = sectionRef.current;
+    if (!section) return;
+    if (!("IntersectionObserver" in window)) {
+      setVisible(true);
+      return;
+    }
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry?.isIntersecting) {
+          setVisible(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: "200px" },
+    );
+    observer.observe(section);
+    return () => observer.disconnect();
+  }, [categories.length]);
 
   const sortedCategories = useMemo(() => {
     return [...categories].sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
@@ -32,21 +56,36 @@ export function CategoryBestsellersShowcase() {
   }, [collections, activeCategory]);
 
   // Only published products for active category that are marked as featured OR bestseller
-  const catProducts = useMemo(() => {
-    if (!activeCategory) return [];
-    return products
-      .filter(
-        (p) =>
-          p.categoryId === activeCategory.id &&
-          p.status === "Published" &&
-          Boolean(p.featured || p.isBestseller),
-      )
-      .sort((a, b) => {
-        const aScore = (a.isBestseller ? 2 : 0) + (a.featured ? 1 : 0);
-        const bScore = (b.isBestseller ? 2 : 0) + (b.featured ? 1 : 0);
-        return bScore - aScore;
-      });
-  }, [activeCategory, products]);
+  const selection = useInfiniteFeaturedProducts(activeCategory?.id, visible, products);
+  const { hasNextPage, isFetchingNextPage, isFetchNextPageError, fetchNextPage } = selection;
+  const catProducts = selection.items;
+  useEffect(() => {
+    const target = loadMoreRef.current;
+    if (
+      !target ||
+      !hasNextPage ||
+      isFetchingNextPage ||
+      isFetchNextPageError ||
+      !("IntersectionObserver" in window)
+    )
+      return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry?.isIntersecting) void fetchNextPage({ cancelRefetch: false });
+      },
+      { rootMargin: "200px" },
+    );
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, [
+    hasNextPage,
+    isFetchingNextPage,
+    isFetchNextPageError,
+    fetchNextPage,
+    catProducts.length,
+    activeCategory?.id,
+  ]);
+  const counts = useFeaturedProductCounts(sortedCategories.map((category) => category.id));
 
   // Featured collection banner for the active category (if any)
   const categoryBannerCollection = useMemo(() => {
@@ -56,7 +95,10 @@ export function CategoryBestsellersShowcase() {
   if (!categories || categories.length === 0) return null;
 
   return (
-    <section className="bg-background py-16 sm:py-24 border-b border-stone/50 overflow-hidden">
+    <section
+      ref={sectionRef}
+      className="bg-background py-16 sm:py-24 border-b border-stone/50 overflow-hidden"
+    >
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
         {/* ── Section Title ── */}
         <div className="text-center max-w-2xl mx-auto mb-12 sm:mb-16">
@@ -79,12 +121,14 @@ export function CategoryBestsellersShowcase() {
           <div className="flex items-center justify-center gap-8 sm:gap-16 md:gap-20 flex-wrap pb-4">
             {sortedCategories.map((cat) => {
               const isSelected = activeCategory?.id === cat.id;
-              const productCount = products.filter(
-                (p) =>
-                  p.categoryId === cat.id &&
-                  p.status === "Published" &&
-                  Boolean(p.featured || p.isBestseller),
-              ).length;
+              const productCount = isSupabaseConfigured
+                ? counts.data?.[cat.id]
+                : products.filter(
+                    (p) =>
+                      p.categoryId === cat.id &&
+                      p.status === "Published" &&
+                      Boolean(p.featured || p.isBestseller),
+                  ).length;
 
               return (
                 <button
@@ -149,7 +193,8 @@ export function CategoryBestsellersShowcase() {
                       {cat.name}
                     </span>
                     <p className="text-[11px] text-ink-muted uppercase tracking-wider mt-0.5">
-                      {productCount} {productCount === 1 ? "Featured Piece" : "Featured Pieces"}
+                      {productCount === undefined ? "..." : productCount}{" "}
+                      {productCount === 1 ? "Featured Piece" : "Featured Pieces"}
                     </p>
                   </div>
                 </button>
@@ -160,14 +205,25 @@ export function CategoryBestsellersShowcase() {
 
         {/* ── Dynamic Collection Banners + Best Selling Products Grid ── */}
         <div className="mt-14 sm:mt-20 pt-10 border-t border-stone/40 space-y-12">
-          {catProducts.length === 0 ? (
+          {!visible || selection.isLoading ? (
+            <p role="status" className="text-center text-sm text-ink-muted">
+              Loading products...
+            </p>
+          ) : selection.isError && catProducts.length === 0 ? (
+            <div role="alert" className="text-center text-sm text-ink-muted">
+              <p>Products could not be loaded.</p>
+              <button
+                type="button"
+                className="mt-2 underline"
+                onClick={() => void selection.refetch()}
+              >
+                Retry
+              </button>
+            </div>
+          ) : catProducts.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-stone p-12 text-center bg-card/40">
               <p className="font-display text-lg text-foreground">
                 No featured or best seller products in {activeCategory?.name} yet
-              </p>
-              <p className="mt-1 text-xs text-ink-muted">
-                Admin Panel me product edit karke <strong>"Homepage Bestsellers Grid"</strong> ya{" "}
-                <strong>"Best Seller Badge"</strong> on karein taake woh yahan show ho sake.
               </p>
             </div>
           ) : (
@@ -216,7 +272,7 @@ export function CategoryBestsellersShowcase() {
                             </span>
                             <span className="text-zinc-500">•</span>
                             <span className="text-[11px] text-zinc-400 font-semibold uppercase tracking-wider">
-                              {catProducts.length} {catProducts.length === 1 ? "Item" : "Items"}
+                              {selection.total} {selection.total === 1 ? "Item" : "Items"}
                             </span>
                           </div>
 
@@ -239,11 +295,38 @@ export function CategoryBestsellersShowcase() {
               {/* 4-Column Grid for ALL Products */}
               <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
                 {catProducts.map((product, pIdx) => (
-                  <Reveal key={product.id} delay={pIdx * 60}>
+                  <Reveal key={product.id} delay={(pIdx % 12) * 60}>
                     <ProductCard product={product} />
                   </Reveal>
                 ))}
               </div>
+
+              {hasNextPage && (
+                <div
+                  ref={loadMoreRef}
+                  className="flex min-h-12 items-center justify-center"
+                  aria-live="polite"
+                >
+                  {isFetchingNextPage ? (
+                    <p role="status" className="text-sm text-ink-muted">
+                      Loading products...
+                    </p>
+                  ) : (
+                    <button
+                      type="button"
+                      className="inline-flex items-center gap-2 text-sm underline"
+                      onClick={() => void fetchNextPage()}
+                    >
+                      {isFetchNextPageError ? (
+                        <RefreshCw className="h-4 w-4" />
+                      ) : (
+                        <ChevronDown className="h-4 w-4" />
+                      )}
+                      {isFetchNextPageError ? "Retry" : "Load more"}
+                    </button>
+                  )}
+                </div>
+              )}
 
               {/* Explore All Category Link */}
               <div className="text-center pt-6">

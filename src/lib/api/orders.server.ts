@@ -216,6 +216,7 @@ const repository: OrdersRepository = {
       .select("*")
       .is("deleted_at", null)
       .order("created_at", { ascending: false })
+      .order("id", { ascending: false })
       .range(offset, offset + limit - 1);
     if (error) databaseError(error);
     return data ?? [];

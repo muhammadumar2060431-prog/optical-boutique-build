@@ -4,6 +4,7 @@ import type {
   MetaEventName,
   MetaUserDataInput,
 } from "./meta-events.types";
+import { buildMetaCustomData } from "./meta-custom-data.ts";
 
 declare global {
   interface Window {
@@ -38,13 +39,14 @@ export function splitMetaName(fullName: string) {
 
 export function trackMetaBrowserEvent(input: TrackMetaEventOptions) {
   const eventId = input.eventId ?? createMetaEventId(input.eventName.toLowerCase());
-  const customData = input.customData ?? {};
+  const customData = buildMetaCustomData(input.customData);
 
   window.dataLayer = window.dataLayer || [];
   window.dataLayer.push({
     event: "meta_event",
     event_name: input.eventName,
     event_id: eventId,
+    ...input.customData,
     ...customData,
   });
 
@@ -64,13 +66,24 @@ export function trackMetaEvent(input: TrackMetaEventOptions) {
     ...(input.customData ? { customData: input.customData } : {}),
   };
 
-  void fetch("/api/v1/meta/events", {
-    method: "POST",
-    credentials: "same-origin",
-    keepalive: true,
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(event),
-  }).catch(() => {
+  void (async () => {
+    // The GTM Pixel loads asynchronously; let its existing matching cookie arrive.
+    const hasCustomerData =
+      input.userData?.email || input.userData?.phone || input.userData?.externalId;
+    if (!hasCustomerData) {
+      for (let attempt = 0; attempt < 15; attempt++) {
+        if (/(?:^|;\s*)_fb[pc]=/.test(document.cookie)) break;
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      }
+    }
+    await fetch("/api/v1/meta/events", {
+      method: "POST",
+      credentials: "same-origin",
+      keepalive: true,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(event),
+    });
+  })().catch(() => {
     // Analytics must never interrupt the customer action.
   });
 

@@ -14,6 +14,8 @@ import {
 import { toast } from "sonner";
 
 import { ImageUpload } from "@/components/admin/ImageUpload";
+import { ProductPicker } from "@/components/admin/ProductPicker";
+import { useAdminProductLookup } from "@/lib/product-selection";
 import { sanitizeHref, validateImageUrl, validateSocialVideoUrl } from "@/lib/security";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -870,8 +872,31 @@ function SocialPlatformBadge({ platform }: { platform: string }) {
   }
 }
 
+function TaggedReelProduct({ id }: { id: string | null | undefined }) {
+  const { getProductById } = useStore();
+  const lookup = useAdminProductLookup(id);
+  const product = lookup.data ?? (id ? getProductById(id) : null);
+  if (!product)
+    return <span className="text-xs text-ink-muted">{lookup.isLoading ? "..." : id || "-"}</span>;
+  return (
+    <div className="flex items-center gap-2">
+      <img
+        src={product.image}
+        alt=""
+        className="h-7 w-7 rounded object-cover border border-stone"
+      />
+      <div className="min-w-0 max-w-[140px]">
+        <p className="text-xs font-semibold truncate">{product.name}</p>
+        <p className="text-[10px] text-gold font-bold">
+          {formatPrice(product.salePrice ?? product.price)}
+        </p>
+      </div>
+    </div>
+  );
+}
+
 function SocialReelsPanel() {
-  const { socialReels, products, saveSocialReel, deleteSocialReel, moveSocialReel } = useStore();
+  const { socialReels, saveSocialReel, deleteSocialReel, moveSocialReel } = useStore();
   const [draft, setDraft] = useState<SocialReel | null>(null);
 
   const blankReel: SocialReel = {
@@ -976,10 +1001,6 @@ function SocialReelsPanel() {
             </thead>
             <tbody className="divide-y divide-zinc-300 bg-[#f9f9f9]">
               {socialReels.map((reel, index) => {
-                const product = reel.productId
-                  ? products.find((p) => p.id === reel.productId)
-                  : null;
-
                 return (
                   <tr key={reel.id} className="hover:bg-zinc-200/80 transition-colors">
                     {/* Thumbnail */}
@@ -1032,23 +1053,7 @@ function SocialReelsPanel() {
 
                     {/* Tagged Product */}
                     <td className="px-4 py-3">
-                      {product ? (
-                        <div className="flex items-center gap-2">
-                          <img
-                            src={product.image}
-                            alt=""
-                            className="h-7 w-7 rounded object-cover border border-stone"
-                          />
-                          <div className="min-w-0 max-w-[140px]">
-                            <p className="text-xs font-semibold truncate">{product.name}</p>
-                            <p className="text-[10px] text-gold font-bold">
-                              {formatPrice(product.salePrice ?? product.price)}
-                            </p>
-                          </div>
-                        </div>
-                      ) : (
-                        <span className="text-xs text-ink-muted">-</span>
-                      )}
+                      <TaggedReelProduct id={reel.productId} />
                     </td>
 
                     {/* Live Status Switch */}
@@ -1227,24 +1232,11 @@ function SocialReelsPanel() {
                 {/* Tagged Product */}
                 <div className="space-y-2">
                   <Label htmlFor="r-product">Tag a Product (Optional - "Shop This Look")</Label>
-                  <Select
-                    value={draft.productId || "none"}
-                    onValueChange={(v) =>
-                      setDraft({ ...draft, productId: v === "none" ? null : v })
-                    }
-                  >
-                    <SelectTrigger id="r-product" className="min-h-11">
-                      <SelectValue placeholder="Select a product to tag" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">No product tagged</SelectItem>
-                      {products.map((p) => (
-                        <SelectItem key={p.id} value={p.id}>
-                          {p.name} ({formatPrice(p.salePrice ?? p.price)})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <ProductPicker
+                    id="r-product"
+                    value={draft.productId}
+                    onChange={(product) => setDraft({ ...draft, productId: product?.id ?? null })}
+                  />
                 </div>
 
                 {/* Enable / Disable */}

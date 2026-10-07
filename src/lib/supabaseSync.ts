@@ -2,6 +2,8 @@
 import { supabase } from "./supabase";
 import { imageDataUrlToBlob } from "./image-data.ts";
 import { faqPages } from "./faq-pages.ts";
+import { fetchInitialProducts } from "./product-selection-query.ts";
+import { hasStorefrontContent, withStorefrontTimeout } from "./storefront-loading.ts";
 import {
   deleteDatabaseRecord,
   requireDatabaseAdmin,
@@ -538,15 +540,20 @@ export async function fetchInitialSupabaseData(
 
   if (!includePrivate && !options.bypassStorefrontApi && typeof window !== "undefined") {
     try {
-      const response = await fetch("/api/v1/storefront", {
-        credentials: "same-origin",
-        headers: { Accept: "application/json" },
-        signal: AbortSignal.timeout(6_000),
-      });
-      const payload = (await response.json().catch(() => null)) as {
-        data?: InitialSupabaseData | null;
-      } | null;
-      if (response.ok && payload?.data) return publicStorefrontData(payload.data);
+      const data = await withStorefrontTimeout((async () => {
+        const response = await fetch("/api/v1/storefront", {
+          credentials: "same-origin",
+          headers: { Accept: "application/json" },
+          signal: AbortSignal.timeout(6_000),
+        });
+        const payload = (await response.json().catch(() => null)) as {
+          data?: InitialSupabaseData | null;
+        } | null;
+        return response.ok && hasStorefrontContent(payload?.data)
+          ? publicStorefrontData(payload.data)
+          : null;
+      })());
+      if (data) return data;
     } catch {}
   }
 
@@ -566,8 +573,8 @@ export async function fetchInitialSupabaseData(
       settingsRes,
       announcementRes,
       videoRes,
-    ] = await Promise.allSettled([
-      supabase.from("products").select("*"),
+    ] = await withStorefrontTimeout(Promise.allSettled([
+      fetchInitialProducts(supabase),
       supabase.from("categories").select("*").order("sort_order", { ascending: true }),
       supabase.from("collections").select("*").order("sort_order", { ascending: true }),
       Promise.resolve({ data: null, error: null }),
@@ -592,7 +599,7 @@ export async function fetchInitialSupabaseData(
             .single(),
       supabase.from("announcements").select("*").eq("id", "default").single(),
       supabase.from("video_settings").select("*").eq("id", "default").single(),
-    ]);
+    ]));
 
     const settingsRaw = settingsRes.status === "fulfilled" ? (settingsRes.value.data as any) : null;
     const settings: StoreSettings | null = settingsRaw

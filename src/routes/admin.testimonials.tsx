@@ -14,6 +14,7 @@ import {
 import { toast } from "sonner";
 
 import { ImageUpload } from "@/components/admin/ImageUpload";
+import { ProductPicker } from "@/components/admin/ProductPicker";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -45,8 +46,7 @@ const blank = (): Testimonial => ({
 });
 
 function AdminTestimonials() {
-  const { testimonials, saveTestimonial, deleteTestimonial, moveTestimonial, products } =
-    useStore();
+  const { testimonials, saveTestimonial, deleteTestimonial, moveTestimonial } = useStore();
   const [draft, setDraft] = useState<Testimonial | null>(null);
   const [filterTab, setFilterTab] = useState<"all" | "good" | "bad" | "product">("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -401,27 +401,17 @@ function AdminTestimonials() {
 
                 <div className="space-y-2">
                   <Label htmlFor="t-product">Associated Product (Optional)</Label>
-                  <select
+                  <ProductPicker
                     id="t-product"
-                    value={draft.productId || "none"}
-                    onChange={(e) => {
-                      const pId = e.target.value === "none" ? null : e.target.value;
-                      const selectedP = products.find((p) => p.id === pId);
+                    value={draft.productId}
+                    onChange={(product) =>
                       setDraft({
                         ...draft,
-                        productId: pId,
-                        productName: selectedP ? selectedP.name : "",
-                      });
-                    }}
-                    className="w-full rounded-md border border-stone bg-card p-2.5 text-sm"
-                  >
-                    <option value="none">- General Site Testimonial -</option>
-                    {products.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.name} ({p.sku || p.id})
-                      </option>
-                    ))}
-                  </select>
+                        productId: product?.id ?? null,
+                        productName: product?.name ?? "",
+                      })
+                    }
+                  />
                 </div>
 
                 <div className="space-y-2">

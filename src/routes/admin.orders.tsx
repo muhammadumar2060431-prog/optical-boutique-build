@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
+import { useAdminProductLookup } from "@/lib/product-selection";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -168,6 +169,7 @@ function OrderDetailsModal({
   onStatusChange: (status: OrderStatus) => void;
 }) {
   const { products, updateOrderCourier } = useStore();
+  const productLookup = useAdminProductLookup(order.productId);
   const [copied, setCopied] = useState(false);
   const [courierName, setCourierName] = useState(order.courierName || "TCS Express");
   const [trackingNumber, setTrackingNumber] = useState(order.trackingNumber || "");
@@ -181,6 +183,7 @@ function OrderDetailsModal({
   }, [order.id, order.courierName, order.trackingNumber]);
 
   const matchedProduct = useMemo(() => {
+    if (productLookup.data) return productLookup.data;
     if (order.productId) {
       const found = products.find((p) => p.id === order.productId);
       if (found) return found;
@@ -190,7 +193,7 @@ function OrderDetailsModal({
         (p) => p.name.trim().toLowerCase() === (order.productName || "").trim().toLowerCase(),
       ) || null
     );
-  }, [order.productId, order.productName, products]);
+  }, [order.productId, order.productName, products, productLookup.data]);
 
   const matchedVariant = useMemo(() => {
     if (!matchedProduct) return null;

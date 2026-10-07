@@ -19,6 +19,23 @@ function trackingRequest() {
 }
 
 describe("Meta Conversions API payload", () => {
+  it("uses Vercel's forwarded visitor IP and never sends unhashed customer fields", () => {
+    const payload = buildMetaCapiPayload(
+      {
+        eventName: "ViewContent",
+        eventId: "view:test-12345",
+        eventSourceUrl: "https://www.nigah.store/glasses",
+      },
+      new Request("https://www.nigah.store/api/v1/meta/events", {
+        headers: {
+          "x-vercel-forwarded-for": "203.0.113.11, 10.0.0.1",
+          "user-agent": "Meta-CAPI-Test/1.0",
+        },
+      }),
+    );
+    assert.equal(payload.data[0]?.user_data.client_ip_address, "203.0.113.11");
+    assert.equal("custom_data" in payload.data[0]!, false);
+  });
   it("normalizes and hashes PII with SHA-256", () => {
     assert.equal(hashMetaValue("  AYESHA@EXAMPLE.COM "), expectedHash("ayesha@example.com"));
   });
@@ -57,7 +74,7 @@ describe("Meta Conversions API payload", () => {
     assert.equal(event.event_time, 1_700_000_000);
     assert.equal(event.action_source, "website");
     assert.deepEqual(event.user_data.em, [expectedHash("ayesha@example.com")]);
-    assert.deepEqual(event.user_data.ph, [expectedHash("+92 300 1234567")]);
+    assert.deepEqual(event.user_data.ph, [expectedHash("923001234567")]);
     assert.deepEqual(event.user_data.external_id, [expectedHash("customer-123")]);
     assert.equal(event.user_data.client_ip_address, "203.0.113.10");
     assert.equal(event.user_data.client_user_agent, "Meta-CAPI-Test/1.0");

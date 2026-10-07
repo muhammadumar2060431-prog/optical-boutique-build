@@ -14,8 +14,10 @@ import {
 import { supabase, isSupabaseConfigured } from "./supabase";
 import { invalidatePublicStorefront } from "./storefront-invalidate.ts";
 import { publicBrowserCache } from "./public-browser-cache.ts";
+import { hasStorefrontContent } from "./storefront-loading.ts";
 import { stableCheckoutOrderIds } from "./checkout-attempt.ts";
 import { useQueryClient } from "@tanstack/react-query";
+import { isProductDataQuery } from "./product-selection-query.ts";
 import { isAdminActivityExpired } from "./admin-session";
 import {
   fetchInitialSupabaseData,
@@ -103,6 +105,7 @@ import type { MetaEventInput } from "./meta-events.types";
 
 interface StoreState {
   storefrontReady: boolean;
+  storefrontError: boolean;
   categories: Category[];
   collections: Collection[];
   products: Product[];
@@ -157,6 +160,7 @@ type ProductPageResult = {
 };
 
 interface StoreApi extends StoreState {
+  retryStorefront: () => void;
   /* reads */
   getProducts: (opts?: ProductQueryOptions) => Product[];
   getProductsPage: (
@@ -309,7 +313,7 @@ function parseYouTubeChannel(url: string): string | null {
 // Keys that come from Supabase: expire after 24h to force a fresh fetch.
 // Orders, settings, subscribers: never expire (always synced live from Supabase).
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
-const STOREFRONT_LOAD_TIMEOUT_MS = 8_000;
+const STOREFRONT_LOAD_TIMEOUT_MS = 14_000;
 const NO_EXPIRY_KEYS = new Set([
   "orders",
   "queries",
@@ -327,6 +331,8 @@ const LEGACY_ADMIN_STORAGE_PREFIX = "nigah_admin_";
 
 function saveItem<T>(key: string, val: T) {
   if (typeof window === "undefined") return;
+  // Live stores read from the API, never from legacy browser content caches.
+  if (isSupabaseConfigured) return;
   const publicValue = publicBrowserCache(key, val);
   if (publicValue === undefined) {
     localStorage.removeItem(`${STORAGE_PREFIX}${key}`);
@@ -486,6 +492,11 @@ export function parseOrderRecord(raw: any, existing?: Order): Order {
 
 export function StoreProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
+  const refreshProductQueries = useCallback(() => {
+    void queryClient.invalidateQueries({
+      predicate: (query) => isProductDataQuery(query.queryKey),
+    });
+  }, [queryClient]);
   // Keep the first browser render identical to SSR; cache is applied after mount.
   const [categories, setCategories] = useState<Category[]>(seedCategories);
   const [collections, setCollections] = useState<Collection[]>(seedCollections);
@@ -507,14 +518,24 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   isAdminRef.current = isAdmin;
   const [hydrated, setHydrated] = useState(false);
   const [storefrontReady, setStorefrontReady] = useState(false);
+  const [storefrontError, setStorefrontError] = useState(false);
+  const [storefrontAttempt, setStorefrontAttempt] = useState(0);
+  const retryStorefront = useCallback(() => {
+    setStorefrontError(false);
+    setStorefrontAttempt((attempt) => attempt + 1);
+  }, []);
 
   // Client-only hydration to eliminate SSR hydration mismatch
   useEffect(() => {
-    if (typeof window !== "undefined") {
+    try {
       sessionStorage.removeItem(`${ADMIN_STORAGE_PREFIX}session`);
       sessionStorage.removeItem(`${ADMIN_STORAGE_PREFIX}session_token`);
       sessionStorage.removeItem(`${LEGACY_ADMIN_STORAGE_PREFIX}session`);
       sessionStorage.removeItem(`${LEGACY_ADMIN_STORAGE_PREFIX}session_token`);
+    } catch {}
+    if (isSupabaseConfigured) {
+      setHydrated(true);
+      return;
     }
     try {
       // Normal hydration: load whatever the user has saved
@@ -675,7 +696,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setHeroSlidesState((current) => publicBrowserCache("heroSlides", current) as HeroSlide[]);
     setSettings((current) => publicBrowserCache("settings", current) as StoreSettings);
     setTestimonials((current) => publicBrowserCache("testimonials", current) as Testimonial[]);
-  }, [isAdmin]);
+  }, [isAdmin, queryClient]);
   useEffect(() => {
     if (!isSupabaseConfigured || !isAdmin) return;
 
@@ -771,13 +792,18 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     let isSubscribed = true;
 
     const loadingTimer = window.setTimeout(() => {
-      if (isSubscribed) setStorefrontReady(true);
+      if (isSubscribed) setStorefrontError(true);
     }, STOREFRONT_LOAD_TIMEOUT_MS);
 
     async function initSupabaseData() {
       // 1. Fetch fresh synchronized data
       const data = await fetchInitialSupabaseData();
-      if (!isSubscribed || !data || isAdminRef.current) return;
+      if (!isSubscribed) return;
+      if (!hasStorefrontContent(data)) throw new Error("Storefront content unavailable");
+      if (isAdminRef.current) {
+        setStorefrontReady(true);
+        return;
+      }
 
       if (data.categories !== null) {
         setCategories([...data.categories].sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0)));
@@ -845,13 +871,17 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         setAnnouncement((prev) => ({ ...prev, ...data.announcement }));
       }
       if (data.video) setVideo((prev) => ({ ...prev, ...data.video }));
+      setStorefrontError(false);
+      setStorefrontReady(true);
     }
 
     void initSupabaseData()
-      .catch(() => undefined)
+      .catch((error) => {
+        console.warn("[store] Storefront load failed:", error);
+        if (isSubscribed) setStorefrontError(true);
+      })
       .finally(() => {
         window.clearTimeout(loadingTimer);
-        if (isSubscribed) setStorefrontReady(true);
       });
 
     // 3. Real-time WebSocket replication channel
@@ -864,6 +894,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         const oldRecord = payload.old as any;
 
         if (table === "products") {
+          refreshProductQueries();
           if (eventType === "DELETE") {
             pendingSyncRef.current.delete(oldRecord.id);
             recentlySavedRef.current.delete(oldRecord.id);
@@ -1073,7 +1104,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       window.clearTimeout(loadingTimer);
       supabase.removeChannel(channel);
     };
-  }, [hydrated]);
+  }, [hydrated, refreshProductQueries, storefrontAttempt]);
 
   // ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ Network Online/Offline Reconnection Handler ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬
   // When internet comes back after being offline, do a smart re-sync
@@ -1332,13 +1363,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         setProducts((prev) => prev.map((item) => (item.id === productId ? updated : item)));
         setStockTouched((prev) => ({ ...prev, [`${productId}:${variantId ?? "base"}`]: nowIso() }));
         void invalidatePublicStorefront(supabase);
+        refreshProductQueries();
         return true;
       } catch (error) {
         toast.error(error instanceof Error ? error.message : "Stock could not be saved.");
         return false;
       }
     },
-    [products],
+    [products, refreshProductQueries],
   );
 
   const applyStockDelta = useCallback<StoreApi["adjustStock"]>(
@@ -1499,110 +1531,118 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  const saveProduct = useCallback<StoreApi["saveProduct"]>(async (product) => {
-    // Preserve existing ID or generate new one
-    const finalId = product.id?.trim() ? product.id : uid("prd");
-    if (deletingProductIdsRef.current.has(finalId)) {
-      toast.error("Product deletion is in progress. Refresh before editing it.");
-      return;
-    }
+  const saveProduct = useCallback<StoreApi["saveProduct"]>(
+    async (product) => {
+      // Preserve existing ID or generate new one
+      const finalId = product.id?.trim() ? product.id : uid("prd");
+      if (deletingProductIdsRef.current.has(finalId)) {
+        toast.error("Product deletion is in progress. Refresh before editing it.");
+        return;
+      }
 
-    // CRITICAL: Preserve existing slug for edits. Only generate new slug for new products.
-    const finalSlug = product.slug?.trim()
-      ? product.slug.trim()
-      : product.name?.trim()
-        ? product.name
-            .toLowerCase()
-            .replace(/[^a-z0-9]+/g, "-")
-            .replace(/^-|-$/g, "") || finalId
-        : finalId;
+      // CRITICAL: Preserve existing slug for edits. Only generate new slug for new products.
+      const finalSlug = product.slug?.trim()
+        ? product.slug.trim()
+        : product.name?.trim()
+          ? product.name
+              .toLowerCase()
+              .replace(/[^a-z0-9]+/g, "-")
+              .replace(/^-|-$/g, "") || finalId
+          : finalId;
 
-    const cleanSubImages = (
-      Array.isArray(product.subImages) && product.subImages.length > 0
-        ? product.subImages
-        : Array.isArray((product.details as any)?.subImages)
-          ? (product.details as any).subImages
-          : []
-    )
-      .filter((s: any) => typeof s === "string" && s.trim().length > 0)
-      .slice(0, 3);
+      const cleanSubImages = (
+        Array.isArray(product.subImages) && product.subImages.length > 0
+          ? product.subImages
+          : Array.isArray((product.details as any)?.subImages)
+            ? (product.details as any).subImages
+            : []
+      )
+        .filter((s: any) => typeof s === "string" && s.trim().length > 0)
+        .slice(0, 3);
 
-    const fullProduct: Product = {
-      ...product,
-      id: finalId,
-      slug: finalSlug,
-      price: Math.max(0, Number(product.price) || 0),
-      salePrice:
-        product.salePrice != null &&
-        !isNaN(Number(product.salePrice)) &&
-        Number(product.salePrice) > 0
-          ? Number(product.salePrice)
-          : null,
-      stock: Math.max(0, Math.round(Number(product.stock) || 0)),
-      subImages: cleanSubImages,
-      details: {
-        ...(product.details || {}),
+      const fullProduct: Product = {
+        ...product,
+        id: finalId,
+        slug: finalSlug,
+        price: Math.max(0, Number(product.price) || 0),
+        salePrice:
+          product.salePrice != null &&
+          !isNaN(Number(product.salePrice)) &&
+          Number(product.salePrice) > 0
+            ? Number(product.salePrice)
+            : null,
+        stock: Math.max(0, Math.round(Number(product.stock) || 0)),
         subImages: cleanSubImages,
-      },
-    };
+        details: {
+          ...(product.details || {}),
+          subImages: cleanSubImages,
+        },
+      };
 
-    // Mark this product ID so real-time echo won't overwrite our clean state
-    recentlySavedRef.current.add(finalId);
-    // Auto-clear after 5 seconds (in case the real-time event is delayed)
-    setTimeout(() => recentlySavedRef.current.delete(finalId), 5000);
+      // Mark this product ID so real-time echo won't overwrite our clean state
+      recentlySavedRef.current.add(finalId);
+      // Auto-clear after 5 seconds (in case the real-time event is delayed)
+      setTimeout(() => recentlySavedRef.current.delete(finalId), 5000);
 
-    // Publish only the database-confirmed inventory revision.
-    if (!isOnlineRef.current) {
-      recentlySavedRef.current.delete(finalId);
-      throw new Error("Connect to the internet before saving product inventory.");
-    } else {
-      const result = await dbUpsertProduct(fullProduct);
-      if (result.success && result.product) {
-        setProducts((prev) =>
-          prev.some((item) => item.id === fullProduct.id)
-            ? prev.map((item) => (item.id === fullProduct.id ? result.product! : item))
-            : [result.product!, ...prev],
-        );
-        void invalidatePublicStorefront(supabase);
-      }
-      if (!result.success || !result.product) {
+      // Publish only the database-confirmed inventory revision.
+      if (!isOnlineRef.current) {
         recentlySavedRef.current.delete(finalId);
-        pendingSyncRef.current.delete(fullProduct.id);
-        console.error("[saveProduct] Database save failed:", result.error);
-        throw new Error("Product inventory changed or could not be saved. Refresh and retry.");
+        throw new Error("Connect to the internet before saving product inventory.");
       } else {
-        pendingSyncRef.current.delete(fullProduct.id);
+        const result = await dbUpsertProduct(fullProduct);
+        if (result.success && result.product) {
+          setProducts((prev) =>
+            prev.some((item) => item.id === fullProduct.id)
+              ? prev.map((item) => (item.id === fullProduct.id ? result.product! : item))
+              : [result.product!, ...prev],
+          );
+          void invalidatePublicStorefront(supabase);
+          refreshProductQueries();
+        }
+        if (!result.success || !result.product) {
+          recentlySavedRef.current.delete(finalId);
+          pendingSyncRef.current.delete(fullProduct.id);
+          console.error("[saveProduct] Database save failed:", result.error);
+          throw new Error("Product inventory changed or could not be saved. Refresh and retry.");
+        } else {
+          pendingSyncRef.current.delete(fullProduct.id);
+        }
       }
-    }
-  }, []);
+    },
+    [refreshProductQueries],
+  );
 
-  const deleteProduct = useCallback<StoreApi["deleteProduct"]>(async (id) => {
-    if (deletingProductIdsRef.current.has(id)) return false;
-    deletingProductIdsRef.current.add(id);
-    try {
-      return await deleteWithFeedback(dbDeleteProduct(id), () => {
-        pendingSyncRef.current.delete(id);
-        recentlySavedRef.current.delete(id);
-        setProducts((prev) => {
-          const next = prev.filter((p) => p.id !== id);
-          saveItem("products", next);
-          return next;
+  const deleteProduct = useCallback<StoreApi["deleteProduct"]>(
+    async (id) => {
+      if (deletingProductIdsRef.current.has(id)) return false;
+      deletingProductIdsRef.current.add(id);
+      try {
+        return await deleteWithFeedback(dbDeleteProduct(id), () => {
+          refreshProductQueries();
+          pendingSyncRef.current.delete(id);
+          recentlySavedRef.current.delete(id);
+          setProducts((prev) => {
+            const next = prev.filter((p) => p.id !== id);
+            saveItem("products", next);
+            return next;
+          });
+          setSocialReelsState((prev) => {
+            const next = prev.map((r) => (r.productId === id ? { ...r, productId: null } : r));
+            saveItem("socialReels", next);
+            return next;
+          });
+          setTestimonials((prev) => {
+            const next = prev.map((t) => (t.productId === id ? { ...t, productId: null } : t));
+            saveItem("testimonials", next);
+            return next;
+          });
         });
-        setSocialReelsState((prev) => {
-          const next = prev.map((r) => (r.productId === id ? { ...r, productId: null } : r));
-          saveItem("socialReels", next);
-          return next;
-        });
-        setTestimonials((prev) => {
-          const next = prev.map((t) => (t.productId === id ? { ...t, productId: null } : t));
-          saveItem("testimonials", next);
-          return next;
-        });
-      });
-    } finally {
-      deletingProductIdsRef.current.delete(id);
-    }
-  }, []);
+      } finally {
+        deletingProductIdsRef.current.delete(id);
+      }
+    },
+    [refreshProductQueries],
+  );
 
   const moveProduct = useCallback<StoreApi["moveProduct"]>((id, dir) => {
     setProducts((prev) => {
@@ -2247,6 +2287,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const value = useMemo<StoreApi>(
     () => ({
       storefrontReady,
+      storefrontError,
+      retryStorefront,
       categories,
       collections,
       products,
@@ -2327,6 +2369,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     }),
     [
       storefrontReady,
+      storefrontError,
+      retryStorefront,
       categories,
       collections,
       products,

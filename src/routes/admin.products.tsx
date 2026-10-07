@@ -34,6 +34,8 @@ import { getProductSubImages } from "@/lib/product-images";
 import { formatPrice, newId, useStore } from "@/lib/store";
 import type { Category, Collection, Product, Variant } from "@/lib/types";
 import { useAdminRecords } from "@/lib/admin-records";
+import { useAdminProductCounts } from "@/lib/product-selection";
+import { isSupabaseConfigured } from "@/lib/supabase";
 import { RecordPagination } from "@/components/admin/RecordPagination";
 
 export const Route = createFileRoute("/admin/products")({
@@ -973,6 +975,7 @@ function ProductDialog({
 
 function CategoriesTab() {
   const {
+    isAdmin,
     categories,
     collections,
     products,
@@ -1006,6 +1009,17 @@ function CategoriesTab() {
     }
     return counts;
   }, [products]);
+  const counts = useAdminProductCounts(
+    categories.map((category) => category.id),
+    collections.map((collection) => collection.id),
+    isAdmin,
+  );
+  const categoryCount = (id: string) =>
+    isSupabaseConfigured ? counts.data?.categories[id] : (productCountByCategory.get(id) ?? 0);
+  const collectionCount = (id: string) =>
+    isSupabaseConfigured
+      ? counts.data?.collections[id]
+      : products.filter((product) => product.collectionId === id).length;
 
   // If a category is selected, show its Collections view (Level 2)
   if (selectedCategory) {
@@ -1044,7 +1058,7 @@ function CategoriesTab() {
             <h2 className="font-display text-2xl mt-1">{activeCategory.name}</h2>
             <p className="text-xs text-ink-muted mt-0.5">
               Contains {catCollections.length} collections and{" "}
-              {products.filter((p) => p.categoryId === activeCategory.id).length} total products.
+              {categoryCount(activeCategory.id) ?? "..."} total products.
             </p>
           </div>
           {activeCategory.banner && (
@@ -1076,7 +1090,7 @@ function CategoriesTab() {
                 </tr>
               ) : (
                 catCollections.map((col) => {
-                  const count = products.filter((p) => p.collectionId === col.id).length;
+                  const count = collectionCount(col.id);
                   return (
                     <tr key={col.id}>
                       <td className="px-4 py-3">
@@ -1098,7 +1112,7 @@ function CategoriesTab() {
                           </p>
                         )}
                       </td>
-                      <td className="px-4 py-3 font-medium">{count} products</td>
+                      <td className="px-4 py-3 font-medium">{count ?? "..."} products</td>
                       <td className="px-4 py-3">
                         <Switch
                           checked={!!col.showInNav}
@@ -1307,7 +1321,7 @@ function CategoriesTab() {
           <tbody className="divide-y divide-stone">
             {sortedCategories.map((c, i) => {
               const catCols = collectionsByCategory.get(c.id) ?? [];
-              const count = productCountByCategory.get(c.id) ?? 0;
+              const count = categoryCount(c.id);
               return (
                 <tr key={c.id} className="hover:bg-mist/30 transition-colors">
                   <td className="px-4 py-3">
@@ -1353,7 +1367,7 @@ function CategoriesTab() {
                       {catCols.length} Collections
                     </Button>
                   </td>
-                  <td className="px-4 py-3">{count} items</td>
+                  <td className="px-4 py-3">{count ?? "..."} items</td>
                   <td className="px-4 py-3">
                     <div className="flex justify-end gap-1">
                       <Button

@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { LoaderCircle, RefreshCw } from "lucide-react";
 
 import { BrandsScrollBar } from "@/components/site/BrandsScrollBar";
 import { CategoryBestsellersShowcase } from "@/components/site/CategoryBestsellersShowcase";
@@ -51,14 +52,36 @@ export const Route = createFileRoute("/")({
 });
 
 function HomePage() {
-  const { storefrontReady } = useStore();
+  const { storefrontReady, storefrontError, retryStorefront } = useStore();
 
   return (
     <SiteLayout>
       {!storefrontReady ? (
-        <div aria-busy="true" aria-label="Loading storefront">
-          <div className="h-[250px] w-full animate-pulse bg-jet sm:h-[340px] md:h-[400px] lg:h-[450px]" />
-          <div className="h-16 w-full bg-background sm:h-24" />
+        <div
+          aria-busy={!storefrontError}
+          className="flex min-h-[250px] items-center justify-center px-4 py-12 sm:min-h-[340px] md:min-h-[400px] lg:min-h-[450px]"
+        >
+          {storefrontError ? (
+            <div role="alert" className="max-w-sm text-center">
+              <h1 className="text-xl font-semibold">Unable to load the store</h1>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Check your connection and try again.
+              </p>
+              <button
+                type="button"
+                onClick={retryStorefront}
+                className="mx-auto mt-5 inline-flex min-h-11 items-center gap-2 rounded-md bg-primary px-5 text-sm font-medium text-primary-foreground"
+              >
+                <RefreshCw className="h-4 w-4" />
+                Try again
+              </button>
+            </div>
+          ) : (
+            <div role="status" className="flex items-center gap-3 text-sm text-muted-foreground">
+              <LoaderCircle aria-hidden="true" className="h-5 w-5 animate-spin" />
+              Loading store...
+            </div>
+          )}
         </div>
       ) : (
         <>

@@ -22,6 +22,24 @@ const data: InitialSupabaseData = {
 };
 
 describe("storefront cache", () => {
+  it("does not cache incomplete database reads and retries the next request", async () => {
+    let attempts = 0;
+    let writes = 0;
+    const handler = createStorefrontCacheHandler({
+      getCache: async () => ({ ...data, heroSlides: null }),
+      loadData: async () => (++attempts === 1 ? { ...data, products: null } : data),
+      setCache: async () => {
+        writes++;
+        return true;
+      },
+    });
+    const failed = await handler();
+    assert.equal((await failed.json()).data, null);
+    assert.equal(writes, 0);
+    assert.equal((await handler()).headers.get("X-Redis-Cache"), "MISS");
+    assert.equal(attempts, 2);
+    assert.equal(writes, 1);
+  });
   it("uses a fresh generation after invalidation even while an older fill is pending", async () => {
     let revision = 0;
     const keys: string[] = [];
@@ -60,8 +78,8 @@ describe("storefront cache", () => {
     assert.equal(loads, 2);
     releaseOld(data);
     await oldRequest;
-    assert.ok(keys.includes("optique:storefront:v1:0"));
-    assert.ok(keys.includes("optique:storefront:v1:1"));
+    assert.ok(keys.includes("optique:storefront:v2:0"));
+    assert.ok(keys.includes("optique:storefront:v2:1"));
   });
   it("serves a Redis hit without querying the database", async () => {
     const handler = createStorefrontCacheHandler({

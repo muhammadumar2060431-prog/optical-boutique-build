@@ -1,11 +1,8 @@
 import { createHash } from "node:crypto";
 
 import { logger } from "./api/logger.server.ts";
-import type {
-  MetaCustomDataInput,
-  MetaEventInput,
-  MetaUserDataInput,
-} from "./meta-events.types.ts";
+import { buildMetaCustomData } from "./meta-custom-data.ts";
+import type { MetaEventInput, MetaUserDataInput } from "./meta-events.types.ts";
 
 type MetaHashedKey = "em" | "ph" | "fn" | "ln" | "ct" | "st" | "zp" | "country" | "external_id";
 
@@ -51,6 +48,7 @@ function parseCookies(request: Request) {
 
 function clientIp(request: Request) {
   return (
+    request.headers.get("x-vercel-forwarded-for")?.split(",")[0]?.trim() ??
     request.headers.get("cf-connecting-ip") ??
     request.headers.get("x-real-ip") ??
     request.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
@@ -72,7 +70,8 @@ function buildUserData(input: MetaUserDataInput | undefined, request: Request): 
   ];
 
   for (const [inputKey, outputKey] of hashedFields) {
-    const value = input?.[inputKey]?.trim();
+    const rawValue = input?.[inputKey]?.trim();
+    const value = inputKey === "phone" ? rawValue?.replace(/\D/g, "") : rawValue;
     if (value) userData[outputKey] = [hashMetaValue(value)];
   }
 
@@ -90,24 +89,12 @@ function buildUserData(input: MetaUserDataInput | undefined, request: Request): 
   return userData;
 }
 
-function buildCustomData(input: MetaCustomDataInput | undefined) {
-  if (!input) return undefined;
-  const customData: Record<string, unknown> = {};
-  if (input.value !== undefined) customData["value"] = input.value;
-  if (input.currency) customData["currency"] = input.currency.trim().toUpperCase();
-  if (input.contentIds?.length) customData["content_ids"] = input.contentIds;
-  if (input.contentType) customData["content_type"] = input.contentType;
-  if (input.contentName) customData["content_name"] = input.contentName;
-  if (input.numItems !== undefined) customData["num_items"] = input.numItems;
-  return Object.keys(customData).length ? customData : undefined;
-}
-
 export function buildMetaCapiPayload(
   input: MetaEventInput,
   request: Request,
   options: { eventTime?: number | undefined; testEventCode?: string | undefined } = {},
 ): MetaCapiPayload {
-  const customData = buildCustomData(input.customData);
+  const customData = buildMetaCustomData(input.customData);
   const event = {
     event_name: input.eventName,
     event_time: options.eventTime ?? Math.floor(Date.now() / 1_000),
@@ -115,7 +102,7 @@ export function buildMetaCapiPayload(
     action_source: "website" as const,
     event_source_url: input.eventSourceUrl,
     user_data: buildUserData(input.userData, request),
-    ...(customData ? { custom_data: customData } : {}),
+    ...(Object.keys(customData).length ? { custom_data: customData } : {}),
   };
   const testEventCode = options.testEventCode?.trim();
   return {
@@ -166,15 +153,22 @@ export async function sendMetaEvent(input: MetaEventInput, request: Request) {
     const body = (await response.json().catch(() => null)) as {
       events_received?: number;
       fbtrace_id?: string;
-      error?: { message?: string; type?: string; code?: number; fbtrace_id?: string };
+      error?: {
+        message?: string;
+        type?: string;
+        code?: number;
+        error_subcode?: number;
+        fbtrace_id?: string;
+      };
     } | null;
 
-    if (!response.ok || body?.error) {
+    if (!response.ok || body?.error || !body?.events_received) {
       logger.error("meta.capi.request.failed", {
         eventName: input.eventName,
         eventId: input.eventId,
         status: response.status,
         errorCode: body?.error?.code,
+        errorSubcode: body?.error?.error_subcode,
         errorType: body?.error?.type,
         errorMessage: body?.error?.message,
         traceId: body?.error?.fbtrace_id ?? body?.fbtrace_id,

@@ -4,7 +4,7 @@ import { Star } from "lucide-react";
 
 import { formatPrice, useStore } from "@/lib/store";
 import type { Product } from "@/lib/types";
-import { cn } from "@/lib/utils";
+import { cn, getDiscountPercent } from "@/lib/utils";
 import { getProductSubImages } from "@/lib/product-images";
 
 export function ProductCard({ product }: { product: Product }) {
@@ -14,6 +14,7 @@ export function ProductCard({ product }: { product: Product }) {
   const collection = product.collectionId ? getCollectionById(product.collectionId) : null;
   const stock = productStock(product);
   const status = stockStatus(stock);
+  const discountPercent = getDiscountPercent(product.price, product.salePrice);
 
   const productReviews = useMemo(() => {
     if (!Array.isArray(testimonials)) return [];
@@ -110,10 +111,10 @@ export function ProductCard({ product }: { product: Product }) {
         ) : null}
 
         {/* Top Badges */}
-        <div className="absolute inset-x-1.5 top-1.5 z-10 flex flex-wrap gap-1 sm:inset-x-auto sm:top-3 sm:left-3 sm:flex-col sm:gap-1.5">
-          {product.salePrice && (
-            <span className="rounded-full bg-destructive px-1.5 py-0.5 text-[8px] font-bold uppercase text-white shadow-sm sm:px-2.5 sm:text-[10px] sm:tracking-[0.14em]">
-              Sale
+        <div className="absolute inset-x-1.5 top-1.5 z-10 flex flex-wrap items-start gap-1 sm:inset-x-auto sm:top-3 sm:left-3 sm:max-w-[calc(100%-7rem)] sm:gap-1.5">
+          {discountPercent !== null && (
+            <span aria-label={`${discountPercent}% off`} className="inline-flex shrink-0 items-center rounded-sm bg-red-600 px-2 py-1 text-[10px] leading-none font-bold tracking-normal text-white shadow-sm sm:px-2.5 sm:text-[11px]">
+              -{discountPercent}%
             </span>
           )}
           {product.isNewArrival && (
@@ -159,7 +160,7 @@ export function ProductCard({ product }: { product: Product }) {
           )}
         </div>
 
-        <p className="line-clamp-2 h-[2rem] min-w-0 break-words text-xs font-medium leading-tight text-foreground transition-colors group-hover:text-gold sm:line-clamp-none sm:h-auto sm:text-sm sm:leading-snug">
+        <p className="line-clamp-2 h-[2lh] min-w-0 break-words text-xs font-medium leading-tight text-foreground transition-colors group-hover:text-gold sm:text-sm sm:leading-snug">
           {product.name}
         </p>
 

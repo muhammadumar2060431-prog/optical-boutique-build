@@ -90,12 +90,14 @@ export function Footer() {
       </div>
 
       <div className="border-t border-white/10">
-        <div className="mx-auto flex max-w-7xl flex-col gap-2 px-4 py-3 text-xs text-cream/50 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-          <p>
+        <div className="mx-auto flex max-w-7xl flex-col gap-1 py-3 pl-4 pr-20 text-[11px] leading-5 text-cream/50 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:pl-6 sm:pr-24 sm:text-xs">
+          <p className="min-w-0 break-words">
             &copy; {new Date().getFullYear()} {settings.storeName || "Nigah Eyewear"}. All rights
             reserved.
           </p>
-          <p className="text-right">A Project by Devnex Innovation</p>
+          <p className="min-w-0 break-words text-left sm:text-right">
+            A Project by Devnex Innovation
+          </p>
         </div>
       </div>
     </footer>

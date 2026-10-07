@@ -10,6 +10,7 @@ import { sanitizeHref } from "@/lib/security";
 import { formatPrice, useStore } from "@/lib/store";
 import type { SocialPlatform, SocialReel } from "@/lib/types";
 import { getReelPreview } from "@/lib/reel-preview";
+import { useProductSelection } from "@/lib/product-selection";
 
 function ReelPreview({ reel }: { reel: SocialReel }) {
   const [failedThumbnail, setFailedThumbnail] = useState<string | null>(null);
@@ -159,10 +160,17 @@ function getPlaybackSource(url: string, platform: SocialPlatform): PlaybackSourc
   return embedUrl ? { kind: "iframe", src: embedUrl } : { kind: "external", src: clean };
 }
 export function SocialProofReels() {
-  const { socialReels, products } = useStore();
+  const { socialReels, products: cachedProducts } = useStore();
   const [selectedReel, setSelectedReel] = useState<SocialReel | null>(null);
 
-  const activeReels = socialReels.filter((r) => r.enabled);
+  const activeReels = socialReels.filter((r) => r.enabled).slice(0, 24);
+  const { items: products } = useProductSelection(
+    {
+      ids: activeReels.flatMap((reel) => (reel.productId ? [reel.productId] : [])),
+      limit: 24,
+    },
+    cachedProducts,
+  );
 
   if (activeReels.length === 0) return null;
 
