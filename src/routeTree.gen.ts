@@ -55,6 +55,7 @@ import { Route as ApiV1ReviewsRouteImport } from './routes/api.v1.reviews'
 import { Route as ApiV1StorefrontRouteImport } from './routes/api.v1.storefront'
 import { Route as ApiV1SubscribersRouteImport } from './routes/api.v1.subscribers'
 import { Route as ApiV1AdminCredentialsRouteImport } from './routes/api.v1.admin.credentials'
+import { Route as ApiV1AdminImageProxyRouteImport } from './routes/api.v1.admin.image-proxy'
 import { Route as ApiV1AdminLoginRouteImport } from './routes/api.v1.admin.login'
 import { Route as ApiV1AdminRecoverRouteImport } from './routes/api.v1.admin.recover'
 import { Route as ApiV1AdminSignupRouteImport } from './routes/api.v1.admin.signup'
@@ -293,6 +294,11 @@ const ApiV1AdminCredentialsRoute = ApiV1AdminCredentialsRouteImport.update({
   path: '/api/v1/admin/credentials',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiV1AdminImageProxyRoute = ApiV1AdminImageProxyRouteImport.update({
+  id: '/api/v1/admin/image-proxy',
+  path: '/api/v1/admin/image-proxy',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiV1AdminLoginRoute = ApiV1AdminLoginRouteImport.update({
   id: '/api/v1/admin/login',
   path: '/api/v1/admin/login',
@@ -377,6 +383,7 @@ export interface FileRoutesByFullPath {
   '/api/v1/storefront': typeof ApiV1StorefrontRoute
   '/api/v1/subscribers': typeof ApiV1SubscribersRoute
   '/api/v1/admin/credentials': typeof ApiV1AdminCredentialsRoute
+  '/api/v1/admin/image-proxy': typeof ApiV1AdminImageProxyRoute
   '/api/v1/admin/login': typeof ApiV1AdminLoginRoute
   '/api/v1/admin/recover': typeof ApiV1AdminRecoverRoute
   '/api/v1/admin/signup': typeof ApiV1AdminSignupRoute
@@ -431,6 +438,7 @@ export interface FileRoutesByTo {
   '/api/v1/storefront': typeof ApiV1StorefrontRoute
   '/api/v1/subscribers': typeof ApiV1SubscribersRoute
   '/api/v1/admin/credentials': typeof ApiV1AdminCredentialsRoute
+  '/api/v1/admin/image-proxy': typeof ApiV1AdminImageProxyRoute
   '/api/v1/admin/login': typeof ApiV1AdminLoginRoute
   '/api/v1/admin/recover': typeof ApiV1AdminRecoverRoute
   '/api/v1/admin/signup': typeof ApiV1AdminSignupRoute
@@ -487,6 +495,7 @@ export interface FileRoutesById {
   '/api/v1/storefront': typeof ApiV1StorefrontRoute
   '/api/v1/subscribers': typeof ApiV1SubscribersRoute
   '/api/v1/admin/credentials': typeof ApiV1AdminCredentialsRoute
+  '/api/v1/admin/image-proxy': typeof ApiV1AdminImageProxyRoute
   '/api/v1/admin/login': typeof ApiV1AdminLoginRoute
   '/api/v1/admin/recover': typeof ApiV1AdminRecoverRoute
   '/api/v1/admin/signup': typeof ApiV1AdminSignupRoute
@@ -544,6 +553,7 @@ export interface FileRouteTypes {
     | '/api/v1/storefront'
     | '/api/v1/subscribers'
     | '/api/v1/admin/credentials'
+    | '/api/v1/admin/image-proxy'
     | '/api/v1/admin/login'
     | '/api/v1/admin/recover'
     | '/api/v1/admin/signup'
@@ -598,6 +608,7 @@ export interface FileRouteTypes {
     | '/api/v1/storefront'
     | '/api/v1/subscribers'
     | '/api/v1/admin/credentials'
+    | '/api/v1/admin/image-proxy'
     | '/api/v1/admin/login'
     | '/api/v1/admin/recover'
     | '/api/v1/admin/signup'
@@ -653,6 +664,7 @@ export interface FileRouteTypes {
     | '/api/v1/storefront'
     | '/api/v1/subscribers'
     | '/api/v1/admin/credentials'
+    | '/api/v1/admin/image-proxy'
     | '/api/v1/admin/login'
     | '/api/v1/admin/recover'
     | '/api/v1/admin/signup'
@@ -698,6 +710,7 @@ export interface RootRouteChildren {
   ApiV1StorefrontRoute: typeof ApiV1StorefrontRoute
   ApiV1SubscribersRoute: typeof ApiV1SubscribersRoute
   ApiV1AdminCredentialsRoute: typeof ApiV1AdminCredentialsRoute
+  ApiV1AdminImageProxyRoute: typeof ApiV1AdminImageProxyRoute
   ApiV1AdminLoginRoute: typeof ApiV1AdminLoginRoute
   ApiV1AdminRecoverRoute: typeof ApiV1AdminRecoverRoute
   ApiV1AdminSignupRoute: typeof ApiV1AdminSignupRoute
@@ -1029,6 +1042,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1AdminCredentialsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/v1/admin/image-proxy': {
+      id: '/api/v1/admin/image-proxy'
+      path: '/api/v1/admin/image-proxy'
+      fullPath: '/api/v1/admin/image-proxy'
+      preLoaderRoute: typeof ApiV1AdminImageProxyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/v1/admin/login': {
       id: '/api/v1/admin/login'
       path: '/api/v1/admin/login'
@@ -1161,6 +1181,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiV1StorefrontRoute: ApiV1StorefrontRoute,
   ApiV1SubscribersRoute: ApiV1SubscribersRoute,
   ApiV1AdminCredentialsRoute: ApiV1AdminCredentialsRoute,
+  ApiV1AdminImageProxyRoute: ApiV1AdminImageProxyRoute,
   ApiV1AdminLoginRoute: ApiV1AdminLoginRoute,
   ApiV1AdminRecoverRoute: ApiV1AdminRecoverRoute,
   ApiV1AdminSignupRoute: ApiV1AdminSignupRoute,

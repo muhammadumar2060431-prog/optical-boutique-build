@@ -540,19 +540,21 @@ export async function fetchInitialSupabaseData(
 
   if (!includePrivate && !options.bypassStorefrontApi && typeof window !== "undefined") {
     try {
-      const data = await withStorefrontTimeout((async () => {
-        const response = await fetch("/api/v1/storefront", {
-          credentials: "same-origin",
-          headers: { Accept: "application/json" },
-          signal: AbortSignal.timeout(6_000),
-        });
-        const payload = (await response.json().catch(() => null)) as {
-          data?: InitialSupabaseData | null;
-        } | null;
-        return response.ok && hasStorefrontContent(payload?.data)
-          ? publicStorefrontData(payload.data)
-          : null;
-      })());
+      const data = await withStorefrontTimeout(
+        (async () => {
+          const response = await fetch("/api/v1/storefront", {
+            credentials: "same-origin",
+            headers: { Accept: "application/json" },
+            signal: AbortSignal.timeout(6_000),
+          });
+          const payload = (await response.json().catch(() => null)) as {
+            data?: InitialSupabaseData | null;
+          } | null;
+          return response.ok && hasStorefrontContent(payload?.data)
+            ? publicStorefrontData(payload.data)
+            : null;
+        })(),
+      );
       if (data) return data;
     } catch {}
   }
@@ -573,33 +575,35 @@ export async function fetchInitialSupabaseData(
       settingsRes,
       announcementRes,
       videoRes,
-    ] = await withStorefrontTimeout(Promise.allSettled([
-      fetchInitialProducts(supabase),
-      supabase.from("categories").select("*").order("sort_order", { ascending: true }),
-      supabase.from("collections").select("*").order("sort_order", { ascending: true }),
-      Promise.resolve({ data: null, error: null }),
-      Promise.resolve({ data: null, error: null }),
-      supabase.from("hero_slides").select("*").order("sort_order", { ascending: true }),
-      supabase.from("brands").select("*").order("sort_order", { ascending: true }),
-      supabase.from("social_reels").select("*").order("sort_order", { ascending: true }),
-      includePrivate
-        ? fetchPrivateTestimonials()
-        : supabase
-            .from("testimonials")
-            .select(PUBLIC_TESTIMONIAL_COLUMNS)
-            .order("sort_order", { ascending: true }),
-      supabase.from("faqs").select("*").order("sort_order", { ascending: true }),
-      Promise.resolve({ data: null, error: null }),
-      includePrivate
-        ? fetchPrivateSettings()
-        : supabase
-            .from("store_settings")
-            .select(PUBLIC_SETTINGS_COLUMNS)
-            .eq("id", "default")
-            .single(),
-      supabase.from("announcements").select("*").eq("id", "default").single(),
-      supabase.from("video_settings").select("*").eq("id", "default").single(),
-    ]));
+    ] = await withStorefrontTimeout(
+      Promise.allSettled([
+        fetchInitialProducts(supabase),
+        supabase.from("categories").select("*").order("sort_order", { ascending: true }),
+        supabase.from("collections").select("*").order("sort_order", { ascending: true }),
+        Promise.resolve({ data: null, error: null }),
+        Promise.resolve({ data: null, error: null }),
+        supabase.from("hero_slides").select("*").order("sort_order", { ascending: true }),
+        supabase.from("brands").select("*").order("sort_order", { ascending: true }),
+        supabase.from("social_reels").select("*").order("sort_order", { ascending: true }),
+        includePrivate
+          ? fetchPrivateTestimonials()
+          : supabase
+              .from("testimonials")
+              .select(PUBLIC_TESTIMONIAL_COLUMNS)
+              .order("sort_order", { ascending: true }),
+        supabase.from("faqs").select("*").order("sort_order", { ascending: true }),
+        Promise.resolve({ data: null, error: null }),
+        includePrivate
+          ? fetchPrivateSettings()
+          : supabase
+              .from("store_settings")
+              .select(PUBLIC_SETTINGS_COLUMNS)
+              .eq("id", "default")
+              .single(),
+        supabase.from("announcements").select("*").eq("id", "default").single(),
+        supabase.from("video_settings").select("*").eq("id", "default").single(),
+      ]),
+    );
 
     const settingsRaw = settingsRes.status === "fulfilled" ? (settingsRes.value.data as any) : null;
     const settings: StoreSettings | null = settingsRaw
@@ -880,29 +884,35 @@ async function requireStoredImage(image: string, folder: string): Promise<string
   return url;
 }
 
-export async function dbUpsertCategory(category: Category) {
-  try {
-    let image = category.image ?? null;
-    const banner = category.banner ? { ...category.banner } : null;
-    if (image && image.startsWith("data:")) {
-      image = await requireStoredImage(image, "categories");
+const contentMutations = createMutationQueue();
+
+export async function dbUpsertCategory(category: Category): Promise<boolean> {
+  return contentMutations(`category:${category.id}`, async () => {
+    try {
+      let image = category.image ?? null;
+      const banner = category.banner ? { ...category.banner } : null;
+      if (image && image.startsWith("data:")) {
+        image = await requireStoredImage(image, "categories");
+      }
+      if (banner?.image && banner.image.startsWith("data:")) {
+        banner.image = await requireStoredImage(banner.image, "categories");
+      }
+      const payload = sanitizeDbInput(mapStoreCategoryToDb({ ...category, image, banner }));
+      const { error } = await supabase.from("categories").upsert(payload);
+      if (error) throw error;
+      return true;
+    } catch (e) {
+      console.error("Failed to sync category to Supabase:", e);
+      return false;
     }
-    if (banner?.image && banner.image.startsWith("data:")) {
-      banner.image = await requireStoredImage(banner.image, "categories");
-    }
-    const payload = sanitizeDbInput(mapStoreCategoryToDb({ ...category, image, banner }));
-    const { error } = await supabase.from("categories").upsert(payload);
-    if (error) throw error;
-  } catch (e) {
-    console.error("Failed to sync category to Supabase:", e);
-  }
+  });
 }
 
 export async function dbDeleteCategory(id: string) {
-  return deleteDatabaseRecord(supabase, "categories", id);
+  return contentMutations(`category:${id}`, () => deleteDatabaseRecord(supabase, "categories", id));
 }
 
-export async function dbUpsertCollection(collection: Collection) {
+export async function dbUpsertCollection(collection: Collection): Promise<boolean> {
   try {
     const banner = collection.banner ? { ...collection.banner } : null;
     if (banner?.image && banner.image.startsWith("data:")) {
@@ -911,8 +921,10 @@ export async function dbUpsertCollection(collection: Collection) {
     const payload = sanitizeDbInput(mapStoreCollectionToDb({ ...collection, banner }));
     const { error } = await supabase.from("collections").upsert(payload);
     if (error) throw error;
+    return true;
   } catch (e) {
     console.error("Failed to sync collection to Supabase:", e);
+    return false;
   }
 }
 
@@ -1037,29 +1049,31 @@ function mapStoreHeroSlideToLegacyDb(slide: HeroSlide, index = 0): any {
 }
 
 export async function dbUpsertHeroSlide(slide: HeroSlide): Promise<boolean> {
-  try {
-    let image = slide.image;
-    if (image && image.startsWith("data:")) {
-      image = (await uploadImageToStorage(image, "hero")) || image;
-    }
-    const updatedSlide = { ...slide, image };
-    const payload = mapStoreHeroSlideToDb(updatedSlide);
-    const { error } = await supabase.from("hero_slides").upsert(payload);
-    if (!error) return true;
+  return contentMutations(`hero:${slide.id}`, async () => {
+    try {
+      let image = slide.image;
+      if (image && image.startsWith("data:")) {
+        image = await requireStoredImage(image, "hero");
+      }
+      const updatedSlide = { ...slide, image };
+      const payload = mapStoreHeroSlideToDb(updatedSlide);
+      const { error } = await supabase.from("hero_slides").upsert(payload);
+      if (!error) return true;
 
-    if (error.code === "PGRST204") {
-      const { error: legacyError } = await supabase
-        .from("hero_slides")
-        .upsert(mapStoreHeroSlideToLegacyDb(updatedSlide, slide.sortOrder ?? 0));
-      if (!legacyError) return true;
-      throw legacyError;
-    }
+      if (error.code === "PGRST204") {
+        const { error: legacyError } = await supabase
+          .from("hero_slides")
+          .upsert(mapStoreHeroSlideToLegacyDb(updatedSlide, slide.sortOrder ?? 0));
+        if (!legacyError) return true;
+        throw legacyError;
+      }
 
-    throw error;
-  } catch (e) {
-    console.error("Failed to sync hero slide to Supabase:", e);
-    return false;
-  }
+      throw error;
+    } catch (e) {
+      console.error("Failed to sync hero slide to Supabase:", e);
+      return false;
+    }
+  });
 }
 
 export async function dbUpsertHeroSlides(slides: HeroSlide[]): Promise<boolean> {
@@ -1069,7 +1083,7 @@ export async function dbUpsertHeroSlides(slides: HeroSlide[]): Promise<boolean> 
       slides.map(async (slide) => {
         let image = slide.image;
         if (image && image.startsWith("data:")) {
-          image = (await uploadImageToStorage(image, "hero")) || image;
+          image = await requireStoredImage(image, "hero");
         }
         return { ...slide, image };
       }),
@@ -1092,19 +1106,19 @@ export async function dbUpsertHeroSlides(slides: HeroSlide[]): Promise<boolean> 
   }
 }
 export async function dbDeleteHeroSlide(id: string): Promise<boolean> {
-  return deleteDatabaseRecord(supabase, "hero_slides", id);
+  return contentMutations(`hero:${id}`, () => deleteDatabaseRecord(supabase, "hero_slides", id));
 }
 
-export async function dbUpsertBrand(brand: Brand) {
+export async function dbUpsertBrand(brand: Brand): Promise<boolean> {
   try {
     let logo = brand.logo;
     if (logo && logo.startsWith("data:")) {
-      logo = (await uploadImageToStorage(logo, "brands")) || logo;
+      logo = await requireStoredImage(logo, "brands");
     }
     const updatedBrand = { ...brand, logo };
     const payload = sanitizeDbInput(mapStoreBrandToDb(updatedBrand));
     const { error } = await supabase.from("brands").upsert(payload);
-    if (!error) return;
+    if (!error) return true;
 
     if (isMissingColumnError(error, "enabled")) {
       const { error: legacyError } = await supabase.from("brands").upsert({
@@ -1112,13 +1126,14 @@ export async function dbUpsertBrand(brand: Brand) {
         name: updatedBrand.name,
         logo: updatedBrand.logo || "",
       });
-      if (!legacyError) return;
+      if (!legacyError) return true;
       throw legacyError;
     }
 
     throw error;
   } catch (e) {
     console.error("Failed to sync brand to Supabase:", e);
+    return false;
   }
 }
 
@@ -1126,17 +1141,19 @@ export async function dbDeleteBrand(id: string) {
   return deleteDatabaseRecord(supabase, "brands", id);
 }
 
-export async function dbUpsertSocialReel(reel: SocialReel) {
+export async function dbUpsertSocialReel(reel: SocialReel): Promise<boolean> {
   try {
     let thumbnail = reel.thumbnail;
     if (thumbnail && thumbnail.startsWith("data:")) {
-      thumbnail = (await uploadImageToStorage(thumbnail, "reels")) || thumbnail;
+      thumbnail = await requireStoredImage(thumbnail, "reels");
     }
     const payload = sanitizeDbInput(mapStoreSocialReelToDb({ ...reel, thumbnail }));
     const { error } = await supabase.from("social_reels").upsert(payload);
     if (error) throw error;
+    return true;
   } catch (e) {
     console.error("Failed to sync reel to Supabase:", e);
+    return false;
   }
 }
 
@@ -1144,7 +1161,7 @@ export async function dbDeleteSocialReel(id: string) {
   return deleteDatabaseRecord(supabase, "social_reels", id);
 }
 
-export async function dbUpsertTestimonial(t: Testimonial) {
+export async function dbUpsertTestimonial(t: Testimonial): Promise<boolean> {
   try {
     let photo = t.photo ?? null;
     let reviewImage = t.reviewImage ?? null;
@@ -1159,10 +1176,15 @@ export async function dbUpsertTestimonial(t: Testimonial) {
     const { error } = await supabase.from("testimonials").upsert(payload);
     if (error && isMissingColumnError(error, "source")) {
       const { source: _source, ...legacyPayload } = payload as any;
-      await supabase.from("testimonials").upsert(legacyPayload);
+      const { error: legacyError } = await supabase.from("testimonials").upsert(legacyPayload);
+      if (legacyError) throw legacyError;
+    } else if (error) {
+      throw error;
     }
+    return true;
   } catch (e) {
     console.error("Failed to sync testimonial to Supabase:", e);
+    return false;
   }
 }
 
@@ -1214,7 +1236,7 @@ export async function dbUpsertSettings(settings: StoreSettings): Promise<boolean
     await requireDatabaseAdmin(supabase);
     let logo = settings.logo;
     if (logo && logo.startsWith("data:")) {
-      logo = (await uploadImageToStorage(logo, "settings", { throwOnError: true })) || logo;
+      logo = await requireStoredImage(logo, "settings");
     }
     const payload: any = {
       id: "default",

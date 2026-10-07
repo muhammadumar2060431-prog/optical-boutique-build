@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { ImageUpload } from "@/components/admin/ImageUpload";
+import { useImageUploads } from "@/lib/use-image-uploads";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -64,6 +65,7 @@ const newBlock = (type: BlogBlockType): BlogBlock => {
 };
 
 function BlogAdmin() {
+  const { isUploading, onUploadingChange } = useImageUploads();
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [draft, setDraft] = useState<BlogPost | null>(null);
   const [saving, setSaving] = useState(false);
@@ -215,7 +217,7 @@ function BlogAdmin() {
           <Button variant="outline" onClick={() => setDraft(null)}>
             Cancel
           </Button>
-          <Button onClick={save} disabled={saving}>
+          <Button onClick={save} disabled={saving || isUploading}>
             <Save className="mr-2 h-4 w-4" />
             {saving ? "Saving..." : "Save article"}
           </Button>
@@ -281,6 +283,10 @@ function BlogAdmin() {
         <div className="md:col-span-2">
           <ImageUpload
             label="Cover image"
+            disabled={saving}
+            maxBytes={350 * 1024}
+            cropAspect={16 / 9}
+            onUploadingChange={onUploadingChange}
             value={draft.coverImage || null}
             onChange={(image) => setDraft({ ...draft, coverImage: image || "" })}
             aspectHint="16:9 landscape"
@@ -405,6 +411,10 @@ function BlogAdmin() {
             {block.type === "image" ? (
               <div className="space-y-3">
                 <ImageUpload
+                  disabled={saving}
+                  onUploadingChange={onUploadingChange}
+                  maxBytes={300 * 1024}
+                  cropAspect={16 / 9}
                   value={block.image || null}
                   onChange={(image) => patchBlock(block.id, { image: image || "" })}
                   aspectHint="16:9 landscape"

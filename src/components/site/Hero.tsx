@@ -84,7 +84,7 @@ export function Hero() {
               loading={i === index ? "eager" : "lazy"}
               decoding="async"
               fetchPriority={i === 0 ? "high" : "auto"}
-              className="block h-full w-full object-fill"
+              className={cn("block h-full w-full", hasText ? "object-cover" : "object-fill")}
               onError={() => {
                 if (optimizedImageSrc !== imageSrc) {
                   setFailedTransforms((current) => new Set([...current, imageSrc]));

@@ -15,6 +15,7 @@ import {
 import { toast } from "sonner";
 
 import { ImageUpload } from "@/components/admin/ImageUpload";
+import { useImageUploads } from "@/lib/use-image-uploads";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -370,6 +371,7 @@ function ProductDialog({
   const { categories, collections } = useStore();
   const [form, setForm] = useState<Product | null>(draft);
   const [isSaving, setIsSaving] = useState(false);
+  const { isUploading, onUploadingChange } = useImageUploads();
   const lastDraftIdRef = useRef<string | null>(null);
 
   // Initialize form ONLY when a new draft product is opened, NEVER on subsequent re-renders
@@ -588,6 +590,11 @@ function ProductDialog({
                 <h3 className="font-display text-lg">Product Media</h3>
                 <ImageUpload
                   label="Primary Base Image *"
+                  disabled={isSaving}
+                  cropAspect={1}
+                  maxWidth={800}
+                  maxHeight={800}
+                  onUploadingChange={onUploadingChange}
                   value={value.image || null}
                   onChange={(img) => setForm({ ...value, image: img ?? "" })}
                   hint="800×800 px square • Max 200 KB • JPG/WebP recommended"
@@ -598,6 +605,11 @@ function ProductDialog({
 
                 <ImageUpload
                   label="Hover Image (shows on cursor hover)"
+                  disabled={isSaving}
+                  cropAspect={1}
+                  maxWidth={800}
+                  maxHeight={800}
+                  onUploadingChange={onUploadingChange}
                   optional
                   value={value.hoverImage ?? null}
                   onChange={(img) => setForm({ ...value, hoverImage: img ?? null })}
@@ -622,6 +634,9 @@ function ProductDialog({
                       return (
                         <ImageUpload
                           key={i}
+                          disabled={isSaving}
+                          cropAspect={1}
+                          onUploadingChange={onUploadingChange}
                           label={`Angle ${i + 1}`}
                           optional
                           compact
@@ -810,6 +825,10 @@ function ProductDialog({
 
                         <ImageUpload
                           label={`Variant Image (${v.label})`}
+                          disabled={isSaving}
+                          maxBytes={120 * 1024}
+                          cropAspect={1}
+                          onUploadingChange={onUploadingChange}
                           optional
                           value={v.image || null}
                           onChange={(img) => setVariant({ ...v, image: img ?? "" })}
@@ -870,6 +889,11 @@ function ProductDialog({
                         </div>
                         <ImageUpload
                           label="New Arrival Section Image (Only for New Arrivals Showcase)"
+                          disabled={isSaving}
+                          cropAspect={1}
+                          maxWidth={800}
+                          maxHeight={800}
+                          onUploadingChange={onUploadingChange}
                           optional
                           value={value.newArrivalImage || null}
                           onChange={(img) => setForm({ ...value, newArrivalImage: img })}
@@ -922,7 +946,7 @@ function ProductDialog({
 
               <Button
                 className="min-h-12 w-full rounded-full text-base font-semibold"
-                disabled={isSaving}
+                disabled={isSaving || isUploading}
                 onClick={async () => {
                   if (!value.name.trim()) {
                     toast.error("A product name is required.");
@@ -974,6 +998,8 @@ function ProductDialog({
 }
 
 function CategoriesTab() {
+  const { isUploading, onUploadingChange } = useImageUploads();
+  const [isSaving, setIsSaving] = useState(false);
   const {
     isAdmin,
     categories,
@@ -1192,6 +1218,14 @@ function CategoriesTab() {
 
                   <ImageUpload
                     label="Collection Banner Image"
+                    disabled={isSaving}
+                    maxBytes={250 * 1024}
+                    cropAspect={2.4}
+                    maxWidth={1200}
+                    maxHeight={500}
+                    outputQuality={0.85}
+                    storageFolder="collections"
+                    onUploadingChange={onUploadingChange}
                     optional
                     value={collectionDraft.banner?.image || null}
                     onChange={(img) =>
@@ -1257,7 +1291,8 @@ function CategoriesTab() {
 
                   <Button
                     className="min-h-11 w-full rounded-full"
-                    onClick={() => {
+                    disabled={isUploading || isSaving}
+                    onClick={async () => {
                       if (!collectionDraft.name.trim()) {
                         toast.error("Collection name is required.");
                         return;
@@ -1265,11 +1300,14 @@ function CategoriesTab() {
                       if (!window.confirm("Are you sure you want to save this collection?")) {
                         return;
                       }
-                      saveCollection({
+                      setIsSaving(true);
+                      const saved = await saveCollection({
                         ...collectionDraft,
                         id: collectionDraft.id || newId("col"),
                         slug: collectionDraft.slug || slugify(collectionDraft.name),
                       });
+                      setIsSaving(false);
+                      if (!saved) return;
                       setCollectionDraft(null);
                       toast.success("Collection saved successfully.");
                     }}
@@ -1457,6 +1495,13 @@ function CategoriesTab() {
                 <div className="space-y-2">
                   <ImageUpload
                     label="Category Circular Icon / Avatar Image"
+                    disabled={isSaving}
+                    maxBytes={100 * 1024}
+                    cropAspect={1}
+                    maxWidth={400}
+                    maxHeight={400}
+                    storageFolder="categories"
+                    onUploadingChange={onUploadingChange}
                     value={categoryDraft.image || null}
                     onChange={(img) => setCategoryDraft({ ...categoryDraft, image: img })}
                     hint="400×400 px square • Max 100 KB • JPG/PNG/WebP"
@@ -1470,7 +1515,8 @@ function CategoriesTab() {
 
                 <Button
                   className="min-h-11 w-full rounded-full"
-                  onClick={() => {
+                  disabled={isUploading || isSaving}
+                  onClick={async () => {
                     if (!categoryDraft.name.trim()) {
                       toast.error("A category name is required.");
                       return;
@@ -1478,11 +1524,14 @@ function CategoriesTab() {
                     if (!window.confirm("Are you sure you want to save this category?")) {
                       return;
                     }
-                    saveCategory({
+                    setIsSaving(true);
+                    const saved = await saveCategory({
                       ...categoryDraft,
                       id: categoryDraft.id || newId("cat"),
                       slug: categoryDraft.slug?.trim() || slugify(categoryDraft.name),
                     });
+                    setIsSaving(false);
+                    if (!saved) return;
                     setCategoryDraft(null);
                     toast.success("Category saved.");
                   }}

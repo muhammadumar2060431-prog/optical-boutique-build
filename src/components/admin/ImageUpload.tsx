@@ -1,4 +1,4 @@
-import { lazy, Suspense, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { Trash2, Upload, Eye, ImagePlus, ScanSearch } from "lucide-react";
 
 import { uploadImageToStorage } from "@/lib/supabaseSync";
@@ -13,6 +13,37 @@ const ImageCropper = lazy(() =>
   import("@/components/admin/ImageCropper").then((module) => ({ default: module.ImageCropper })),
 );
 
+function isRemoteHttpUrl(source: string) {
+  return /^https?:\/\//i.test(source);
+}
+
+async function blobToDataUrl(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () =>
+      typeof reader.result === "string"
+        ? resolve(reader.result)
+        : reject(new Error("The image could not be prepared for editing."));
+    reader.onerror = () => reject(new Error("The image could not be prepared for editing."));
+    reader.readAsDataURL(blob);
+  });
+}
+
+async function loadEditableImageSource(source: string) {
+  if (!isRemoteHttpUrl(source)) return source;
+
+  // CORS-readable external images need no proxy; storage fallback handles cached opaque images.
+  try {
+    const response = await fetch(source, { mode: "cors", credentials: "omit", cache: "no-store" });
+    if (response.ok) return blobToDataUrl(await response.blob());
+  } catch {
+    // Retry configured storage through the same-origin endpoint.
+  }
+  const response = await fetch(`/api/v1/admin/image-proxy?url=${encodeURIComponent(source)}`);
+  if (!response.ok) throw new Error("This image cannot be edited. Upload the original file again.");
+  return blobToDataUrl(await response.blob());
+}
+
 // --- Image Size Guide --------------------------------------------------------
 // Recommended sizes for fast loading (website smooth chale):
 //   Logo              : 400x120 px  |  max 80 KB   | PNG/WebP (transparent bg)
@@ -25,7 +56,7 @@ const ImageCropper = lazy(() =>
 //   Brand Logo        : 320x80 px   |  max 50 KB   | PNG/SVG (transparent bg)
 //   Reel Thumbnail    : 480x854 px  |  max 150 KB  | JPG/WebP (9:16 vertical)
 //   Testimonial Photo : 400x400 px  |  max 80 KB   | JPG/WebP
-// Max upload size allowed: 5 MB per file (auto-compressed to optimized quality)
+// Input limit: 10 MB. Encoded output obeys the slot budget and Storage's 5 MB limit.
 // -----------------------------------------------------------------------------
 
 export function ImageUpload({
@@ -40,8 +71,12 @@ export function ImageUpload({
   maxWidth = 600,
   maxHeight = 600,
   outputQuality = 0.65,
+  maxBytes = 200 * 1024,
   storageFolder = "uploads",
-  allowAdjustment = false,
+  allowAdjustment = true,
+  cropAspect = null,
+  localOnly = false,
+  disabled = false,
 }: {
   label?: string;
   value: string | null;
@@ -61,22 +96,47 @@ export function ImageUpload({
   maxHeight?: number;
   /** Canvas export quality for compressed JPG/WebP output. */
   outputQuality?: number;
+  maxBytes?: number;
   /** Supabase Storage folder/path prefix. Default: "uploads" */
   storageFolder?: string;
-  /** Enable manual zoom and cropping for product images. */
+  /** Enable manual zoom and cropping before upload and on existing images. */
   allowAdjustment?: boolean;
+  /** null preserves the source ratio (logos and screenshots). */
+  cropAspect?: number | null;
+  /** Public submissions are uploaded by their server endpoint, without an admin session. */
+  localOnly?: boolean;
+  disabled?: boolean;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const busyRef = useRef(false);
+  const callbacksRef = useRef({ onChange, onUploadingChange });
+  callbacksRef.current = { onChange, onUploadingChange };
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      if (busyRef.current) callbacksRef.current.onUploadingChange?.(false);
+      busyRef.current = false;
+    };
+  }, []);
+  const setBusy = (busy: boolean) => {
+    if (busyRef.current === busy) return;
+    busyRef.current = busy;
+    setIsProcessing(busy);
+    callbacksRef.current.onUploadingChange?.(busy);
+  };
 
   // For re-adjusting an already-set image
   const [editCropOpen, setEditCropOpen] = useState(false);
+  const [editableImageSrc, setEditableImageSrc] = useState<string | null>(null);
 
   const MAX_FILE_BYTES = 10 * 1024 * 1024; // 10 MB
 
   const handleFile = (file: File | undefined) => {
-    if (!file) return;
+    if (!file || busyRef.current || disabled) return;
     setError(null);
 
     if (file.size > MAX_FILE_BYTES) {
@@ -90,36 +150,44 @@ export function ImageUpload({
       return;
     }
 
-    setIsProcessing(true);
-    onUploadingChange?.(true);
+    setBusy(true);
 
     const reader = new FileReader();
     reader.onload = () => {
       const rawResult = reader.result;
       if (typeof rawResult !== "string") {
-        setIsProcessing(false);
-        onUploadingChange?.(false);
+        setError("The selected image could not be read.");
+        setBusy(false);
         return;
       }
 
-      void processAndUploadImage(rawResult);
+      if (!mountedRef.current) return;
+      if (allowAdjustment) {
+        setEditableImageSrc(rawResult);
+        setEditCropOpen(true);
+      } else {
+        void processAndUploadImage(rawResult);
+      }
     };
 
     reader.onerror = () => {
-      setIsProcessing(false);
-      onUploadingChange?.(false);
+      if (!mountedRef.current) return;
+      setError("The selected image could not be read.");
+      setBusy(false);
     };
     reader.readAsDataURL(file);
   };
 
   const persistImage = async (image: Blob | string) => {
-    if (!isSupabaseConfigured) {
-      onChange(typeof image === "string" ? image : await ImageOptimizer.toDataUrl(image));
+    if (localOnly || !isSupabaseConfigured) {
+      const source = typeof image === "string" ? image : await ImageOptimizer.toDataUrl(image);
+      if (mountedRef.current) callbacksRef.current.onChange(source);
       return;
     }
 
     const storageUrl = await uploadImageToStorage(image, storageFolder, { throwOnError: true });
-    if (storageUrl) onChange(storageUrl);
+    if (!storageUrl) throw new Error("Storage did not return an image URL.");
+    if (mountedRef.current) callbacksRef.current.onChange(storageUrl);
   };
 
   const processAndUploadImage = async (croppedDataUrl: string) => {
@@ -130,6 +198,7 @@ export function ImageUpload({
         maxHeight,
         quality: outputQuality,
         outputType: "image/webp",
+        maxBytes,
       });
       const optimizedImage = await optimizer.optimize(croppedDataUrl);
       stage = "Image upload";
@@ -141,8 +210,26 @@ export function ImageUpload({
           : "The image could not be processed or uploaded. Please try again.",
       );
     } finally {
-      setIsProcessing(false);
-      onUploadingChange?.(false);
+      if (mountedRef.current) setBusy(false);
+    }
+  };
+
+  const openAdjustment = async () => {
+    if (!value || busyRef.current || disabled) return;
+    setError(null);
+    try {
+      setBusy(true);
+      const source = await loadEditableImageSource(value);
+      if (!mountedRef.current) return;
+      setEditableImageSrc(source);
+      setEditCropOpen(true);
+    } catch (processingError) {
+      setError(
+        processingError instanceof Error
+          ? `Image adjustment: ${processingError.message}`
+          : "The image could not be opened for adjustment.",
+      );
+      setBusy(false);
     }
   };
 
@@ -170,7 +257,7 @@ export function ImageUpload({
           "relative flex items-center gap-3 rounded-xl border-2 border-dashed border-stone/70 bg-muted/20 p-2.5 transition-all hover:border-gold/60 hover:bg-gold/5 cursor-pointer overflow-hidden",
           compact ? "p-2" : "p-3",
         )}
-        onClick={() => !isProcessing && inputRef.current?.click()}
+        onClick={() => !isProcessing && !disabled && inputRef.current?.click()}
         onDragOver={(e) => e.preventDefault()}
         onDrop={(e) => {
           e.preventDefault();
@@ -205,7 +292,7 @@ export function ImageUpload({
               variant="outline"
               size="sm"
               className="h-8 px-2.5 text-xs rounded-lg font-medium bg-card hover:bg-gold/10 hover:border-gold/50 shrink-0"
-              disabled={isProcessing}
+              disabled={isProcessing || disabled}
               title={value ? "Replace Image" : "Upload Image"}
               onClick={(e) => {
                 e.stopPropagation();
@@ -230,10 +317,10 @@ export function ImageUpload({
                     className="h-8 w-8 shrink-0 text-muted-foreground hover:text-gold hover:bg-gold/10"
                     onClick={(e) => {
                       e.stopPropagation();
-                      setEditCropOpen(true);
+                      void openAdjustment();
                     }}
                     title="Adjust / Re-crop image"
-                    disabled={isProcessing}
+                    disabled={isProcessing || disabled}
                   >
                     <ScanSearch className="h-3.5 w-3.5" />
                   </Button>
@@ -261,6 +348,7 @@ export function ImageUpload({
                     onChange(null);
                   }}
                   title="Remove image"
+                  disabled={isProcessing || disabled}
                 >
                   <Trash2 className="h-3.5 w-3.5" />
                 </Button>
@@ -283,6 +371,7 @@ export function ImageUpload({
       <input
         ref={inputRef}
         type="file"
+        disabled={disabled || isProcessing}
         accept="image/avif,image/webp,image/png,image/jpeg"
         className="hidden"
         onChange={(e) => handleFile(e.target.files?.[0])}
@@ -290,18 +379,24 @@ export function ImageUpload({
       />
 
       {/* Re-adjust already-set image */}
-      {allowAdjustment && value && editCropOpen && (
+      {allowAdjustment && editableImageSrc && editCropOpen && (
         <Suspense fallback={null}>
           <ImageCropper
             isOpen={editCropOpen}
-            imageSrc={value}
+            imageSrc={editableImageSrc}
+            aspect={cropAspect}
+            maxWidth={maxWidth}
+            maxHeight={maxHeight}
             onCropCompleteAction={(croppedImage) => {
               setEditCropOpen(false);
-              setIsProcessing(true);
-              onUploadingChange?.(true);
-              processAndUploadImage(croppedImage);
+              setEditableImageSrc(null);
+              void processAndUploadImage(croppedImage);
             }}
-            onClose={() => setEditCropOpen(false)}
+            onClose={() => {
+              setEditCropOpen(false);
+              setEditableImageSrc(null);
+              setBusy(false);
+            }}
           />
         </Suspense>
       )}

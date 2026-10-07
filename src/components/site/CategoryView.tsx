@@ -85,15 +85,17 @@ export function CategoryView({ category }: { category: Category }) {
             <section className="relative isolate overflow-hidden bg-jet">
               <img
                 src={category.banner.image}
+                width={1200}
+                height={600}
                 alt={category.banner.heading || category.name}
                 loading="eager"
                 fetchPriority="high"
                 decoding="async"
                 className={cn(
-                  "w-full object-fill transition-all",
+                  "w-full transition-all",
                   hasText
-                    ? "absolute inset-0 h-full opacity-65"
-                    : "h-auto max-h-none opacity-100 block sm:max-h-[440px]",
+                    ? "absolute inset-0 h-full object-cover opacity-65"
+                    : "aspect-[2/1] h-auto max-h-none object-fill opacity-100 block sm:max-h-[440px]",
                 )}
               />
               {hasText && (

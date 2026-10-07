@@ -21,6 +21,7 @@ import { AdminAuthPanel } from "@/components/admin/AdminAuthPanel";
 import { AdminDashboard } from "@/components/admin/AdminDashboard";
 import { useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
+import { sanitizeImageSrc } from "@/lib/security";
 
 export const Route = createFileRoute("/admin")({
   notFoundComponent: AdminNotFoundFallback,
@@ -69,7 +70,11 @@ function AdminLayout() {
         <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-5 py-5">
           <Link to="/" className="flex items-center" aria-label={settings.storeName}>
             <img
-              src="/brand-logo.png"
+              src={sanitizeImageSrc(settings.logo, "/brand-logo.png")}
+              onError={(event) => {
+                event.currentTarget.onerror = null;
+                event.currentTarget.src = "/brand-logo.png";
+              }}
               alt={settings.storeName}
               className="h-12 w-auto object-contain shrink-0 invert"
             />

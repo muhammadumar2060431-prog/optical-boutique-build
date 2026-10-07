@@ -14,6 +14,7 @@ import {
 import { toast } from "sonner";
 
 import { ImageUpload } from "@/components/admin/ImageUpload";
+import { useImageUploads } from "@/lib/use-image-uploads";
 import { ProductPicker } from "@/components/admin/ProductPicker";
 import { useAdminProductLookup } from "@/lib/product-selection";
 import { sanitizeHref, validateImageUrl, validateSocialVideoUrl } from "@/lib/security";
@@ -32,7 +33,7 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { formatPrice, newId, useStore } from "@/lib/store";
-import type { Brand, HeroSlide, SocialPlatform, SocialReel } from "@/lib/types";
+import type { Brand, Category, HeroSlide, SocialPlatform, SocialReel } from "@/lib/types";
 
 export const Route = createFileRoute("/admin/content")({
   component: AdminContent,
@@ -82,6 +83,8 @@ function AdminContent() {
 }
 
 function BrandsPanel() {
+  const { isUploading, onUploadingChange } = useImageUploads();
+  const [isSaving, setIsSaving] = useState(false);
   const { brands, saveBrand, deleteBrand, moveBrand } = useStore();
   const [newName, setNewName] = useState("");
   const [newLogo, setNewLogo] = useState<string | null>(null);
@@ -108,7 +111,8 @@ function BrandsPanel() {
   const getFontFamily = (fontStyle?: string) =>
     fontOptions.find((f) => f.value === fontStyle)?.family ?? "'Manrope', sans-serif";
 
-  const handleAdd = () => {
+  const handleAdd = async () => {
+    if (isUploading || isSaving) return;
     const name = newName.trim();
     const logo = newLogo?.trim() || null;
 
@@ -126,13 +130,16 @@ function BrandsPanel() {
     }
 
     const displayName = name || "Brand logo";
-    saveBrand({
+    setIsSaving(true);
+    const saved = await saveBrand({
       id: "",
       name,
       logo,
       fontStyle: newFontStyle,
       enabled: true,
     });
+    setIsSaving(false);
+    if (!saved) return;
     setNewName("");
     setNewLogo(null);
     setNewFontStyle("sans");
@@ -174,17 +181,24 @@ function BrandsPanel() {
         </div>
         <ImageUpload
           label="Brand Logo"
+          disabled={isSaving}
+          maxBytes={50 * 1024}
+          onUploadingChange={onUploadingChange}
           optional
           value={newLogo}
           onChange={setNewLogo}
-          hint="Transparent PNG - 320 x 80 px - Max 5 MB"
+          hint="Transparent PNG/WebP - up to 420 x 140 px - Upload limit 10 MB"
           aspectHint="Wide logo"
           maxWidth={420}
           maxHeight={140}
           outputQuality={0.82}
           storageFolder="brands"
         />
-        <Button className="min-h-11 rounded-full" onClick={handleAdd}>
+        <Button
+          className="min-h-11 rounded-full"
+          onClick={handleAdd}
+          disabled={isUploading || isSaving}
+        >
           <Plus className="h-4 w-4 mr-2" />
           Add Brand
         </Button>
@@ -500,9 +514,11 @@ function HeroPanel() {
 
               <ImageUpload
                 label="Slide image"
+                maxBytes={300 * 1024}
+                cropAspect={2}
                 value={slide.image}
-                onChange={(img) => updateHeroSlide(slide.id, { image: img ?? slide.image })}
-                hint="1440 x 720 px - Max 300 KB - JPG/WebP landscape recommended"
+                onChange={(img) => updateHeroSlide(slide.id, { image: img ?? "" })}
+                hint="Up to 1920 x 960 px - JPG/WebP landscape"
                 aspectHint="2:1 wide"
                 maxWidth={1920}
                 maxHeight={960}
@@ -579,10 +595,20 @@ function HeroPanel() {
 
 function BannerPanel() {
   const { categories, saveCategory, moveCategory } = useStore();
+  const [drafts, setDrafts] = useState<Record<string, Pick<Category, "banner" | "image">>>({});
+  const saveDraft = (category: Category) => {
+    setDrafts((current) => ({
+      ...current,
+      [category.id]: { image: category.image ?? null, banner: category.banner },
+    }));
+    void saveCategory(category);
+  };
 
   const sortedCategories = useMemo(() => {
-    return [...categories].sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
-  }, [categories]);
+    return categories
+      .map((category) => ({ ...category, ...drafts[category.id] }))
+      .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+  }, [categories, drafts]);
 
   return (
     <div className="space-y-6">
@@ -614,7 +640,7 @@ function BannerPanel() {
               ctaLink: `/${c.slug}`,
             };
             const patch = (next: Partial<typeof banner>) =>
-              saveCategory({ ...c, banner: { ...banner, ...next } });
+              saveDraft({ ...c, banner: { ...banner, ...next } });
 
             return (
               <div key={c.id} className="space-y-4 rounded-xl border border-stone bg-card p-6">
@@ -648,14 +674,20 @@ function BannerPanel() {
                 <div className="grid gap-6 sm:grid-cols-2">
                   <ImageUpload
                     label="Category Icon / Avatar (Circle shown on Homepage)"
+                    maxBytes={100 * 1024}
+                    cropAspect={1}
+                    maxWidth={400}
+                    maxHeight={400}
                     value={c.image || null}
-                    onChange={(img) => saveCategory({ ...c, image: img })}
+                    onChange={(img) => saveDraft({ ...c, image: img })}
                     hint="400 x 400 px square - Max 100 KB - JPG/WebP"
                     aspectHint="1:1 square"
                     storageFolder="categories"
                   />
                   <ImageUpload
                     label="Category Banner Image"
+                    maxBytes={250 * 1024}
+                    cropAspect={2}
                     value={banner.image || null}
                     onChange={(img) => patch({ image: img ?? "" })}
                     hint="1200 x 600 px - Max 250 KB - JPG/WebP wide"
@@ -896,6 +928,8 @@ function TaggedReelProduct({ id }: { id: string | null | undefined }) {
 }
 
 function SocialReelsPanel() {
+  const { isUploading, onUploadingChange } = useImageUploads();
+  const [isSaving, setIsSaving] = useState(false);
   const { socialReels, saveSocialReel, deleteSocialReel, moveSocialReel } = useStore();
   const [draft, setDraft] = useState<SocialReel | null>(null);
 
@@ -912,7 +946,8 @@ function SocialReelsPanel() {
     enabled: true,
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    if (isUploading || isSaving) return;
     if (!draft) return;
     if (!draft.title.trim()) {
       toast.error("Reel title/caption is required.");
@@ -938,7 +973,8 @@ function SocialReelsPanel() {
       return;
     }
 
-    saveSocialReel({
+    setIsSaving(true);
+    const saved = await saveSocialReel({
       ...draft,
       id: draft.id || newId("reel"),
       videoUrl: videoCheck.sanitizedUrl || draft.videoUrl.trim(),
@@ -948,6 +984,8 @@ function SocialReelsPanel() {
           ? (draft.creatorHandle?.trim() ?? "")
           : `@${draft.creatorHandle.trim()}`,
     });
+    setIsSaving(false);
+    if (!saved) return;
 
     setDraft(null);
     toast.success("Social Proof Reel saved successfully!");
@@ -1218,6 +1256,12 @@ function SocialReelsPanel() {
                 <div className="space-y-2">
                   <ImageUpload
                     label="Reel Vertical Thumbnail Image (Optional)"
+                    disabled={isSaving}
+                    maxBytes={150 * 1024}
+                    cropAspect={9 / 16}
+                    maxWidth={480}
+                    maxHeight={854}
+                    onUploadingChange={onUploadingChange}
                     value={draft.thumbnail || null}
                     onChange={(img) => setDraft({ ...draft, thumbnail: img ?? "" })}
                     hint="480 x 854 px vertical - Max 150 KB - JPG/WebP (9:16)"
@@ -1249,7 +1293,11 @@ function SocialReelsPanel() {
                 </label>
 
                 {/* Save Button */}
-                <Button className="min-h-11 w-full rounded-full" onClick={handleSave}>
+                <Button
+                  className="min-h-11 w-full rounded-full"
+                  onClick={handleSave}
+                  disabled={isUploading || isSaving}
+                >
                   Save Reel
                 </Button>
               </div>

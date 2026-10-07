@@ -64,7 +64,7 @@ export function Testimonials() {
                     src={t.reviewImage!}
                     alt={`Review by ${t.name}`}
                     loading="lazy"
-                    className="w-full h-full object-cover object-center transition-transform duration-500 group-hover:scale-105"
+                    className="w-full h-full object-contain object-center"
                   />
 
                   {/* Gradient Overlay for Readable Badges */}

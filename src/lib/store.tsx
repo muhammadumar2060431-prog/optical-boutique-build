@@ -96,6 +96,7 @@ import type {
   Subscriber,
 } from "./types";
 import type { MetaEventInput } from "./meta-events.types";
+import type { InitialSupabaseData } from "./supabaseSync";
 
 /**
  * In-memory data layer. Every read/write the UI performs goes through the
@@ -205,10 +206,10 @@ interface StoreApi extends StoreState {
   saveProduct: (product: Product) => Promise<void> | void;
   deleteProduct: (id: string) => Promise<boolean>;
   moveProduct: (id: string, dir: -1 | 1) => void;
-  saveCategory: (category: Category) => void;
+  saveCategory: (category: Category) => Promise<boolean>;
   deleteCategory: (id: string) => Promise<boolean>;
   moveCategory: (id: string, dir: -1 | 1) => void;
-  saveCollection: (collection: Collection) => void;
+  saveCollection: (collection: Collection) => Promise<boolean>;
   deleteCollection: (id: string) => Promise<boolean>;
   saveVariant: (productId: string, variant: Variant) => void;
   deleteVariant: (productId: string, variantId: string) => void;
@@ -222,7 +223,7 @@ interface StoreApi extends StoreState {
   deleteHeroSlide: (id: string) => Promise<boolean>;
   moveHeroSlide: (id: string, dir: -1 | 1) => void;
   updateAnnouncement: (patch: Partial<AnnouncementSettings>) => void;
-  saveTestimonial: (t: Testimonial) => void;
+  saveTestimonial: (t: Testimonial) => Promise<boolean>;
   addCustomerReview: (
     review: Pick<
       Testimonial,
@@ -235,10 +236,10 @@ interface StoreApi extends StoreState {
   submitVideoUrl: (url: string) => { ok: boolean; error?: string };
   updateVideoCaption: (caption: string) => void;
   updateSettings: (patch: Partial<StoreSettings>) => Promise<boolean>;
-  saveBrand: (brand: Brand) => void;
+  saveBrand: (brand: Brand) => Promise<boolean>;
   deleteBrand: (id: string) => Promise<boolean>;
   moveBrand: (id: string, dir: -1 | 1) => void;
-  saveSocialReel: (reel: SocialReel) => void;
+  saveSocialReel: (reel: SocialReel) => Promise<boolean>;
   deleteSocialReel: (id: string) => Promise<boolean>;
   moveSocialReel: (id: string, dir: -1 | 1) => void;
   setSocialReels: (reels: SocialReel[]) => void;
@@ -411,6 +412,7 @@ async function deleteWithFeedback(
 function persistWithFeedback(operation: Promise<boolean>, toastId: string, label: string) {
   void operation
     .then((ok) => {
+      if (ok && isSupabaseConfigured) void invalidatePublicStorefront(supabase);
       if (!ok) {
         toast.error(
           `${label} database mein save nahi hua. Real admin account se dobara sign in karein.`,
@@ -490,7 +492,13 @@ export function parseOrderRecord(raw: any, existing?: Order): Order {
   };
 }
 
-export function StoreProvider({ children }: { children: ReactNode }) {
+export function StoreProvider({
+  children,
+  initialData,
+}: {
+  children: ReactNode;
+  initialData?: InitialSupabaseData | null;
+}) {
   const queryClient = useQueryClient();
   const refreshProductQueries = useCallback(() => {
     void queryClient.invalidateQueries({
@@ -498,26 +506,42 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     });
   }, [queryClient]);
   // Keep the first browser render identical to SSR; cache is applied after mount.
-  const [categories, setCategories] = useState<Category[]>(seedCategories);
-  const [collections, setCollections] = useState<Collection[]>(seedCollections);
-  const [products, setProducts] = useState<Product[]>(seedProducts);
+  const [categories, setCategories] = useState<Category[]>(
+    initialData?.categories ?? seedCategories,
+  );
+  const [collections, setCollections] = useState<Collection[]>(
+    initialData?.collections ?? seedCollections,
+  );
+  const [products, setProducts] = useState<Product[]>(initialData?.products ?? seedProducts);
   const [orders, setOrders] = useState<Order[]>(seedOrders);
   const [queries, setQueries] = useState<ContactQuery[]>([]);
-  const [heroSlides, setHeroSlidesState] = useState<HeroSlide[]>(seedHeroSlides);
-  const [announcement, setAnnouncement] = useState<AnnouncementSettings>(seedAnnouncement);
-  const [testimonials, setTestimonials] = useState<Testimonial[]>(seedTestimonials);
-  const [video, setVideo] = useState<VideoSettings>(seedVideo);
-  const [settings, setSettings] = useState<StoreSettings>(seedSettings);
-  const [brands, setBrands] = useState<Brand[]>(seedBrands);
-  const [socialReels, setSocialReelsState] = useState<SocialReel[]>(seedSocialReels);
-  const [faqs, setFaqsState] = useState<FAQItem[]>(seedFaqs);
+  const [heroSlides, setHeroSlidesState] = useState<HeroSlide[]>(
+    initialData?.heroSlides ?? seedHeroSlides,
+  );
+  const [announcement, setAnnouncement] = useState<AnnouncementSettings>(
+    initialData?.announcement ?? seedAnnouncement,
+  );
+  const [testimonials, setTestimonials] = useState<Testimonial[]>(
+    initialData?.testimonials ?? seedTestimonials,
+  );
+  const [video, setVideo] = useState<VideoSettings>(initialData?.video ?? seedVideo);
+  const [settings, setSettings] = useState<StoreSettings>({
+    ...seedSettings,
+    ...initialData?.settings,
+  });
+  const [brands, setBrands] = useState<Brand[]>(initialData?.brands ?? seedBrands);
+  const [socialReels, setSocialReelsState] = useState<SocialReel[]>(
+    initialData?.socialReels ?? seedSocialReels,
+  );
+  const [faqs, setFaqsState] = useState<FAQItem[]>(initialData?.faqs ?? seedFaqs);
   const [subscribers, setSubscribersState] = useState<Subscriber[]>(seedSubscribers);
   const [isAdmin, setIsAdmin] = useState(false);
   const isAdminRef = useRef(isAdmin);
   const authSessionVersionRef = useRef(0);
   isAdminRef.current = isAdmin;
   const [hydrated, setHydrated] = useState(false);
-  const [storefrontReady, setStorefrontReady] = useState(false);
+  const [storefrontReady, setStorefrontReady] = useState(() => hasStorefrontContent(initialData));
+  const initialSnapshotApplied = useRef(hasStorefrontContent(initialData));
   const [storefrontError, setStorefrontError] = useState(false);
   const [storefrontAttempt, setStorefrontAttempt] = useState(0);
   const retryStorefront = useCallback(() => {
@@ -875,7 +899,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       setStorefrontReady(true);
     }
 
-    void initSupabaseData()
+    const useInitialSnapshot = initialSnapshotApplied.current && storefrontAttempt === 0;
+    initialSnapshotApplied.current = false;
+    void (useInitialSnapshot ? Promise.resolve() : initSupabaseData())
       .catch((error) => {
         console.warn("[store] Storefront load failed:", error);
         if (isSubscribed) setStorefrontError(true);
@@ -1659,8 +1685,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  const saveCategory = useCallback<StoreApi["saveCategory"]>((category) => {
+  const saveCategory = useCallback<StoreApi["saveCategory"]>(async (category) => {
     const fullCat = { ...category, id: category.id || uid("cat") };
+    if (isSupabaseConfigured && !(await dbUpsertCategory(fullCat))) {
+      toast.error("Category could not be saved. Please retry.");
+      return false;
+    }
     setCategories((prev) => {
       const next = prev.some((c) => c.id === fullCat.id)
         ? prev.map((c) => (c.id === fullCat.id ? fullCat : c))
@@ -1668,7 +1698,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       saveItem("categories", next);
       return next;
     });
-    dbUpsertCategory(fullCat);
+    if (isSupabaseConfigured) void invalidatePublicStorefront(supabase);
+    return true;
   }, []);
 
   const deleteCategory = useCallback<StoreApi["deleteCategory"]>((id) => {
@@ -1698,8 +1729,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  const saveCollection = useCallback<StoreApi["saveCollection"]>((collection) => {
+  const saveCollection = useCallback<StoreApi["saveCollection"]>(async (collection) => {
     const fullCol = { ...collection, id: collection.id || uid("col") };
+    if (isSupabaseConfigured && !(await dbUpsertCollection(fullCol))) {
+      toast.error("Collection could not be saved. Please retry.");
+      return false;
+    }
     setCollections((prev) => {
       const next = prev.some((c) => c.id === fullCol.id)
         ? prev.map((c) => (c.id === fullCol.id ? fullCol : c))
@@ -1707,7 +1742,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       saveItem("collections", next);
       return next;
     });
-    dbUpsertCollection(fullCol);
+    if (isSupabaseConfigured) void invalidatePublicStorefront(supabase);
+    return true;
   }, []);
 
   const deleteCollection = useCallback<StoreApi["deleteCollection"]>((id) => {
@@ -1806,9 +1842,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  const saveTestimonial = useCallback<StoreApi["saveTestimonial"]>((t) => {
+  const saveTestimonial = useCallback<StoreApi["saveTestimonial"]>(async (t) => {
     const img = t.reviewImage || t.photo || null;
     const fullT = { ...t, id: t.id || uid("tst"), photo: img, reviewImage: img };
+    if (isSupabaseConfigured && !(await dbUpsertTestimonial(fullT))) {
+      toast.error("Review could not be saved. Please retry.");
+      return false;
+    }
     setTestimonials((prev) => {
       const next = prev.some((x) => x.id === fullT.id)
         ? prev.map((x) => (x.id === fullT.id ? fullT : x))
@@ -1816,7 +1856,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       saveItem("testimonials", next);
       return next;
     });
-    dbUpsertTestimonial(fullT);
+    if (isSupabaseConfigured) void invalidatePublicStorefront(supabase);
+    return true;
   }, []);
 
   const addCustomerReview = useCallback<StoreApi["addCustomerReview"]>(async (review) => {
@@ -1946,7 +1987,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     [settings],
   );
 
-  const saveBrand = useCallback<StoreApi["saveBrand"]>((brand) => {
+  const saveBrand = useCallback<StoreApi["saveBrand"]>(async (brand) => {
     const fullBrand: Brand = {
       ...brand,
       id: brand.id || uid("brd"),
@@ -1954,6 +1995,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       logo: sanitizeImageSrc(brand.logo, "") || null,
       enabled: brand.enabled ?? true,
     };
+    if (isSupabaseConfigured && !(await dbUpsertBrand(fullBrand))) {
+      toast.error("Brand could not be saved. Please retry.");
+      return false;
+    }
     setBrands((prev) => {
       const next = prev.some((b) => b.id === fullBrand.id)
         ? prev.map((b) => (b.id === fullBrand.id ? fullBrand : b))
@@ -1961,7 +2006,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       saveItem("brands", next);
       return next;
     });
-    dbUpsertBrand(fullBrand);
+    if (isSupabaseConfigured) void invalidatePublicStorefront(supabase);
+    return true;
   }, []);
 
   const deleteBrand = useCallback<StoreApi["deleteBrand"]>((id) => {
@@ -1991,7 +2037,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  const saveSocialReel = useCallback<StoreApi["saveSocialReel"]>((reel) => {
+  const saveSocialReel = useCallback<StoreApi["saveSocialReel"]>(async (reel) => {
     const fullReel = {
       ...reel,
       id: reel.id || uid("reel"),
@@ -2000,6 +2046,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       thumbnail: sanitizeImageSrc(reel.thumbnail, ""),
       enabled: reel.enabled ?? true,
     };
+    if (isSupabaseConfigured && !(await dbUpsertSocialReel(fullReel))) {
+      toast.error("Reel could not be saved. Please retry.");
+      return false;
+    }
     setSocialReelsState((prev) => {
       const next = prev.some((r) => r.id === fullReel.id)
         ? prev.map((r) => (r.id === fullReel.id ? fullReel : r))
@@ -2007,7 +2057,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       saveItem("socialReels", next);
       return next;
     });
-    dbUpsertSocialReel(fullReel);
+    if (isSupabaseConfigured) void invalidatePublicStorefront(supabase);
+    return true;
   }, []);
 
   const deleteSocialReel = useCallback<StoreApi["deleteSocialReel"]>((id) => {

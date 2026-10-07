@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Admin Image Audit Fixture</title>
+  </head>
+  <body>
+    <script type="module">
+      import RefreshRuntime from "/@react-refresh";
+      RefreshRuntime.injectIntoGlobalHook(window);
+      window.$RefreshReg$ = () => {};
+      window.$RefreshSig$ = () => (type) => type;
+      window.__vite_plugin_react_preamble_installed__ = true;
+    </script>
+    <script type="module">
+      import "/src/styles.css";
+      import * as imageAudit from "/tests/fixtures/admin-image-audit-harness.tsx";
+      window.imageAudit = imageAudit;
+    </script>
+  </body>
+</html>

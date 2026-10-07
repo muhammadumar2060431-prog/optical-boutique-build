@@ -1,5 +1,4 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import * as Sentry from "@sentry/tanstackstart-react";
 import {
   Outlet,
   Link,
@@ -13,6 +12,7 @@ import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { StoreProvider } from "@/lib/store";
+import { loadStorefront } from "@/lib/storefront-bootstrap";
 import { CartProvider } from "@/lib/cart";
 import { WhatsAppModalProvider } from "@/components/site/WhatsAppModal";
 import { Toaster } from "@/components/ui/sonner";
@@ -198,7 +198,13 @@ function ErrorComponent({ error, reset }: ErrorComponentProps) {
   const router = useRouter();
 
   useEffect(() => {
-    Sentry.captureException(error, { tags: { source: "route-error-boundary" } });
+    if (import.meta.env["VITE_SENTRY_DSN"]) {
+      void import("@sentry/tanstackstart-react")
+        .then((Sentry) =>
+          Sentry.captureException(error, { tags: { source: "route-error-boundary" } }),
+        )
+        .catch(() => {});
+    }
   }, [error]);
 
   return (
@@ -233,7 +239,43 @@ function ErrorComponent({ error, reset }: ErrorComponentProps) {
   );
 }
 
+function PendingComponent() {
+  return (
+    <div className="grid min-h-screen place-items-center bg-background px-4">
+      <div className="w-full max-w-sm text-center">
+        <div className="mx-auto mb-6 flex h-16 w-24 items-center justify-center rounded-full border border-stone bg-card shadow-xs">
+          <svg
+            width="58"
+            height="32"
+            viewBox="0 0 72 40"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+            aria-hidden="true"
+            className="text-ink-muted"
+          >
+            <circle cx="18" cy="20" r="14" stroke="currentColor" strokeWidth="2.5" />
+            <circle cx="54" cy="20" r="14" stroke="currentColor" strokeWidth="2.5" />
+            <path
+              d="M32 20 C34 16, 38 16, 40 20"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+            />
+          </svg>
+        </div>
+        <p className="eyebrow text-ink-muted">Loading Nigah</p>
+        <div className="mt-4 h-1 overflow-hidden rounded-full bg-stone">
+          <div className="h-full w-1/2 animate-pulse rounded-full bg-gold" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
+  staleTime: 60_000,
+  loader: ({ location }) =>
+    location.pathname.startsWith("/admin") ? null : loadStorefront({ data: location.pathname }),
   head: () => ({
     meta: [
       { charSet: "utf-8" },
@@ -261,11 +303,12 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       ...(import.meta.env.VITE_SUPABASE_URL
         ? [{ rel: "preconnect", href: new URL(import.meta.env.VITE_SUPABASE_URL).origin }]
         : []),
-      { rel: "preconnect", href: "https://fonts.googleapis.com" },
-      { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {
-        rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=Poppins:wght@600;700&display=swap",
+        rel: "preload",
+        href: "/fonts/inter-latin.woff2",
+        as: "font",
+        type: "font/woff2",
+        crossOrigin: "anonymous",
       },
       { rel: "icon", href: "/brand-logo.png", type: "image/png" },
       { rel: "shortcut icon", href: "/brand-logo.png", type: "image/png" },
@@ -276,6 +319,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   component: RootComponent,
   notFoundComponent: NotFoundComponent,
   errorComponent: ErrorComponent,
+  pendingComponent: PendingComponent,
 });
 
 function RootShell({ children }: { children: ReactNode }) {
@@ -315,10 +359,11 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const initialData = Route.useLoaderData();
 
   return (
     <QueryClientProvider client={queryClient}>
-      <StoreProvider>
+      <StoreProvider initialData={initialData?.storefront ?? null}>
         <CartProvider>
           <WhatsAppModalProvider>
             {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}

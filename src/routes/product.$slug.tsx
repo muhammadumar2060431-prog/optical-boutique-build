@@ -4,6 +4,7 @@ import { Check, CheckCircle2, Play, Plus, ShoppingBag, Sparkles, Star } from "lu
 import { toast } from "sonner";
 
 import { ImageUpload } from "@/components/admin/ImageUpload";
+import { useImageUploads } from "@/lib/use-image-uploads";
 import { ProductCard } from "@/components/site/ProductCard";
 import { ProductImage } from "@/components/site/ProductImage";
 import { Reveal } from "@/components/site/Reveal";
@@ -153,6 +154,8 @@ function ProductPage() {
   const [revQuote, setRevQuote] = useState("");
   const [revImage, setRevImage] = useState<string | null>(null);
   const [reviewSubmitting, setReviewSubmitting] = useState(false);
+  const { isUploading: reviewImageUploading, onUploadingChange: onReviewImageUploading } =
+    useImageUploads();
   const [sortBy, setSortBy] = useState<"newest" | "highest" | "lowest">("newest");
 
   useEffect(() => {
@@ -279,7 +282,7 @@ function ProductPage() {
 
   const handleReviewSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (reviewSubmitting) return;
+    if (reviewSubmitting || reviewImageUploading) return;
     if (!revEmail.trim() || !revEmail.includes("@")) {
       toast.error("Valid customer email is required to submit a review.");
       return;
@@ -782,6 +785,10 @@ function ProductPage() {
               <div className="space-y-2">
                 <ImageUpload
                   label="Attach a Photo or Screenshot (Optional)"
+                  localOnly
+                  disabled={reviewSubmitting}
+                  onUploadingChange={onReviewImageUploading}
+                  allowAdjustment={false}
                   optional
                   value={revImage}
                   onChange={(img) => setRevImage(img)}
@@ -794,13 +801,13 @@ function ProductPage() {
                   variant="outline"
                   className="min-h-11 rounded-full"
                   onClick={() => setReviewFormOpen(false)}
-                  disabled={reviewSubmitting}
+                  disabled={reviewSubmitting || reviewImageUploading}
                 >
                   Cancel
                 </Button>
                 <Button
                   type="submit"
-                  disabled={reviewSubmitting}
+                  disabled={reviewSubmitting || reviewImageUploading}
                   className="min-h-11 rounded-full px-8 font-semibold"
                 >
                   {reviewSubmitting ? "Submitting..." : "Submit Review"}

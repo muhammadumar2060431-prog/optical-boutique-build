@@ -18,6 +18,9 @@ export interface ImageCropperProps {
   onClose: () => void;
   imageSrc: string;
   onCropCompleteAction: (croppedImageBase64: string) => void;
+  aspect?: number | null;
+  maxWidth?: number;
+  maxHeight?: number;
 }
 
 const MIN_ZOOM = 1;
@@ -29,18 +32,24 @@ export function ImageCropper({
   onClose,
   imageSrc,
   onCropCompleteAction,
+  aspect = 1,
+  maxWidth = 4096,
+  maxHeight = 4096,
 }: ImageCropperProps) {
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<PixelCrop | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [imageAspect, setImageAspect] = useState<number | null>(null);
+  const [isImageLoaded, setIsImageLoaded] = useState(false);
+  const [naturalAspect, setNaturalAspect] = useState(1);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     setCrop({ x: 0, y: 0 });
     setZoom(1);
-    setImageAspect(null);
+    setIsImageLoaded(false);
     setCroppedAreaPixels(null);
+    setError(null);
   }, [imageSrc, isOpen]);
 
   const onCropComplete = useCallback(
@@ -54,15 +63,14 @@ export function ImageCropper({
   };
 
   const handleSave = async () => {
-    if (!imageAspect || (zoom > MIN_ZOOM && !croppedAreaPixels)) return;
+    if (isProcessing || !isImageLoaded || !croppedAreaPixels) return;
+    setError(null);
     try {
       setIsProcessing(true);
-      // At 1x preserve the source instead of exporting a rounded crop region.
-      const result =
-        zoom === MIN_ZOOM ? imageSrc : await getCroppedImg(imageSrc, croppedAreaPixels!);
+      const result = await getCroppedImg(imageSrc, croppedAreaPixels, { maxWidth, maxHeight });
       onCropCompleteAction(result);
     } catch (e) {
-      console.error("Crop error:", e);
+      setError(e instanceof Error ? e.message : "The image could not be cropped. Try again.");
     } finally {
       setIsProcessing(false);
     }
@@ -72,7 +80,7 @@ export function ImageCropper({
     setZoom((z) => parseFloat(Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, z + delta)).toFixed(2)));
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && !isProcessing && onClose()}>
       <DialogContent className="max-w-2xl p-0 overflow-hidden bg-card border-stone gap-0">
         {/* Header */}
         <DialogHeader className="px-6 pt-5 pb-3 border-b border-stone">
@@ -91,10 +99,14 @@ export function ImageCropper({
             image={imageSrc}
             crop={crop}
             zoom={zoom}
-            aspect={imageAspect ?? 1}
+            aspect={aspect ?? naturalAspect}
             objectFit="contain"
-            onMediaLoaded={({ naturalWidth, naturalHeight }) => {
-              setImageAspect(naturalWidth / naturalHeight);
+            onMediaLoaded={(media) => {
+              setNaturalAspect(media.naturalWidth / media.naturalHeight);
+              setIsImageLoaded(true);
+            }}
+            mediaProps={{
+              onError: () => setError("The image could not be loaded. Replace it and try again."),
             }}
             minZoom={MIN_ZOOM}
             maxZoom={MAX_ZOOM}
@@ -161,6 +173,11 @@ export function ImageCropper({
         </div>
 
         {/* Footer */}
+        {error && (
+          <p role="alert" className="px-6 py-2 text-sm text-destructive">
+            {error}
+          </p>
+        )}
         <DialogFooter className="px-6 py-4 border-t border-stone flex gap-3">
           <Button
             variant="outline"
@@ -177,7 +194,7 @@ export function ImageCropper({
           </Button>
           <Button
             onClick={handleSave}
-            disabled={isProcessing || !imageAspect || !croppedAreaPixels}
+            disabled={isProcessing || !isImageLoaded || !croppedAreaPixels}
             className="min-w-28"
           >
             {isProcessing ? (

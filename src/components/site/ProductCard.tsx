@@ -61,7 +61,7 @@ export function ProductCard({ product }: { product: Product }) {
     <Link
       to="/product/$slug"
       params={{ slug: product.slug }}
-      className="group flex min-w-0 flex-col overflow-hidden rounded-xl border border-stone bg-card transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[var(--shadow-lens)]"
+      className="group flex min-w-0 flex-col overflow-hidden rounded-xl bg-card transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[var(--shadow-lens)]"
       onPointerEnter={(event) => {
         if (event.pointerType !== "touch" && hoverImg) setRequestedHoverImage(hoverImg);
       }}
@@ -111,17 +111,22 @@ export function ProductCard({ product }: { product: Product }) {
         ) : null}
 
         {/* Top Badges */}
-        <div className="absolute inset-x-1.5 top-1.5 z-10 flex flex-wrap items-start gap-1 sm:inset-x-auto sm:top-3 sm:left-3 sm:max-w-[calc(100%-7rem)] sm:gap-1.5">
-          {discountPercent !== null && (
-            <span aria-label={`${discountPercent}% off`} className="inline-flex shrink-0 items-center rounded-sm bg-red-600 px-2 py-1 text-[10px] leading-none font-bold tracking-normal text-white shadow-sm sm:px-2.5 sm:text-[11px]">
-              -{discountPercent}%
-            </span>
-          )}
-          {product.isNewArrival && (
-            <span className="rounded-full bg-[#E0E0E0] px-1.5 py-0.5 text-[8px] font-bold uppercase text-ink shadow-sm sm:px-2.5 sm:text-[10px] sm:tracking-[0.14em]">
-              New
-            </span>
-          )}
+        <div className="absolute inset-x-1.5 top-1.5 z-10 flex flex-col items-start gap-1 sm:inset-x-auto sm:top-3 sm:left-3 sm:max-w-[calc(100%-7rem)] sm:gap-1.5">
+          <div className="flex items-start gap-1 sm:gap-1.5">
+            {discountPercent !== null && (
+              <span
+                aria-label={`${discountPercent}% off`}
+                className="inline-flex shrink-0 items-center rounded-sm bg-red-600 px-2 py-1 text-[10px] leading-none font-bold tracking-normal text-white shadow-sm sm:px-2.5 sm:text-[11px]"
+              >
+                -{discountPercent}%
+              </span>
+            )}
+            {product.isNewArrival && (
+              <span className="rounded-full bg-[#E0E0E0] px-1.5 py-0.5 text-[8px] font-bold uppercase text-ink shadow-sm sm:px-2.5 sm:text-[10px] sm:tracking-[0.14em]">
+                New
+              </span>
+            )}
+          </div>
           {product.isBestseller && (
             <span className="rounded-full bg-gold px-1.5 py-0.5 text-[8px] font-bold uppercase text-white shadow-sm sm:px-2.5 sm:text-[10px] sm:tracking-[0.14em]">
               Best Seller

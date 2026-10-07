@@ -1,5 +1,21 @@
 # Nigah Store Technical Audit
 
+Latest image pipeline audit (2026-10-07): all admin media entry points were
+reviewed and corrected, including slot-specific cropping, byte budgets, Storage
+paths, upload/save coordination and proportional storefront rendering. All 126
+unique remote image URLs decoded successfully. One existing hero image remains
+above the new compression budget; deployment and authenticated live-write
+verification are still required. See
+[Admin image upload audit](IMAGE_UPLOAD_AUDIT_2026-10-07.md).
+
+Latest performance update (2026-10-07): storefront SSR initialization, first-page
+catalog preloading, stable banner dimensions, local fonts and conditional browser
+monitoring were implemented. Final local mobile-size samples recorded Home LCP
+1.43 s, Glasses 1.30 s and product detail 1.26 s, with nearly zero layout shifts.
+Full checks and 129 regression tests passed. Live and deployment cold-start
+performance are not certified by these local results. See
+[Performance audit and verification](PERFORMANCE_AUDIT_2026-10-07.md).
+
 Date: 2026-09-29
 
 ## Result

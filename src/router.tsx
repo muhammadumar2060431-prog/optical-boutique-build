@@ -1,6 +1,5 @@
 import { QueryClient } from "@tanstack/react-query";
 import { createRouter } from "@tanstack/react-router";
-import * as Sentry from "@sentry/tanstackstart-react";
 import { routeTree } from "./routeTree.gen";
 
 function getTracesSampleRate() {
@@ -20,23 +19,27 @@ export const getRouter = () => {
     defaultPreloadStaleTime: 0,
   });
 
-  if (!router.isServer) {
+  if (!router.isServer && import.meta.env["VITE_SENTRY_DSN"]) {
     const dsn = import.meta.env["VITE_SENTRY_DSN"];
 
-    Sentry.init({
-      dsn,
-      enabled: Boolean(dsn),
-      environment: import.meta.env["VITE_SENTRY_ENVIRONMENT"] ?? import.meta.env.MODE,
-      dataCollection: {
-        userInfo: false,
-        cookies: false,
-        httpHeaders: false,
-        httpBodies: [],
-        urlQueryParams: false,
-      },
-      integrations: [Sentry.tanstackRouterBrowserTracingIntegration(router)],
-      tracesSampleRate: getTracesSampleRate(),
-    });
+    void import("@sentry/tanstackstart-react")
+      .then((Sentry) =>
+        Sentry.init({
+          dsn,
+          enabled: Boolean(dsn),
+          environment: import.meta.env["VITE_SENTRY_ENVIRONMENT"] ?? import.meta.env.MODE,
+          dataCollection: {
+            userInfo: false,
+            cookies: false,
+            httpHeaders: false,
+            httpBodies: [],
+            urlQueryParams: false,
+          },
+          integrations: [Sentry.tanstackRouterBrowserTracingIntegration(router)],
+          tracesSampleRate: getTracesSampleRate(),
+        }),
+      )
+      .catch(() => console.warn("Browser monitoring could not be loaded."));
   }
 
   return router;

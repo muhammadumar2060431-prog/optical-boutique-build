@@ -18,6 +18,7 @@ const createImage = (url: string): Promise<HTMLImageElement> =>
 export default async function getCroppedImg(
   imageSrc: string,
   pixelCrop: PixelCrop,
+  limits = { maxWidth: 4096, maxHeight: 4096 },
 ): Promise<string> {
   const image = await createImage(imageSrc);
   const { x, y, width, height } = pixelCrop;
@@ -34,8 +35,9 @@ export default async function getCroppedImg(
   }
 
   const canvas = document.createElement("canvas");
-  canvas.width = Math.round(width);
-  canvas.height = Math.round(height);
+  const scale = Math.min(1, limits.maxWidth / width, limits.maxHeight / height);
+  canvas.width = Math.max(1, Math.round(width * scale));
+  canvas.height = Math.max(1, Math.round(height * scale));
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("No 2d context");
   ctx.imageSmoothingEnabled = true;

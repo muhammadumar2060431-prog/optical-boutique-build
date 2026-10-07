@@ -14,6 +14,7 @@ import {
 import { toast } from "sonner";
 
 import { ImageUpload } from "@/components/admin/ImageUpload";
+import { useImageUploads } from "@/lib/use-image-uploads";
 import { ProductPicker } from "@/components/admin/ProductPicker";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -46,6 +47,8 @@ const blank = (): Testimonial => ({
 });
 
 function AdminTestimonials() {
+  const { isUploading, onUploadingChange } = useImageUploads();
+  const [isSaving, setIsSaving] = useState(false);
   const { testimonials, saveTestimonial, deleteTestimonial, moveTestimonial } = useStore();
   const [draft, setDraft] = useState<Testimonial | null>(null);
   const [filterTab, setFilterTab] = useState<"all" | "good" | "bad" | "product">("all");
@@ -453,6 +456,12 @@ function AdminTestimonials() {
                 <div className="space-y-2">
                   <ImageUpload
                     label="Customer Photo or Review Screenshot"
+                    disabled={isSaving}
+                    maxBytes={300 * 1024}
+                    onUploadingChange={onUploadingChange}
+                    maxWidth={1200}
+                    maxHeight={1600}
+                    outputQuality={0.85}
                     optional
                     value={draft.reviewImage || draft.photo || null}
                     onChange={(img) => setDraft({ ...draft, reviewImage: img, photo: img })}
@@ -466,7 +475,8 @@ function AdminTestimonials() {
 
                 <Button
                   className="min-h-11 w-full rounded-full"
-                  onClick={() => {
+                  disabled={isUploading || isSaving}
+                  onClick={async () => {
                     if (!draft.name.trim()) {
                       toast.error("Customer name is required.");
                       return;
@@ -479,7 +489,8 @@ function AdminTestimonials() {
                       return;
                     }
                     const finalImg = draft.reviewImage || draft.photo || null;
-                    saveTestimonial({
+                    setIsSaving(true);
+                    const saved = await saveTestimonial({
                       ...draft,
                       id: draft.id || newId("tst"),
                       source: "manual",
@@ -488,6 +499,8 @@ function AdminTestimonials() {
                       reviewImage: finalImg,
                       createdAt: draft.createdAt || new Date().toISOString(),
                     });
+                    setIsSaving(false);
+                    if (!saved) return;
                     setDraft(null);
                     toast.success("Review saved successfully.");
                   }}

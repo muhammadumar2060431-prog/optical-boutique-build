@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 
 import { useStore } from "@/lib/store";
+import { sanitizeImageSrc } from "@/lib/security";
 
 export function Footer() {
   const { settings } = useStore();
@@ -12,7 +13,11 @@ export function Footer() {
         <div className="space-y-4 lg:col-span-2 pr-0 lg:pr-8">
           <div className="flex max-w-md items-center justify-center">
             <img
-              src="/brand-logo.png"
+              src={sanitizeImageSrc(settings.logo, "/brand-logo.png")}
+              onError={(event) => {
+                event.currentTarget.onerror = null;
+                event.currentTarget.src = "/brand-logo.png";
+              }}
               alt={settings.storeName || "Nigah Eyewear"}
               loading="lazy"
               decoding="async"

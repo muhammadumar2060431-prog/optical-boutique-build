@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useLoaderData } from "@tanstack/react-router";
 import { supabase, isSupabaseConfigured } from "./supabase";
 import { mapDbProductToStore } from "./supabaseSync";
 import { useStore } from "./store";
@@ -15,10 +16,23 @@ export function useCatalogPage(options: {
   pageSize: number;
 }) {
   const { getProductsPage, rememberAdminRecords } = useStore();
+  const bootstrap = useLoaderData({ from: "__root__" });
+  const initialCatalog = bootstrap?.catalog;
   const query = useQuery({
     queryKey: ["catalog-page", options],
     enabled: isSupabaseConfigured,
     staleTime: 30000,
+    initialData: () =>
+      initialCatalog &&
+      initialCatalog.categoryId === options.categoryId &&
+      !options.collectionId &&
+      options.minPrice === undefined &&
+      options.maxPrice === undefined &&
+      options.sort === "newest" &&
+      options.page === 1 &&
+      options.pageSize === 12
+        ? initialCatalog.result
+        : undefined,
     queryFn: async () => {
       const { data, error } = await supabase.rpc("catalog_product_page_v1", {
         p_category: options.categoryId ?? null,

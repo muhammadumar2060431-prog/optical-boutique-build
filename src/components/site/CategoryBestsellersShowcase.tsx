@@ -245,6 +245,8 @@ export function CategoryBestsellersShowcase() {
                             src={col.banner!.image}
                             alt={col.name}
                             loading="lazy"
+                            width={1200}
+                            height={500}
                             className="block h-auto w-full max-w-full object-fill sm:max-h-[460px] sm:min-h-[340px]"
                           />
                         </div>
@@ -258,7 +260,7 @@ export function CategoryBestsellersShowcase() {
                             src={col.banner.image}
                             alt={col.name}
                             loading="lazy"
-                            className="absolute inset-0 h-full w-full object-fill opacity-50"
+                            className="absolute inset-0 h-full w-full object-cover opacity-50"
                           />
                         ) : (
                           <div className="absolute inset-0 bg-radial from-jet via-zinc-950 to-black" />

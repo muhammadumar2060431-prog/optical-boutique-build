@@ -128,6 +128,11 @@ function AdminSettings() {
 
         <ImageUpload
           label="Logo"
+          disabled={savingSettings}
+          maxBytes={80 * 1024}
+          maxWidth={400}
+          maxHeight={120}
+          outputQuality={0.85}
           optional
           value={form.logo}
           onChange={(logo) => setForm({ ...form, logo })}
