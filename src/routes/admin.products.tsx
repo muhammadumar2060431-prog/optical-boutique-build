@@ -49,6 +49,17 @@ const slugify = (value: string) =>
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-|-$/g, "");
 
+const generateSku = (name?: string) => {
+  const prefix = (name || "PR")
+    .replace(/[^a-z0-9]/gi, "")
+    .slice(0, 3)
+    .toUpperCase()
+    .padEnd(2, "P");
+  const timePart = Date.now().toString(36).toUpperCase().slice(-5);
+  const randomPart = Math.random().toString(36).slice(2, 6).toUpperCase();
+  return `OPT-${prefix}-${timePart}${randomPart}`;
+};
+
 function blankProduct(categoryId: string, collectionId?: string): Product {
   return {
     id: "",
@@ -58,7 +69,7 @@ function blankProduct(categoryId: string, collectionId?: string): Product {
     collectionId: collectionId || null,
     price: 0,
     salePrice: null,
-    sku: `OPT-${Math.floor(100 + Math.random() * 900)}`,
+    sku: generateSku(),
     status: "Published",
     description: "",
     image: "",
@@ -458,7 +469,7 @@ function ProductDialog({
                       onClick={() =>
                         setForm({
                           ...value,
-                          sku: `OPT-${value.name ? value.name.slice(0, 2).toUpperCase() : "PR"}-${Math.floor(100 + Math.random() * 900)}`,
+                          sku: generateSku(value.name),
                         })
                       }
                     >
@@ -972,6 +983,7 @@ function ProductDialog({
                       ...value,
                       id: value.id || newId("prd"),
                       slug: value.slug || slugify(value.name),
+                      sku: value.sku?.trim() || generateSku(value.name),
                       subImages: cleanSubImages,
                       details: {
                         ...(value.details || {}),

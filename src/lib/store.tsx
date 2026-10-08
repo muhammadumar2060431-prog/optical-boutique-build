@@ -283,6 +283,31 @@ function isAdminSessionInactive(at = Date.now()) {
 const uid = (prefix: string) => `${prefix}-${Math.random().toString(36).slice(2, 9)}`;
 const nowIso = () => new Date().toISOString();
 
+function getProductSaveErrorMessage(error: unknown) {
+  const text = String(
+    (error as any)?.message || (error as any)?.details || (error as any)?.hint || error || "",
+  );
+  if (/products_sku_unique_idx|duplicate key.*sku|Key \(sku\)/i.test(text)) {
+    return "This SKU is already used by another product. Generate a new SKU and save again.";
+  }
+  if (/products_slug_unique_idx|duplicate key.*slug|Key \(slug\)/i.test(text)) {
+    return "A product with this slug already exists. Change the product name or slug and save again.";
+  }
+  if (text.includes("INVENTORY_CONFLICT")) {
+    return "This product was changed from another tab or order. Refresh the product list, reopen it, and save again.";
+  }
+  if (/Administrator permission required|42501|permission denied/i.test(text)) {
+    return "Admin permission expired. Log in again, then save the product.";
+  }
+  if (text.includes("VARIANT_IN_USE")) {
+    return "A saved order uses one of these variants. Keep that variant or create a new product.";
+  }
+  if (text.includes("INVALID_PRODUCT")) {
+    return "Some product fields are invalid. Check price, stock, variants, and required images.";
+  }
+  return "Product could not be saved. Please retry, or refresh if this product was edited elsewhere.";
+}
+
 /** Customer-facing order reference, e.g. "OPT-482915". */
 export function newOrderReference() {
   const randomPart =
@@ -1590,6 +1615,7 @@ export function StoreProvider({
         ...product,
         id: finalId,
         slug: finalSlug,
+        sku: product.sku?.trim() || "",
         price: Math.max(0, Number(product.price) || 0),
         salePrice:
           product.salePrice != null &&
@@ -1629,7 +1655,7 @@ export function StoreProvider({
           recentlySavedRef.current.delete(finalId);
           pendingSyncRef.current.delete(fullProduct.id);
           console.error("[saveProduct] Database save failed:", result.error);
-          throw new Error("Product inventory changed or could not be saved. Refresh and retry.");
+          throw new Error(getProductSaveErrorMessage(result.error));
         } else {
           pendingSyncRef.current.delete(fullProduct.id);
         }
