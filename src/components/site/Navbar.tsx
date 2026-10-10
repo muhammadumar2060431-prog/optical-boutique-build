@@ -7,11 +7,9 @@ import { useStore } from "@/lib/store";
 import { sanitizeImageSrc } from "@/lib/security";
 import { trimLogoPadding } from "@/lib/logo-padding";
 import { cn } from "@/lib/utils";
+import { categoryNavigation } from "@/lib/category-navigation";
 
-const links = [
-  { to: "/", label: "Home" },
-  { to: "/glasses", label: "Glasses" },
-  { to: "/lenses", label: "Lenses" },
+const pageLinks = [
   { to: "/about", label: "About" },
   { to: "/blog", label: "Journal" },
   { to: "/contact", label: "Contact" },
@@ -19,7 +17,12 @@ const links = [
 ] as const;
 
 export function Navbar() {
-  const { settings } = useStore();
+  const { settings, categories } = useStore();
+  const links = [
+    { to: "/", label: "Home" } as const,
+    ...categoryNavigation(categories).links,
+    ...pageLinks,
+  ];
   const { count } = useCart();
   const [scrolled, setScrolled] = useState(false);
   const [openMenu, setOpenMenu] = useState(false);
@@ -80,6 +83,7 @@ export function Navbar() {
             <li key={l.to}>
               <Link
                 to={l.to}
+                params={"params" in l ? l.params : {}}
                 activeOptions={{ exact: l.to === "/" }}
                 activeProps={{
                   className: "text-black border-b border-black",
@@ -136,6 +140,7 @@ export function Navbar() {
               <li key={l.to}>
                 <Link
                   to={l.to}
+                  params={"params" in l ? l.params : {}}
                   onClick={() => setOpenMenu(false)}
                   activeOptions={{ exact: l.to === "/" }}
                   activeProps={{ className: "text-black", "aria-current": "page" }}

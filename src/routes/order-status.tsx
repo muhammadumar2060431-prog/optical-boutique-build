@@ -287,9 +287,9 @@ function OrderStatusPage() {
   return (
     <SiteLayout>
       <div className="mx-auto max-w-3xl px-4 py-12 sm:px-6 sm:py-16">
-        <p className="eyebrow text-gold">Order tracking</p>
+        <p className="eyebrow text-black">Order tracking</p>
         <h1 className="mt-2 font-display text-4xl sm:text-5xl">Check Your Order Status</h1>
-        <p className="mt-3 max-w-xl text-sm text-ink-muted">
+        <p className="mt-3 max-w-xl text-sm text-black">
           Enter your order reference code (e.g.{" "}
           <span className="font-semibold text-ink">OPT-204118</span>) to view live progress, courier
           details, and dispatch updates.
@@ -317,7 +317,7 @@ function OrderStatusPage() {
           <Button
             type="submit"
             disabled={loading}
-            className="min-h-11 rounded-full sm:mt-8 sm:px-8"
+            className="min-h-11 rounded-full bg-black text-white hover:bg-black sm:mt-8 sm:px-8"
           >
             {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
             {loading ? "Searching…" : "Track order"}
@@ -326,7 +326,7 @@ function OrderStatusPage() {
 
         <div aria-live="polite" className="mt-10">
           {loading && (
-            <div className="flex items-center justify-center gap-3 rounded-xl border border-stone bg-card p-8 text-sm text-ink-muted">
+            <div className="flex items-center justify-center gap-3 rounded-xl border border-stone bg-card p-8 text-sm text-black">
               <Loader2 className="h-5 w-5 animate-spin" />
               Looking up your order…
             </div>
@@ -340,9 +340,9 @@ function OrderStatusPage() {
 
           {searched && !loading && !fetchError && results.length === 0 && (
             <div className="rounded-xl border border-stone bg-card p-8 text-center">
-              <PackageSearch className="mx-auto h-8 w-8 text-ink-muted" aria-hidden="true" />
+              <PackageSearch className="mx-auto h-8 w-8 text-black" aria-hidden="true" />
               <h2 className="mt-4 font-display text-2xl">No order found</h2>
-              <p className="mx-auto mt-2 max-w-md text-sm text-ink-muted">
+              <p className="mx-auto mt-2 max-w-md text-sm text-black">
                 We couldn't find an order with reference{" "}
                 <span className="font-semibold text-ink">{query}</span>. Double-check the code from
                 your confirmation email or WhatsApp receipt, or contact us below and we'll help.
@@ -361,7 +361,7 @@ function OrderStatusPage() {
                   <h2 className="font-display text-2xl sm:text-3xl font-bold">
                     Order {primaryOrder.reference}
                   </h2>
-                  <p className="text-xs text-ink-muted mt-1">
+                  <p className="text-xs text-black mt-1">
                     Placed on{" "}
                     {new Date(primaryOrder.createdAt).toLocaleDateString("en-GB", {
                       day: "numeric",
@@ -380,13 +380,13 @@ function OrderStatusPage() {
 
               {/* Status Note */}
               <div className="rounded-xl bg-zinc-50 border border-stone/60 p-4">
-                <p className="text-sm font-medium text-zinc-800">{activeStatus.note}</p>
+                <p className="text-sm font-medium text-black">{activeStatus.note}</p>
               </div>
 
               {/* Visual Order Progress Timeline */}
               {primaryOrder.status !== "Cancelled" && (
                 <div className="py-2">
-                  <p className="text-xs font-bold uppercase tracking-wider text-ink-muted mb-4">
+                  <p className="text-xs font-bold uppercase tracking-wider text-black mb-4">
                     Delivery Progress
                   </p>
                   <div className="grid grid-cols-4 gap-2 text-center">
@@ -404,7 +404,7 @@ function OrderStatusPage() {
                             className={`h-8 w-8 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
                               isDone
                                 ? "bg-black text-white ring-4 ring-black/10"
-                                : "bg-zinc-200 text-zinc-500 border border-zinc-300"
+                                : "bg-zinc-200 text-black border border-zinc-300"
                             }`}
                           >
                             {isDone ? <Check className="h-4 w-4" /> : st.step}
@@ -414,8 +414,8 @@ function OrderStatusPage() {
                               isCurrent
                                 ? "text-black font-bold"
                                 : isDone
-                                  ? "text-zinc-700"
-                                  : "text-zinc-400"
+                                  ? "text-black"
+                                  : "text-black"
                             }`}
                           >
                             {st.label}
@@ -455,7 +455,7 @@ function OrderStatusPage() {
                   {primaryOrder.trackingNumber && (
                     <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-white p-3.5 border border-indigo-100">
                       <div>
-                        <span className="text-[11px] font-semibold uppercase text-zinc-500 block">
+                        <span className="text-[11px] font-semibold uppercase text-black block">
                           Tracking Number / Consignment #
                         </span>
                         <span className="font-mono text-base font-bold text-zinc-900">
@@ -504,7 +504,7 @@ function OrderStatusPage() {
 
               {/* Items in Order */}
               <div>
-                <p className="text-xs font-bold uppercase tracking-wider text-ink-muted mb-3">
+                <p className="text-xs font-bold uppercase tracking-wider text-black mb-3">
                   Items in this Order
                 </p>
                 <ul className="space-y-3">
@@ -534,17 +534,17 @@ function OrderStatusPage() {
                               {details.name}
                             </h3>
                             {variantLabel ? (
-                              <span className="rounded-full border border-stone bg-zinc-50 px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.12em] text-zinc-600">
+                              <span className="rounded-full border border-stone bg-zinc-50 px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.12em] text-black">
                                 {variantLabel}
                               </span>
                             ) : null}
                           </div>
 
-                          <p className="line-clamp-2 text-sm leading-6 text-ink-muted">
+                          <p className="line-clamp-2 text-sm leading-6 text-black">
                             {details.description}
                           </p>
 
-                          <div className="flex flex-wrap gap-2 text-[11px] font-bold uppercase tracking-[0.12em] text-zinc-500">
+                          <div className="flex flex-wrap gap-2 text-[11px] font-bold uppercase tracking-[0.12em] text-black">
                             {details.sku ? <span>SKU {details.sku}</span> : null}
                             {order.productId ? <span>Product ID {order.productId}</span> : null}
                           </div>
@@ -578,7 +578,7 @@ function OrderStatusPage() {
           <h2 id="order-help" className="font-display text-2xl">
             Need help with this order?
           </h2>
-          <p className="mt-2 text-sm text-ink-muted">
+          <p className="mt-2 text-sm text-black">
             Our opticians answer during showroom hours (
             {settings.hours || "Mon – Sat: 11:00 AM – 9:00 PM"}).
           </p>

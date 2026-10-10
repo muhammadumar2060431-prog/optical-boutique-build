@@ -128,7 +128,7 @@ export function ProductCard({ product }: { product: Product }) {
             )}
           </div>
           {product.isBestseller && (
-            <span className="rounded-full bg-gold px-1.5 py-0.5 text-[8px] font-bold uppercase text-white shadow-sm sm:px-2.5 sm:text-[10px] sm:tracking-[0.14em]">
+            <span className="rounded-full bg-black px-1.5 py-0.5 text-[8px] font-bold uppercase text-white shadow-sm sm:px-2.5 sm:text-[10px] sm:tracking-[0.14em]">
               Best Seller
             </span>
           )}

@@ -250,7 +250,7 @@ function CheckoutPage() {
       <SiteLayout>
         <div className="mx-auto max-w-2xl px-4 py-24 text-center sm:px-6">
           <h1 className="font-display text-4xl">Nothing to check out</h1>
-          <p className="mt-3 text-sm text-ink-muted">
+          <p className="mt-3 text-sm text-black">
             Your bag is empty. Add a frame or lens and your order summary will appear here.
           </p>
           <Link
@@ -278,7 +278,7 @@ function CheckoutPage() {
   return (
     <SiteLayout>
       <div className="mx-auto w-full max-w-5xl overflow-x-clip px-4 py-10 sm:px-6 sm:py-16">
-        <p className="eyebrow text-gold">Almost there</p>
+        <p className="eyebrow text-black">Almost there</p>
         <h1 className="mt-2 font-display text-4xl tracking-normal sm:text-5xl">Checkout</h1>
 
         <div className="mt-8 grid min-w-0 gap-8 lg:mt-10 lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start">
@@ -374,11 +374,11 @@ function CheckoutPage() {
               type="submit"
               size="lg"
               disabled={stockBlocked || submitting}
-              className="min-h-12 w-full max-w-full rounded-full px-6 text-sm sm:w-auto sm:px-10"
+              className="min-h-12 w-full max-w-full rounded-full bg-black text-white hover:bg-black px-6 text-sm sm:w-auto sm:px-10"
             >
               {submitting ? "Saving order..." : "Place order"}
             </Button>
-            <p className="mt-1 block text-xs leading-snug text-ink-muted">
+            <p className="mt-1 block text-xs leading-snug text-black">
               No payment is taken online — our team confirms your order and arranges payment on
               delivery or in the showroom.
             </p>
@@ -395,7 +395,7 @@ function CheckoutPage() {
                   >
                     <span className="min-w-0 pr-1">
                       <span className="block min-w-0 break-words leading-snug">{item.name}</span>
-                      <span className="mt-1 block text-xs leading-snug text-ink-muted">
+                      <span className="mt-1 block text-xs leading-snug text-black">
                         {item.variantLabel ? `${item.variantLabel} · ` : ""}Qty {item.qty}
                       </span>
                       {(stock <= 0 || item.qty > stock) && (
@@ -411,12 +411,12 @@ function CheckoutPage() {
                 ))}
               </ul>
               <div className="mt-5 flex min-w-0 justify-between gap-4 border-t border-stone pt-4 text-sm">
-                <span className="text-ink-muted">Subtotal</span>
-                <span className="font-semibold text-gold">{formatPrice(subtotal)}</span>
+                <span className="text-black">Subtotal</span>
+                <span className="font-semibold text-black">{formatPrice(subtotal)}</span>
               </div>
               <Link
                 to="/cart"
-                className="mt-4 block text-xs tracking-[0.16em] uppercase text-ink-muted transition-colors hover:text-gold"
+                className="mt-4 block text-xs tracking-[0.16em] uppercase text-black transition-colors hover:text-black"
               >
                 Edit bag
               </Link>

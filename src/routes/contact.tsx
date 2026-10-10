@@ -147,20 +147,20 @@ function ContactPage() {
       <section className="lens-halo bg-background py-10 sm:py-20">
         <div className="mx-auto grid max-w-7xl gap-8 px-4 sm:gap-12 sm:px-6 lg:grid-cols-[1.1fr_0.9fr]">
           <div>
-            <p className="eyebrow text-gold">Get in touch</p>
+            <p className="eyebrow text-black">Get in touch</p>
             <h1 className="mt-2 max-w-[12ch] font-display text-[2.45rem] leading-[1.05] tracking-normal sm:mt-3 sm:max-w-none sm:text-5xl sm:leading-[1.2]">
               Talk to an optician
             </h1>
-            <p className="mt-3 max-w-md text-[15px] leading-relaxed text-ink-muted sm:text-sm">
+            <p className="mt-3 max-w-md text-[15px] leading-relaxed text-black sm:text-sm">
               Send us a note about a frame, a prescription or a repair — we usually reply the same
               working day.
             </p>
 
             {sent ? (
               <div className="mt-8 rounded-xl border border-stone bg-card p-8">
-                <CheckCircle2 className="h-8 w-8 text-gold" />
+                <CheckCircle2 className="h-8 w-8 text-black" />
                 <h2 className="mt-4 font-display text-2xl">Thanks — message received</h2>
-                <p className="mt-2 text-sm text-ink-muted">
+                <p className="mt-2 text-sm text-black">
                   We'll get back to you shortly on WhatsApp or email.
                 </p>
                 <Button
@@ -235,7 +235,7 @@ function ContactPage() {
                 <Button
                   type="submit"
                   size="lg"
-                  className="min-h-12 w-full rounded-full px-8 text-sm sm:w-auto sm:text-sm"
+                  className="min-h-12 w-full rounded-full bg-black text-white hover:bg-black px-8 text-sm sm:w-auto sm:text-sm"
                   disabled={submitting}
                 >
                   {submitting ? "Sending..." : "Send enquiry"}
@@ -261,26 +261,26 @@ function ContactPage() {
                 <span className="block font-display text-xl leading-tight tracking-normal">
                   Chat on WhatsApp
                 </span>
-                <span className="block truncate text-xs text-cream/60">{settings.whatsapp}</span>
+                <span className="block truncate text-xs text-white">{settings.whatsapp}</span>
               </span>
             </button>
 
             <div className="space-y-4 rounded-xl border border-stone bg-mist p-5 text-sm sm:p-6">
-              <p className="eyebrow text-gold">Showroom</p>
+              <p className="eyebrow text-black">Showroom</p>
               <p className="flex min-w-0 gap-3">
-                <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-gold" />
+                <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-black" />
                 {settings.address}
               </p>
               <p className="flex min-w-0 gap-3">
-                <Phone className="mt-0.5 h-4 w-4 shrink-0 text-gold" />
+                <Phone className="mt-0.5 h-4 w-4 shrink-0 text-black" />
                 {settings.phone}
               </p>
               <p className="flex min-w-0 gap-3">
-                <Mail className="mt-0.5 h-4 w-4 shrink-0 text-gold" />
+                <Mail className="mt-0.5 h-4 w-4 shrink-0 text-black" />
                 <span className="break-all">{settings.email}</span>
               </p>
               <p className="flex min-w-0 gap-3">
-                <Clock className="mt-0.5 h-4 w-4 shrink-0 text-gold" />
+                <Clock className="mt-0.5 h-4 w-4 shrink-0 text-black" />
                 {settings.hours}
               </p>
             </div>

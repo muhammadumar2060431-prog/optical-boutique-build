@@ -49,13 +49,13 @@ function CartPage() {
   return (
     <SiteLayout>
       <div className="mx-auto w-full max-w-5xl overflow-x-clip px-4 py-10 sm:px-6 sm:py-16">
-        <p className="eyebrow text-gold">Your selection</p>
+        <p className="eyebrow text-black">Your selection</p>
         <h1 className="mt-2 font-display text-3xl tracking-normal sm:text-5xl">Shopping Bag</h1>
 
         {items.length === 0 ? (
           <div className="mt-10 rounded-xl border border-dashed border-stone bg-card px-6 py-20 text-center">
-            <ShoppingBag className="mx-auto h-8 w-8 text-ink-muted" />
-            <p className="mt-4 text-sm text-ink-muted">
+            <ShoppingBag className="mx-auto h-8 w-8 text-black" />
+            <p className="mt-4 text-sm text-black">
               Your shopping bag is empty. Explore our collection to select your ideal frames or
               lenses.
             </p>
@@ -82,11 +82,11 @@ function CartPage() {
                       {item.name}
                     </p>
                     {item.variantLabel && (
-                      <p className="text-xs tracking-[0.14em] uppercase text-ink-muted">
+                      <p className="text-xs tracking-[0.14em] uppercase text-black">
                         {item.variantLabel}
                       </p>
                     )}
-                    <p className="mt-1 text-sm font-semibold text-gold">
+                    <p className="mt-1 text-sm font-semibold text-black">
                       {formatPrice(item.price)}
                     </p>
                     {outOfStock ? (
@@ -98,7 +98,7 @@ function CartPage() {
                         Only {stock} left — reduce the quantity to continue
                       </p>
                     ) : stock <= 3 ? (
-                      <p className="mt-1 text-xs text-ink-muted">Only {stock} left in stock</p>
+                      <p className="mt-1 text-xs text-black">Only {stock} left in stock</p>
                     ) : null}
                   </div>
                   <div className="flex min-w-0 flex-wrap items-center gap-3">
@@ -107,7 +107,7 @@ function CartPage() {
                         type="button"
                         aria-label={`Decrease quantity of ${item.name}`}
                         onClick={() => setQty(item.key, item.qty - 1)}
-                        className="grid h-10 w-10 place-items-center rounded-full sm:h-11 sm:w-11 text-ink-muted transition-colors hover:text-gold"
+                        className="grid h-10 w-10 place-items-center rounded-full sm:h-11 sm:w-11 text-black transition-colors hover:text-black"
                       >
                         <Minus className="h-4 w-4" />
                       </button>
@@ -117,7 +117,7 @@ function CartPage() {
                         aria-label={`Increase quantity of ${item.name}`}
                         disabled={item.qty >= stock}
                         onClick={() => setQty(item.key, item.qty + 1)}
-                        className="grid h-10 w-10 place-items-center rounded-full sm:h-11 sm:w-11 text-ink-muted transition-colors hover:text-gold disabled:cursor-not-allowed disabled:opacity-40"
+                        className="grid h-10 w-10 place-items-center rounded-full sm:h-11 sm:w-11 text-black transition-colors hover:text-black disabled:cursor-not-allowed disabled:opacity-40"
                       >
                         <Plus className="h-4 w-4" />
                       </button>
@@ -126,7 +126,7 @@ function CartPage() {
                       type="button"
                       aria-label={`Remove ${item.name}`}
                       onClick={() => removeItem(item.key)}
-                      className="grid h-10 w-10 place-items-center rounded-full sm:h-11 sm:w-11 border border-stone text-ink-muted transition-colors hover:border-destructive hover:text-destructive"
+                      className="grid h-10 w-10 place-items-center rounded-full sm:h-11 sm:w-11 border border-stone text-black transition-colors hover:border-destructive hover:text-destructive"
                     >
                       <Trash2 className="h-4 w-4" />
                     </button>
@@ -139,17 +139,17 @@ function CartPage() {
               <h2 className="font-display text-2xl">Summary</h2>
               <dl className="mt-4 space-y-2 text-sm">
                 <div className="flex min-w-0 justify-between gap-4">
-                  <dt className="text-ink-muted">Subtotal</dt>
+                  <dt className="text-black">Subtotal</dt>
                   <dd className="font-semibold">{formatPrice(subtotal)}</dd>
                 </div>
                 <div className="flex min-w-0 justify-between gap-4">
-                  <dt className="text-ink-muted">Delivery</dt>
-                  <dd className="text-right text-ink-muted">Confirmed at checkout</dd>
+                  <dt className="text-black">Delivery</dt>
+                  <dd className="text-right text-black">Confirmed at checkout</dd>
                 </div>
               </dl>
               {blocked ? (
                 <>
-                  <Button size="lg" disabled className="mt-6 min-h-12 w-full rounded-full">
+                  <Button size="lg" disabled className="mt-6 min-h-12 w-full rounded-full bg-black text-white hover:bg-black">
                     Checkout unavailable
                   </Button>
                   <p className="mt-2 text-xs text-destructive" role="alert">
@@ -158,14 +158,14 @@ function CartPage() {
                   </p>
                 </>
               ) : (
-                <Button asChild size="lg" className="mt-6 min-h-12 w-full rounded-full">
+                <Button asChild size="lg" className="mt-6 min-h-12 w-full rounded-full bg-black text-white hover:bg-black">
                   <Link to="/checkout">Proceed to checkout</Link>
                 </Button>
               )}
               <button
                 type="button"
                 onClick={clearCart}
-                className="mt-4 w-full text-xs tracking-[0.16em] uppercase text-ink-muted transition-colors hover:text-destructive"
+                className="mt-4 w-full text-xs tracking-[0.16em] uppercase text-black transition-colors hover:text-destructive"
               >
                 Clear bag
               </button>

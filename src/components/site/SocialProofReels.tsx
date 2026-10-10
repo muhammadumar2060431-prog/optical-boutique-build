@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { ExternalLink, Play, ShoppingBag, Sparkles, X } from "lucide-react";
+import { ExternalLink, Play, ShoppingBag, X } from "lucide-react";
 
 import { Reveal } from "@/components/site/Reveal";
 import { ProductImage } from "@/components/site/ProductImage";
@@ -192,16 +192,12 @@ export function SocialProofReels() {
   const currentIndex = selectedReel ? activeReels.findIndex((r) => r.id === selectedReel.id) : -1;
 
   return (
-    <section className="bg-[#666666] text-white py-16 sm:py-24 border-b border-stone/50 overflow-hidden">
+    <section className="bg-black text-white py-16 sm:py-24 border-b border-stone/50 overflow-hidden">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 mb-10">
         {/* ── Section Header ── */}
         <Reveal>
           <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
             <div className="space-y-2">
-              <p className="eyebrow text-gold font-bold tracking-[0.2em] uppercase text-xs sm:text-sm flex items-center gap-2">
-                <Sparkles className="h-3.5 w-3.5" />
-                <span>SOCIAL PROOF & REEL REVIEWS</span>
-              </p>
               <h2 className="font-display text-3xl sm:text-4xl text-white font-semibold">
                 Seen on Creators & Real Customers
               </h2>
@@ -260,7 +256,7 @@ export function SocialProofReels() {
                         </p>
                       )}
                       {reel.creatorHandle && (
-                        <p className="text-[11px] text-gold-soft truncate font-mono">
+                        <p className="text-[11px] text-black truncate font-mono">
                           {reel.creatorHandle}
                         </p>
                       )}
@@ -306,33 +302,33 @@ export function SocialProofReels() {
       {/* ── Reel Video Modal Player ── */}
       <Dialog open={selectedReel !== null} onOpenChange={(open) => !open && setSelectedReel(null)}>
         <DialogContent
-          className="w-auto max-w-none gap-0 p-0 bg-jet border-stone overflow-hidden rounded-2xl text-white [&>button]:hidden"
+          className="w-auto max-w-none max-h-[92dvh] gap-0 p-0 bg-jet border-stone overflow-x-hidden overflow-y-auto rounded-2xl text-white [&>button]:hidden"
           style={{
-            width: "min(92vw, calc((100vh - 32px) * 9 / 16), 430px)",
-            height: "min(92vh, calc((100vw - 32px) * 16 / 9), 760px)",
+            width: "min(92vw, 430px)",
           }}
         >
           {selectedReel && (
-            <div className="relative flex h-full min-h-0 flex-col">
+            <div className="relative flex min-h-0 min-w-0 flex-col">
               {/* Modal Top Bar */}
-              <div className="absolute top-0 inset-x-0 p-4 bg-gradient-to-b from-black/80 to-transparent z-20 flex items-center justify-between">
-                <div className="flex items-center gap-2">
+              <div className="shrink-0 p-4 bg-black z-20 flex items-center justify-between gap-2">
+                <div className="flex min-w-0 items-center gap-2">
                   <PlatformBadge platform={selectedReel.platform} />
-                  <div>
-                    <p className="text-xs font-semibold text-white">
+                  <div className="min-w-0">
+                    <p className="text-xs font-semibold text-white break-words">
                       {selectedReel.creatorName || "Nigah Community"}
                     </p>
-                    <p className="text-[10px] text-gold-soft font-mono">
+                    <p className="text-[10px] text-gold-soft font-mono break-all">
                       {selectedReel.creatorHandle}
                     </p>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-1">
+                <div className="flex shrink-0 items-center gap-1">
                   <Button
                     size="icon"
                     variant="ghost"
                     className="h-8 w-8 text-white/80 hover:text-white rounded-full bg-black/40"
+                    aria-label="Close reel"
                     onClick={() => setSelectedReel(null)}
                   >
                     <X className="h-4 w-4" />
@@ -341,31 +337,39 @@ export function SocialProofReels() {
               </div>
 
               {/* Video Player Frame */}
-              <div className="relative flex min-h-0 w-full flex-1 items-center justify-center overflow-hidden bg-black">
+              <div className="relative flex w-full shrink-0 items-center justify-center bg-black">
                 {selectedPlayback?.kind === "iframe" ? (
                   <iframe
+                    key={selectedPlayback.src}
                     src={selectedPlayback.src}
                     title={selectedReel.title}
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                     allowFullScreen
-                    scrolling="no"
-                    className="w-full h-full border-0 bg-black"
+                    className="w-full border-0 bg-black"
+                    style={{
+                      aspectRatio: "9 / 16",
+                      minHeight:
+                        selectedReel.platform === "instagram" || selectedReel.platform === "tiktok"
+                          ? "max(720px, calc(min(92vw, 430px) * 16 / 9 + 160px))"
+                          : undefined,
+                    }}
                   />
                 ) : selectedPlayback?.kind === "video" ? (
                   <video
+                    key={selectedPlayback.src}
                     src={selectedPlayback.src}
                     controls
                     autoPlay
                     playsInline
                     loop
-                    className="w-full h-full object-contain"
+                    className="w-full aspect-[9/16] max-h-[70dvh] object-contain"
                   />
                 ) : (
-                  <div className="relative w-full h-full flex flex-col items-center justify-center p-6 text-center">
+                  <div className="relative w-full aspect-[9/16] flex flex-col items-center justify-center p-6 text-center">
                     <img
                       src={selectedReel.thumbnail}
                       alt={selectedReel.title}
-                      className="absolute inset-0 w-full h-full object-cover opacity-30"
+                      className="absolute inset-0 w-full h-full object-contain opacity-30"
                     />
                     <div className="relative z-10 space-y-4 max-w-xs">
                       <div className="h-16 w-16 rounded-full bg-gold/20 text-gold border border-gold flex items-center justify-center mx-auto">
@@ -388,7 +392,7 @@ export function SocialProofReels() {
 
               {/* Modal Bottom: Tagged Product & Navigation */}
               <div className="shrink-0 p-3 sm:p-4 bg-black/90 border-t border-stone/40 space-y-2.5 sm:space-y-3 z-20">
-                <p className="text-xs text-white/90 line-clamp-2">{selectedReel.title}</p>
+                <p className="text-xs text-white line-clamp-2">{selectedReel.title}</p>
 
                 {taggedProduct && (
                   <div className="flex items-center justify-between gap-3 bg-white/10 rounded-xl p-2.5 border border-white/10">
@@ -402,7 +406,7 @@ export function SocialProofReels() {
                         <p className="text-xs font-semibold text-white truncate">
                           {taggedProduct.name}
                         </p>
-                        <p className="text-xs text-gold font-bold">
+                        <p className="text-xs text-white font-bold">
                           {formatPrice(taggedProduct.salePrice ?? taggedProduct.price)}
                         </p>
                       </div>
@@ -412,7 +416,7 @@ export function SocialProofReels() {
                       to="/product/$slug"
                       params={{ slug: taggedProduct.slug }}
                       onClick={() => setSelectedReel(null)}
-                      className="inline-flex items-center gap-1.5 rounded-full bg-gold px-3.5 py-1.5 text-xs font-bold text-jet hover:bg-gold/90 shrink-0"
+                      className="inline-flex items-center gap-1.5 rounded-full bg-white px-3.5 py-1.5 text-xs font-bold text-black hover:bg-white hover:text-black shrink-0"
                     >
                       <ShoppingBag className="h-3.5 w-3.5" />
                       <span>Shop Look</span>
@@ -421,14 +425,14 @@ export function SocialProofReels() {
                 )}
 
                 {/* Prev/Next inside modal */}
-                <div className="flex items-center justify-between text-xs text-ink-muted pt-1">
+                <div className="flex items-center justify-between text-xs text-white pt-1">
                   <button
                     type="button"
                     disabled={currentIndex <= 0}
                     onClick={() => {
                       if (currentIndex > 0) setSelectedReel(activeReels[currentIndex - 1] ?? null);
                     }}
-                    className="hover:text-gold disabled:opacity-30 disabled:hover:text-ink-muted"
+                    className="text-white hover:text-white disabled:cursor-not-allowed disabled:text-white"
                   >
                     ← Previous Reel
                   </button>
@@ -443,7 +447,7 @@ export function SocialProofReels() {
                         setSelectedReel(activeReels[currentIndex + 1] ?? null);
                       }
                     }}
-                    className="hover:text-gold disabled:opacity-30 disabled:hover:text-ink-muted"
+                    className="text-white hover:text-white disabled:cursor-not-allowed disabled:text-white"
                   >
                     Next Reel →
                   </button>

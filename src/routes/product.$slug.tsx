@@ -576,11 +576,15 @@ function ProductPage() {
             <p
               className={cn(
                 "text-sm font-semibold flex items-center gap-1.5",
-                status === "Out of stock" ? "text-destructive" : "text-gold",
+                status === "Out of stock"
+                  ? "text-red-600"
+                  : status === "Low stock"
+                    ? "text-yellow-500"
+                    : "text-green-600",
               )}
             >
               <span className="h-2 w-2 rounded-full bg-current inline-block" />
-              {status === "Low stock" ? `Only ${stock} left in stock - order soon` : status}
+              {status === "Low stock" ? `Low stock - Only ${stock} left in stock - order soon` : status}
             </p>
 
             {/* Action Buttons */}
@@ -593,7 +597,7 @@ function ProductPage() {
                 <>
                   <Button
                     size="lg"
-                    className="min-h-12 rounded-full px-8 font-semibold shadow-md"
+                    className="min-h-12 rounded-full bg-black text-white hover:bg-black px-8 font-semibold shadow-md"
                     onClick={() => {
                       addItem(product, variant);
                       toast.success(`${product.name} added to your shopping bag`, {
@@ -618,7 +622,7 @@ function ProductPage() {
                     variantLabel: variant?.label ?? null,
                   })
                 }
-                className="min-h-11 border-b border-stone pb-1 text-xs tracking-[0.18em] uppercase text-ink transition-colors hover:border-gold hover:text-gold cursor-pointer bg-transparent border-0"
+                className="min-h-11 border-b border-stone pb-1 text-xs tracking-[0.18em] uppercase text-black transition-colors hover:border-black hover:text-black cursor-pointer bg-transparent border-0"
               >
                 Enquire via form
               </button>
@@ -629,12 +633,12 @@ function ProductPage() {
         {/* -- Customer Reviews Section -- */}
         <div className="mt-16 sm:mt-24 border-t border-stone/60 pt-10">
           {/* 1. Overall Rating Breakdown Box (Matching Image 2 layout) */}
-          <div className="grid gap-8 md:grid-cols-[280px_1fr] items-center rounded-2xl border border-stone-400 bg-[#666666] text-white p-6 sm:p-8">
+          <div className="grid gap-8 md:grid-cols-[280px_1fr] items-center rounded-2xl border border-stone-400 bg-black text-white p-6 sm:p-8">
             {/* Big Score Box */}
             <div className="flex flex-col items-center justify-center border-b border-stone-400/60 pb-6 md:border-b-0 md:border-r md:pr-8 md:pb-0 text-center">
               <div className="font-display text-5xl sm:text-6xl font-bold text-white">
                 {avgRating}{" "}
-                <span className="text-lg font-sans text-stone-200 font-normal">out of 5</span>
+                <span className="text-lg font-sans text-white font-normal">out of 5</span>
               </div>
               <div className="flex text-amber-400 my-2">
                 {Array.from({ length: 5 }).map((_, i) => (
@@ -649,7 +653,7 @@ function ProductPage() {
                   />
                 ))}
               </div>
-              <p className="text-xs text-stone-200">({totalReviewsCount} Verified Reviews)</p>
+              <p className="text-xs text-white">({totalReviewsCount} Verified Reviews)</p>
 
               <Button
                 type="button"
@@ -676,7 +680,7 @@ function ProductPage() {
                         style={{ width: `${percent}%` }}
                       />
                     </div>
-                    <span className="w-12 text-right font-mono text-stone-200 text-[11px] shrink-0">
+                    <span className="w-12 text-right font-mono text-white text-[11px] shrink-0">
                       {percent}% ({count})
                     </span>
                   </div>
@@ -821,14 +825,14 @@ function ProductPage() {
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-stone/50 pb-4">
               <div>
                 <h3 className="font-display text-2xl">Review List</h3>
-                <p className="text-xs text-ink-muted mt-0.5">
+                <p className="text-xs text-black mt-0.5">
                   Showing {sortedReviews.length} customer reviews for {product.name}
                 </p>
               </div>
 
               {/* Sort Dropdown */}
               <div className="flex items-center gap-2">
-                <span className="text-xs text-ink-muted font-medium">Sort by:</span>
+                <span className="text-xs text-black font-medium">Sort by:</span>
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value as "newest" | "highest" | "lowest")}
@@ -843,7 +847,7 @@ function ProductPage() {
 
             {/* Review List Entries (Image 2 style) */}
             {sortedReviews.length === 0 ? (
-              <p className="py-12 text-center text-sm text-ink-muted rounded-xl border border-dashed border-stone bg-card">
+              <p className="py-12 text-center text-sm text-black rounded-xl border border-dashed border-stone bg-card">
                 No reviews yet for this product. Be the first to submit a review!
               </p>
             ) : (
@@ -866,7 +870,7 @@ function ProductPage() {
                             )}
                           </div>
                           {rev.createdAt && (
-                            <p className="text-[11px] text-ink-muted">
+                            <p className="text-[11px] text-black">
                               {new Date(rev.createdAt).toLocaleDateString("en-US", {
                                 year: "numeric",
                                 month: "short",
@@ -898,7 +902,7 @@ function ProductPage() {
                     {rev.title && (
                       <h5 className="font-semibold text-base text-foreground pt-1">{rev.title}</h5>
                     )}
-                    <p className="text-sm text-ink-muted leading-relaxed">{rev.quote}</p>
+                    <p className="text-sm text-black leading-relaxed">{rev.quote}</p>
 
                     {/* Customer Uploaded Images */}
                     {rev.reviewImage && (
@@ -1016,7 +1020,7 @@ function ProductPage() {
               <h2 className="mt-1.5 font-display text-3xl sm:text-4xl text-foreground font-semibold">
                 Customer Testimonials & Proof Cards
               </h2>
-              <p className="text-xs sm:text-sm text-ink-muted mt-1">
+              <p className="text-xs sm:text-sm text-black mt-1">
                 Real customer feedback cards with verified purchase badges.
               </p>
             </div>

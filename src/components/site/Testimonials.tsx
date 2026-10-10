@@ -31,14 +31,11 @@ export function Testimonials() {
         <Reveal>
           <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
             <div>
-              <p className="eyebrow text-gold font-bold tracking-[0.2em] uppercase text-xs sm:text-sm">
-                Word of mouth
-              </p>
               <h2 className="mx-auto mt-2 max-w-[11ch] font-display text-[2.35rem] font-semibold leading-tight tracking-normal text-foreground sm:mx-0 sm:max-w-none sm:text-4xl">
                 Customer Reviews & Proofs
               </h2>
             </div>
-            <p className="mx-auto max-w-sm text-sm leading-relaxed text-ink-muted sm:mx-0">
+            <p className="mx-auto max-w-sm text-sm leading-relaxed text-black sm:mx-0">
               Real screenshots from WhatsApp chats, Facebook reviews, and happy customer photos.
               Click to enlarge.
             </p>

@@ -48,9 +48,9 @@ function OrderConfirmationPage() {
     return (
       <SiteLayout>
         <div className="mx-auto max-w-2xl px-4 py-24 text-center sm:px-6">
-          <PackageSearch className="mx-auto h-10 w-10 text-ink-muted" aria-hidden="true" />
+          <PackageSearch className="mx-auto h-10 w-10 text-black" aria-hidden="true" />
           <h1 className="mt-6 font-display text-4xl">No order to show</h1>
-          <p className="mt-3 text-sm text-ink-muted">
+          <p className="mt-3 text-sm text-black">
             This page appears right after you place an order. Have a reference already? Track it on
             the order status page.
           </p>
@@ -85,12 +85,12 @@ function OrderConfirmationPage() {
     <SiteLayout>
       <div className="mx-auto max-w-3xl px-4 py-16 sm:px-6 sm:py-20">
         <div className="text-center">
-          <CheckCircle2 className="mx-auto h-10 w-10 text-gold" aria-hidden="true" />
-          <p className="eyebrow mt-4 text-gold">Order confirmed</p>
+          <CheckCircle2 className="mx-auto h-10 w-10 text-black" aria-hidden="true" />
+          <p className="eyebrow mt-4 text-black">Order confirmed</p>
           <h1 className="mt-2 font-display text-4xl sm:text-5xl">
             Thank you{customerName ? `, ${customerName.split(" ")[0]}` : ""}
           </h1>
-          <p className="mt-3 text-sm text-ink-muted">
+          <p className="mt-3 text-sm text-black">
             Your reference is <span className="font-semibold text-ink">{ref}</span>. Keep it safe —
             you can check progress any time on the order status page.
           </p>
@@ -103,7 +103,7 @@ function OrderConfirmationPage() {
               <li key={`${line.name}-${index}`} className="flex justify-between gap-4 py-3">
                 <span className="min-w-0">
                   <span className="block">{line.name}</span>
-                  <span className="text-xs text-ink-muted">
+                  <span className="text-xs text-black">
                     {line.variantLabel ? `${line.variantLabel} · ` : ""}Qty {line.qty}
                   </span>
                 </span>
@@ -118,21 +118,21 @@ function OrderConfirmationPage() {
           {subtotal > 0 && (
             <dl className="mt-4 space-y-2 border-t border-stone pt-4 text-sm">
               <div className="flex justify-between">
-                <dt className="text-ink-muted">Subtotal</dt>
+                <dt className="text-black">Subtotal</dt>
                 <dd className="font-semibold">{formatPrice(subtotal)}</dd>
               </div>
               <div className="flex justify-between">
-                <dt className="text-ink-muted">Delivery</dt>
-                <dd className="text-ink-muted">Confirmed with you</dd>
+                <dt className="text-black">Delivery</dt>
+                <dd className="text-black">Confirmed with you</dd>
               </div>
               <div className="flex justify-between border-t border-stone pt-2 text-base">
                 <dt className="font-semibold">Total due</dt>
-                <dd className="font-semibold text-gold">{formatPrice(subtotal)}</dd>
+                <dd className="font-semibold text-black">{formatPrice(subtotal)}</dd>
               </div>
             </dl>
           )}
           {receipt && (receipt.phone || receipt.email || receipt.notes) && (
-            <div className="mt-5 border-t border-stone pt-4 text-sm text-ink-muted">
+            <div className="mt-5 border-t border-stone pt-4 text-sm text-black">
               {receipt.phone && <p>Phone: {receipt.phone}</p>}
               {receipt.email && <p>Email: {receipt.email}</p>}
               {receipt.notes && <p className="mt-2">Notes: {receipt.notes}</p>}
@@ -142,7 +142,7 @@ function OrderConfirmationPage() {
 
         <section className="mt-8 rounded-xl border border-stone bg-mist p-6 text-center">
           <h2 className="font-display text-2xl">Next step</h2>
-          <p className="mx-auto mt-2 max-w-md text-sm text-ink-muted">
+          <p className="mx-auto mt-2 max-w-md text-sm text-black">
             Message us on WhatsApp with your reference so an optician can confirm availability,
             fitting and delivery straight away.
           </p>
@@ -164,11 +164,11 @@ function OrderConfirmationPage() {
             <Link
               to="/order-status"
               search={{ ref }}
-              className="text-ink-muted transition-colors hover:text-gold"
+              className="text-black transition-colors hover:text-black"
             >
               Track this order
             </Link>
-            <Link to="/glasses" className="text-ink-muted transition-colors hover:text-gold">
+            <Link to="/glasses" className="text-black transition-colors hover:text-black">
               Continue shopping
             </Link>
           </div>

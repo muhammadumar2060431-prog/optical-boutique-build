@@ -8,6 +8,7 @@ import { useStore } from "@/lib/store";
 import { isSupabaseConfigured } from "@/lib/supabase";
 import { useFeaturedProductCounts, useInfiniteFeaturedProducts } from "@/lib/product-selection";
 import { cn } from "@/lib/utils";
+import { categoryLink, categoryNavigation } from "@/lib/category-navigation";
 
 export function CategoryBestsellersShowcase() {
   const { categories, collections, products } = useStore();
@@ -34,9 +35,10 @@ export function CategoryBestsellersShowcase() {
     return () => observer.disconnect();
   }, [categories.length]);
 
-  const sortedCategories = useMemo(() => {
-    return [...categories].sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
-  }, [categories]);
+  const { categories: sortedCategories, showSelector } = useMemo(
+    () => categoryNavigation(categories),
+    [categories],
+  );
 
   const [selectedCatId, setSelectedCatId] = useState<string>(
     () => sortedCategories[0]?.id ?? "cat-glasses",
@@ -93,6 +95,7 @@ export function CategoryBestsellersShowcase() {
   }, [activeCategoryCollections]);
 
   if (!categories || categories.length === 0) return null;
+  const exploreLink = categoryLink(activeCategory!);
 
   return (
     <section
@@ -100,111 +103,120 @@ export function CategoryBestsellersShowcase() {
       className="bg-background py-16 sm:py-24 border-b border-stone/50 overflow-hidden"
     >
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
-        {/* ── Section Title ── */}
-        <div className="text-center max-w-2xl mx-auto mb-12 sm:mb-16">
-          <Reveal>
-            <p className="eyebrow text-gold font-bold tracking-[0.2em] uppercase text-xs sm:text-sm">
-              Curated Collections
-            </p>
-            <h2 className="mt-2 font-display text-3xl sm:text-4xl lg:text-5xl text-foreground font-semibold">
-              Shop by Category
-            </h2>
-            <p className="mt-3 text-sm sm:text-base text-ink-muted">
-              Select a category to explore our top-rated best sellers and signature collection
-              banners
-            </p>
-          </Reveal>
-        </div>
+        {showSelector && (
+          <>
+            {/* ── Section Title ── */}
+            <div className="text-center max-w-2xl mx-auto mb-12 sm:mb-16">
+              <Reveal>
+                <p className="eyebrow text-black font-bold tracking-[0.2em] uppercase text-xs sm:text-sm">
+                  Curated Collections
+                </p>
+                <h2 className="mt-2 font-display text-3xl sm:text-4xl lg:text-5xl text-foreground font-semibold">
+                  Shop by Category
+                </h2>
+                <p className="mt-3 text-sm sm:text-base text-black">
+                  Select a category to explore our top-rated best sellers and signature collection
+                  banners
+                </p>
+              </Reveal>
+            </div>
 
-        {/* ── Category Circular Avatars Bar (Glasses & Lenses) ── */}
-        <Reveal delay={100}>
-          <div className="flex items-center justify-center gap-8 sm:gap-16 md:gap-20 flex-wrap pb-4">
-            {sortedCategories.map((cat) => {
-              const isSelected = activeCategory?.id === cat.id;
-              const productCount = isSupabaseConfigured
-                ? counts.data?.[cat.id]
-                : products.filter(
-                    (p) =>
-                      p.categoryId === cat.id &&
-                      p.status === "Published" &&
-                      Boolean(p.featured || p.isBestseller),
-                  ).length;
+            {/* ── Category Circular Avatars Bar (Glasses & Lenses) ── */}
+            <Reveal delay={100}>
+              <div className="flex items-center justify-center gap-8 sm:gap-16 md:gap-20 flex-wrap pb-4">
+                {sortedCategories.map((cat) => {
+                  const isSelected = activeCategory?.id === cat.id;
+                  const productCount = isSupabaseConfigured
+                    ? counts.data?.[cat.id]
+                    : products.filter(
+                        (p) =>
+                          p.categoryId === cat.id &&
+                          p.status === "Published" &&
+                          Boolean(p.featured || p.isBestseller),
+                      ).length;
 
-              return (
-                <button
-                  key={cat.id}
-                  type="button"
-                  onClick={() => setSelectedCatId(cat.id)}
-                  className="group flex flex-col items-center cursor-pointer transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-gold rounded-full"
-                  aria-pressed={isSelected}
-                  aria-label={`Show ${cat.name} collections and best sellers`}
-                >
-                  {/* Circular Image Frame */}
-                  <div
-                    className={cn(
-                      "relative w-32 h-32 sm:w-44 sm:h-44 md:w-52 md:h-52 rounded-full overflow-hidden transition-all duration-300 transform",
-                      isSelected
-                        ? "ring-4 ring-gold ring-offset-4 ring-offset-background scale-105 shadow-xl shadow-gold/15"
-                        : "ring-2 ring-stone/60 hover:ring-gold/60 hover:scale-105 opacity-85 hover:opacity-100 shadow-md",
-                    )}
-                  >
-                    {cat.image ? (
-                      <img
-                        src={cat.image}
-                        alt={cat.name}
-                        loading="lazy"
-                        decoding="async"
-                        width={208}
-                        height={208}
-                        className="w-full h-full object-cover object-center transition-transform duration-500 group-hover:scale-110"
-                      />
-                    ) : (
-                      <div className="w-full h-full bg-jet flex flex-col items-center justify-center text-cream p-4 text-center">
-                        <span className="font-display text-2xl sm:text-3xl text-gold">
-                          {cat.name.slice(0, 2).toUpperCase()}
-                        </span>
-                        <span className="text-[11px] text-cream/70 mt-1 uppercase tracking-widest font-semibold">
+                  return (
+                    <button
+                      key={cat.id}
+                      type="button"
+                      onClick={() => setSelectedCatId(cat.id)}
+                      className="group flex flex-col items-center cursor-pointer transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-gold rounded-full"
+                      aria-pressed={isSelected}
+                      aria-label={`Show ${cat.name} collections and best sellers`}
+                    >
+                      {/* Circular Image Frame */}
+                      <div
+                        className={cn(
+                          "relative w-32 h-32 sm:w-44 sm:h-44 md:w-52 md:h-52 rounded-full overflow-hidden transition-all duration-300 transform",
+                          isSelected
+                            ? "ring-4 ring-gold ring-offset-4 ring-offset-background scale-105 shadow-xl shadow-gold/15"
+                            : "ring-2 ring-stone/60 hover:ring-gold/60 hover:scale-105 opacity-85 hover:opacity-100 shadow-md",
+                        )}
+                      >
+                        {cat.image ? (
+                          <img
+                            src={cat.image}
+                            alt={cat.name}
+                            loading="lazy"
+                            decoding="async"
+                            width={208}
+                            height={208}
+                            className="w-full h-full object-cover object-center transition-transform duration-500 group-hover:scale-110"
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-jet flex flex-col items-center justify-center text-cream p-4 text-center">
+                            <span className="font-display text-2xl sm:text-3xl text-gold">
+                              {cat.name.slice(0, 2).toUpperCase()}
+                            </span>
+                            <span className="text-[11px] text-cream/70 mt-1 uppercase tracking-widest font-semibold">
+                              {cat.name}
+                            </span>
+                          </div>
+                        )}
+
+                        {/* Subtle Overlay on Inactive */}
+                        {!isSelected && (
+                          <div className="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors" />
+                        )}
+
+                        {/* Active Glow Badge */}
+                        {isSelected && (
+                          <div className="absolute top-2 right-2 sm:top-3 sm:right-3 h-4 w-4 rounded-full bg-gold ring-2 ring-background animate-pulse" />
+                        )}
+                      </div>
+
+                      {/* Category Title */}
+                      <div className="mt-4 text-center">
+                        <span
+                          className={cn(
+                            "font-display text-lg sm:text-xl md:text-2xl transition-colors tracking-wide capitalize",
+                            isSelected
+                              ? "text-black font-bold"
+                              : "text-black group-hover:text-black font-medium",
+                          )}
+                        >
                           {cat.name}
                         </span>
+                        <p className="text-[11px] text-black uppercase tracking-wider mt-0.5">
+                          {productCount === undefined ? "..." : productCount}{" "}
+                          {productCount === 1 ? "Featured Piece" : "Featured Pieces"}
+                        </p>
                       </div>
-                    )}
-
-                    {/* Subtle Overlay on Inactive */}
-                    {!isSelected && (
-                      <div className="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors" />
-                    )}
-
-                    {/* Active Glow Badge */}
-                    {isSelected && (
-                      <div className="absolute top-2 right-2 sm:top-3 sm:right-3 h-4 w-4 rounded-full bg-gold ring-2 ring-background animate-pulse" />
-                    )}
-                  </div>
-
-                  {/* Category Title */}
-                  <div className="mt-4 text-center">
-                    <span
-                      className={cn(
-                        "font-display text-lg sm:text-xl md:text-2xl transition-colors tracking-wide capitalize",
-                        isSelected
-                          ? "text-gold font-bold"
-                          : "text-foreground group-hover:text-gold font-medium",
-                      )}
-                    >
-                      {cat.name}
-                    </span>
-                    <p className="text-[11px] text-ink-muted uppercase tracking-wider mt-0.5">
-                      {productCount === undefined ? "..." : productCount}{" "}
-                      {productCount === 1 ? "Featured Piece" : "Featured Pieces"}
-                    </p>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </Reveal>
+                    </button>
+                  );
+                })}
+              </div>
+            </Reveal>
+          </>
+        )}
 
         {/* ── Dynamic Collection Banners + Best Selling Products Grid ── */}
-        <div className="mt-14 sm:mt-20 pt-10 border-t border-stone/40 space-y-12">
+        <div
+          className={cn(
+            "space-y-12",
+            showSelector && "mt-14 sm:mt-20 pt-10 border-t border-stone/40",
+          )}
+        >
           {!visible || selection.isLoading ? (
             <p role="status" className="text-center text-sm text-ink-muted">
               Loading products...
@@ -333,13 +345,8 @@ export function CategoryBestsellersShowcase() {
               {/* Explore All Category Link */}
               <div className="text-center pt-6">
                 <Link
-                  to={
-                    activeCategory?.slug === "lenses"
-                      ? "/lenses"
-                      : activeCategory?.slug === "glasses"
-                        ? "/glasses"
-                        : "/glasses"
-                  }
+                  to={exploreLink.to}
+                  params={exploreLink.params}
                   className="inline-flex w-full max-w-sm items-center justify-center gap-2 rounded-full border border-gold/40 bg-jet px-5 py-3.5 text-center text-xs font-bold uppercase tracking-[0.13em] text-cream shadow-md transition-all hover:scale-105 hover:bg-jet/90 sm:w-auto sm:max-w-none sm:px-8 sm:tracking-[0.16em] group"
                 >
                   <span className="min-w-0 leading-snug">

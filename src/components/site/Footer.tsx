@@ -2,9 +2,10 @@ import { Link } from "@tanstack/react-router";
 
 import { useStore } from "@/lib/store";
 import { sanitizeImageSrc } from "@/lib/security";
+import { categoryNavigation } from "@/lib/category-navigation";
 
 export function Footer() {
-  const { settings } = useStore();
+  const { settings, categories } = useStore();
 
   return (
     <footer className="max-w-full overflow-x-clip bg-jet text-cream/80">
@@ -36,8 +37,7 @@ export function Footer() {
           <ul className="space-y-2.5 text-sm">
             {[
               { to: "/", label: "Home" },
-              { to: "/glasses", label: "Glasses" },
-              { to: "/lenses", label: "Lenses" },
+              ...categoryNavigation(categories).links,
               { to: "/about", label: "About Us" },
               { to: "/blog", label: "Journal" },
               { to: "/faqs", label: "FAQs" },
@@ -47,6 +47,7 @@ export function Footer() {
               <li key={l.to}>
                 <Link
                   to={l.to}
+                  params={"params" in l ? l.params : {}}
                   className="transition-colors hover:text-gold-soft text-cream/80 block py-0.5"
                 >
                   {l.label}
