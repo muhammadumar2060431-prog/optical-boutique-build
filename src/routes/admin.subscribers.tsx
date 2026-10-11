@@ -154,9 +154,14 @@ function AdminSubscribers() {
         </div>
       ) : (
         <div className="rounded-2xl border border-[#666666] bg-[#f9f9f9] overflow-hidden shadow-xs">
-          <div className="overflow-x-auto">
+          <div
+            className="overflow-x-auto"
+            role="region"
+            aria-label="Subscribers table"
+            tabIndex={0}
+          >
             <table className="w-full text-left text-xs sm:text-sm">
-              <thead className="border-b-2 border-[#555555] bg-[#666666] text-[11px] font-semibold text-white uppercase tracking-wider">
+              <thead className="border-b-2 border-black bg-black text-[11px] font-semibold text-white uppercase tracking-wider">
                 <tr>
                   <th className="px-5 py-3 text-white">#</th>
                   <th className="px-5 py-3 text-white">Subscriber Email</th>

@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
-import { getOptimizedSupabaseImageSrc } from "@/lib/product-images";
 import { useStore } from "@/lib/store";
 import { sanitizeHref, sanitizeImageSrc } from "@/lib/security";
 import { cn } from "@/lib/utils";
@@ -14,7 +13,6 @@ export function Hero() {
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
   const [failedImages, setFailedImages] = useState<Set<string>>(() => new Set());
-  const [failedTransforms, setFailedTransforms] = useState<Set<string>>(() => new Set());
   const [visitedSlides, setVisitedSlides] = useState<Set<string>>(() => new Set());
   const activeSlideId = slides[index]?.id;
 
@@ -45,7 +43,7 @@ export function Hero() {
 
   return (
     <section
-      className="relative isolate h-[250px] w-full overflow-hidden bg-jet sm:h-[340px] md:h-[400px] lg:h-[450px]"
+      className="relative isolate h-[250px] w-full overflow-hidden bg-white sm:h-[340px] md:h-[min(50vw,720px)]"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
       onTouchStart={() => setPaused(true)}
@@ -61,35 +59,23 @@ export function Hero() {
 
         const originalImage = sanitizeImageSrc(slide.image, FALLBACK_HERO_IMAGE);
         const imageSrc = failedImages.has(originalImage) ? FALLBACK_HERO_IMAGE : originalImage;
-        const optimizedImageSrc = failedTransforms.has(imageSrc)
-          ? imageSrc
-          : getOptimizedSupabaseImageSrc(imageSrc, 1600);
-        const optimizedSrcSet =
-          optimizedImageSrc === imageSrc
-            ? undefined
-            : [640, 1024, 1600]
-                .map((width) => `${getOptimizedSupabaseImageSrc(imageSrc, width)} ${width}w`)
-                .join(", ");
         const ctaLink = sanitizeHref(slide.ctaLink, "");
 
         const imageElement =
           i === index || visitedSlides.has(slide.id) ? (
             <img
-              src={optimizedImageSrc}
-              srcSet={optimizedSrcSet}
-              sizes="100vw"
+              src={imageSrc}
               alt={slide.headline || "Store banner"}
-              width={1920}
-              height={960}
+              width={1440}
+              height={720}
               loading={i === index ? "eager" : "lazy"}
               decoding="async"
               fetchPriority={i === 0 ? "high" : "auto"}
-              className={cn("block h-full w-full", hasText ? "object-cover" : "object-fill")}
+              className={cn(
+                "mx-auto block h-full w-full md:max-w-[1440px]",
+                hasText ? "object-cover" : "object-fill",
+              )}
               onError={() => {
-                if (optimizedImageSrc !== imageSrc) {
-                  setFailedTransforms((current) => new Set([...current, imageSrc]));
-                  return;
-                }
                 setFailedImages((current) => {
                   if (current.has(originalImage)) return current;
                   const next = new Set(current);

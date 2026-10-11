@@ -190,7 +190,7 @@ export function ProductCard({ product }: { product: Product }) {
         <div className="mt-auto flex flex-col items-start gap-1 pt-2 sm:flex-row sm:items-center sm:justify-between sm:gap-2 sm:pt-3 sm:flex-wrap">
           {/* Left: Pricing */}
           <div className="flex max-w-full items-baseline gap-1 whitespace-nowrap sm:gap-2">
-            {product.salePrice ? (
+            {product.salePrice != null ? (
               <>
                 <p className="shrink-0 text-[11px] font-bold text-black sm:text-base">
                   {formatPrice(product.salePrice)}

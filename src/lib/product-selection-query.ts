@@ -4,12 +4,14 @@ export function isProductDataQuery(key: readonly unknown[]) {
   const root = key[0];
   return (
     root === "catalog-page" ||
+    root === "product-detail" ||
     root === "product-selection" ||
     root === "product-selection-infinite" ||
     root === "featured-product-counts" ||
     root === "admin-product-counts" ||
     root === "admin-product-picker" ||
     root === "admin-product-lookup" ||
+    root === "cart-products" ||
     (root === "admin-records" && (key[1] === "products" || key[1] === "inventory"))
   );
 }

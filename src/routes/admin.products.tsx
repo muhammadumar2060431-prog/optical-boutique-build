@@ -38,6 +38,8 @@ import { useAdminRecords } from "@/lib/admin-records";
 import { useAdminProductCounts } from "@/lib/product-selection";
 import { isSupabaseConfigured } from "@/lib/supabase";
 import { RecordPagination } from "@/components/admin/RecordPagination";
+import { DiscountSection } from "@/components/admin/DiscountSection";
+import { productForEditing } from "@/lib/discounts";
 
 export const Route = createFileRoute("/admin/products")({
   component: AdminProducts,
@@ -137,6 +139,7 @@ function ProductsTab() {
 
   return (
     <div className="space-y-4">
+      <DiscountSection />
       <div className="grid gap-3 sm:grid-cols-[1fr_180px_180px_auto]">
         <Input
           placeholder="Search by name or SKU..."
@@ -222,9 +225,14 @@ function ProductsTab() {
           )}
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-[#666666] bg-[#f9f9f9] shadow-sm">
+        <div
+          className="overflow-x-auto rounded-xl border border-[#666666] bg-[#f9f9f9] shadow-sm"
+          role="region"
+          aria-label="Products table"
+          tabIndex={0}
+        >
           <table className="w-full min-w-[760px] text-sm">
-            <thead className="border-b-2 border-[#555555] bg-[#666666] text-left text-xs tracking-[0.14em] uppercase text-white">
+            <thead className="border-b-2 border-black bg-black text-left text-xs tracking-[0.14em] uppercase text-white">
               <tr>
                 <th className="px-4 py-3 text-white font-semibold">Product</th>
                 <th className="px-4 py-3 text-white font-semibold">Category & Collection</th>
@@ -263,7 +271,7 @@ function ProductsTab() {
                     </td>
                     <td className="px-4 py-3">
                       <div>
-                        {p.salePrice ? (
+                        {p.salePrice != null ? (
                           <div className="flex items-center gap-1.5">
                             <span className="font-semibold text-black">
                               {formatPrice(p.salePrice)}
@@ -285,7 +293,7 @@ function ProductsTab() {
                         >
                           {p.status || "Published"}
                         </Badge>
-                        {p.salePrice && (
+                        {p.salePrice != null && (
                           <Badge variant="destructive" className="text-[10px]">
                             SALE
                           </Badge>
@@ -327,7 +335,7 @@ function ProductsTab() {
                           size="icon"
                           variant="ghost"
                           aria-label="Edit product"
-                          onClick={() => setDraft(p)}
+                          onClick={() => setDraft(productForEditing(p))}
                         >
                           <Pencil className="h-4 w-4" aria-hidden="true" />
                         </Button>
@@ -427,7 +435,7 @@ function ProductDialog({
 
   return (
     <Dialog open={!!draft} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-h-[92vh] max-w-3xl overflow-y-auto">
+      <DialogContent className="admin-theme max-h-[92vh] max-w-3xl overflow-y-auto">
         {value && (
           <>
             <DialogHeader>
@@ -1108,9 +1116,14 @@ function CategoriesTab() {
           )}
         </div>
 
-        <div className="overflow-x-auto rounded-xl border border-stone bg-card">
+        <div
+          className="overflow-x-auto rounded-xl border border-stone bg-card"
+          role="region"
+          aria-label="Collections table"
+          tabIndex={0}
+        >
           <table className="w-full min-w-[620px] text-sm">
-            <thead className="border-b border-stone text-left text-xs tracking-[0.14em] uppercase text-ink-muted">
+            <thead className="border-b border-black bg-black text-left text-xs tracking-[0.14em] uppercase text-white">
               <tr>
                 <th className="px-4 py-3">Banner</th>
                 <th className="px-4 py-3">Collection Name</th>
@@ -1192,7 +1205,7 @@ function CategoriesTab() {
 
         {/* Collection Dialog */}
         <Dialog open={!!collectionDraft} onOpenChange={(v) => !v && setCollectionDraft(null)}>
-          <DialogContent className="max-w-lg">
+          <DialogContent className="admin-theme max-w-lg">
             {collectionDraft && (
               <>
                 <DialogHeader>
@@ -1356,9 +1369,14 @@ function CategoriesTab() {
         </Button>
       </div>
 
-      <div className="overflow-x-auto rounded-xl border border-stone bg-card">
+      <div
+        className="overflow-x-auto rounded-xl border border-stone bg-card"
+        role="region"
+        aria-label="Categories table"
+        tabIndex={0}
+      >
         <table className="w-full min-w-[620px] text-sm">
-          <thead className="border-b border-stone text-left text-xs tracking-[0.14em] uppercase text-ink-muted">
+          <thead className="border-b border-black bg-black text-left text-xs tracking-[0.14em] uppercase text-white">
             <tr>
               <th className="px-4 py-3">Icon / Image</th>
               <th className="px-4 py-3">Banner</th>
@@ -1471,7 +1489,7 @@ function CategoriesTab() {
       </div>
 
       <Dialog open={!!categoryDraft} onOpenChange={(v) => !v && setCategoryDraft(null)}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="admin-theme max-w-md">
           {categoryDraft && (
             <>
               <DialogHeader>

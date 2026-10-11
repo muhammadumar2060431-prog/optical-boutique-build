@@ -6,6 +6,7 @@ import { PageFaqs } from "@/components/site/PageFaqs";
 import { ProductImage } from "@/components/site/ProductImage";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/lib/cart";
+import { resolveCartItemStock } from "@/lib/cart-stock";
 import { formatPrice, useStore } from "@/lib/store";
 import { getSiteUrl } from "@/lib/utils";
 
@@ -33,10 +34,10 @@ export const Route = createFileRoute("/cart")({
 
 function CartPage() {
   const { items, subtotal, setQty, removeItem, clearCart } = useCart();
-  const { getStockFor } = useStore();
+  const { getProductById } = useStore();
 
   const lines = items.map((item) => {
-    const stock = getStockFor(item.productId, item.variantId);
+    const stock = resolveCartItemStock(item, getProductById(item.productId));
     return {
       item,
       stock,
@@ -149,7 +150,11 @@ function CartPage() {
               </dl>
               {blocked ? (
                 <>
-                  <Button size="lg" disabled className="mt-6 min-h-12 w-full rounded-full bg-black text-white hover:bg-black">
+                  <Button
+                    size="lg"
+                    disabled
+                    className="mt-6 min-h-12 w-full rounded-full bg-black text-white hover:bg-black"
+                  >
                     Checkout unavailable
                   </Button>
                   <p className="mt-2 text-xs text-destructive" role="alert">
@@ -158,7 +163,11 @@ function CartPage() {
                   </p>
                 </>
               ) : (
-                <Button asChild size="lg" className="mt-6 min-h-12 w-full rounded-full bg-black text-white hover:bg-black">
+                <Button
+                  asChild
+                  size="lg"
+                  className="mt-6 min-h-12 w-full rounded-full bg-black text-white hover:bg-black"
+                >
                   <Link to="/checkout">Proceed to checkout</Link>
                 </Button>
               )}

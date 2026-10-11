@@ -62,6 +62,7 @@ import { Route as ApiV1AdminSignupRouteImport } from './routes/api.v1.admin.sign
 import { Route as ApiV1AdminStatusRouteImport } from './routes/api.v1.admin.status'
 import { Route as ApiV1MetaEventsRouteImport } from './routes/api.v1.meta.events'
 import { Route as ApiV1OrdersIdRouteImport } from './routes/api.v1.orders.$id'
+import { Route as ApiV1StorageCleanupRouteImport } from './routes/api.v1.storage.cleanup'
 import { Route as ApiV1OrdersTrackReferenceRouteImport } from './routes/api.v1.orders.track.$reference'
 
 const IndexRoute = IndexRouteImport.update({
@@ -329,6 +330,11 @@ const ApiV1OrdersIdRoute = ApiV1OrdersIdRouteImport.update({
   path: '/$id',
   getParentRoute: () => ApiV1OrdersRoute,
 } as any)
+const ApiV1StorageCleanupRoute = ApiV1StorageCleanupRouteImport.update({
+  id: '/api/v1/storage/cleanup',
+  path: '/api/v1/storage/cleanup',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiV1OrdersTrackReferenceRoute =
   ApiV1OrdersTrackReferenceRouteImport.update({
     id: '/track/$reference',
@@ -390,6 +396,7 @@ export interface FileRoutesByFullPath {
   '/api/v1/admin/status': typeof ApiV1AdminStatusRoute
   '/api/v1/meta/events': typeof ApiV1MetaEventsRoute
   '/api/v1/orders/$id': typeof ApiV1OrdersIdRoute
+  '/api/v1/storage/cleanup': typeof ApiV1StorageCleanupRoute
   '/api/v1/orders/track/$reference': typeof ApiV1OrdersTrackReferenceRoute
 }
 export interface FileRoutesByTo {
@@ -445,6 +452,7 @@ export interface FileRoutesByTo {
   '/api/v1/admin/status': typeof ApiV1AdminStatusRoute
   '/api/v1/meta/events': typeof ApiV1MetaEventsRoute
   '/api/v1/orders/$id': typeof ApiV1OrdersIdRoute
+  '/api/v1/storage/cleanup': typeof ApiV1StorageCleanupRoute
   '/api/v1/orders/track/$reference': typeof ApiV1OrdersTrackReferenceRoute
 }
 export interface FileRoutesById {
@@ -502,6 +510,7 @@ export interface FileRoutesById {
   '/api/v1/admin/status': typeof ApiV1AdminStatusRoute
   '/api/v1/meta/events': typeof ApiV1MetaEventsRoute
   '/api/v1/orders/$id': typeof ApiV1OrdersIdRoute
+  '/api/v1/storage/cleanup': typeof ApiV1StorageCleanupRoute
   '/api/v1/orders/track/$reference': typeof ApiV1OrdersTrackReferenceRoute
 }
 export interface FileRouteTypes {
@@ -560,6 +569,7 @@ export interface FileRouteTypes {
     | '/api/v1/admin/status'
     | '/api/v1/meta/events'
     | '/api/v1/orders/$id'
+    | '/api/v1/storage/cleanup'
     | '/api/v1/orders/track/$reference'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -615,6 +625,7 @@ export interface FileRouteTypes {
     | '/api/v1/admin/status'
     | '/api/v1/meta/events'
     | '/api/v1/orders/$id'
+    | '/api/v1/storage/cleanup'
     | '/api/v1/orders/track/$reference'
   id:
     | '__root__'
@@ -671,6 +682,7 @@ export interface FileRouteTypes {
     | '/api/v1/admin/status'
     | '/api/v1/meta/events'
     | '/api/v1/orders/$id'
+    | '/api/v1/storage/cleanup'
     | '/api/v1/orders/track/$reference'
   fileRoutesById: FileRoutesById
 }
@@ -716,6 +728,7 @@ export interface RootRouteChildren {
   ApiV1AdminSignupRoute: typeof ApiV1AdminSignupRoute
   ApiV1AdminStatusRoute: typeof ApiV1AdminStatusRoute
   ApiV1MetaEventsRoute: typeof ApiV1MetaEventsRoute
+  ApiV1StorageCleanupRoute: typeof ApiV1StorageCleanupRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -1091,6 +1104,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1OrdersIdRouteImport
       parentRoute: typeof ApiV1OrdersRoute
     }
+    '/api/v1/storage/cleanup': {
+      id: '/api/v1/storage/cleanup'
+      path: '/api/v1/storage/cleanup'
+      fullPath: '/api/v1/storage/cleanup'
+      preLoaderRoute: typeof ApiV1StorageCleanupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/v1/orders/track/$reference': {
       id: '/api/v1/orders/track/$reference'
       path: '/track/$reference'
@@ -1187,6 +1207,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiV1AdminSignupRoute: ApiV1AdminSignupRoute,
   ApiV1AdminStatusRoute: ApiV1AdminStatusRoute,
   ApiV1MetaEventsRoute: ApiV1MetaEventsRoute,
+  ApiV1StorageCleanupRoute: ApiV1StorageCleanupRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -73,7 +73,8 @@ export function ImageUpload({
   outputQuality = 0.65,
   maxBytes = 200 * 1024,
   storageFolder = "uploads",
-  allowAdjustment = true,
+  allowAdjustment = false,
+  preserveOriginal = false,
   cropAspect = null,
   localOnly = false,
   disabled = false,
@@ -99,8 +100,10 @@ export function ImageUpload({
   maxBytes?: number;
   /** Supabase Storage folder/path prefix. Default: "uploads" */
   storageFolder?: string;
-  /** Enable manual zoom and cropping before upload and on existing images. */
+  /** Opt in to manual adjustment for product media and New Arrival images. */
   allowAdjustment?: boolean;
+  /** Store the original bytes without resizing or re-encoding. */
+  preserveOriginal?: boolean;
   /** null preserves the source ratio (logos and screenshots). */
   cropAspect?: number | null;
   /** Public submissions are uploaded by their server endpoint, without an admin session. */
@@ -152,6 +155,18 @@ export function ImageUpload({
 
     setBusy(true);
 
+    if (preserveOriginal && !allowAdjustment) {
+      if (file.size > maxBytes) {
+        setError(
+          `The original image exceeds ${Math.round(maxBytes / 1024 / 1024)} MB. Use a smaller file.`,
+        );
+        setBusy(false);
+        return;
+      }
+      void processAndUploadImage(file);
+      return;
+    }
+
     const reader = new FileReader();
     reader.onload = () => {
       const rawResult = reader.result;
@@ -190,9 +205,22 @@ export function ImageUpload({
     if (mountedRef.current) callbacksRef.current.onChange(storageUrl);
   };
 
-  const processAndUploadImage = async (croppedDataUrl: string) => {
+  const processAndUploadImage = async (source: Blob | string) => {
     let stage = "Image processing";
     try {
+      if (preserveOriginal) {
+        const image = new Image();
+        const previewSource = typeof source === "string" ? source : URL.createObjectURL(source);
+        try {
+          image.src = previewSource;
+          await image.decode();
+        } finally {
+          if (typeof source !== "string") URL.revokeObjectURL(previewSource);
+        }
+        stage = "Image upload";
+        await persistImage(source);
+        return;
+      }
       const optimizer = new ImageOptimizer({
         maxWidth,
         maxHeight,
@@ -200,7 +228,8 @@ export function ImageUpload({
         outputType: "image/webp",
         maxBytes,
       });
-      const optimizedImage = await optimizer.optimize(croppedDataUrl);
+      const dataUrl = typeof source === "string" ? source : await ImageOptimizer.toDataUrl(source);
+      const optimizedImage = await optimizer.optimize(dataUrl);
       stage = "Image upload";
       await persistImage(optimizedImage);
     } catch (processingError) {
@@ -215,7 +244,7 @@ export function ImageUpload({
   };
 
   const openAdjustment = async () => {
-    if (!value || busyRef.current || disabled) return;
+    if (!allowAdjustment || !value || busyRef.current || disabled) return;
     setError(null);
     try {
       setBusy(true);

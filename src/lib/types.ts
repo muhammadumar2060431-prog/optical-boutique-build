@@ -31,6 +31,8 @@ export interface Product {
   collectionId?: ID | null;
   price: number;
   salePrice?: number | null;
+  manualSalePrice?: number | null;
+  bulkDiscountPercent?: number | null;
   sku?: string;
   description: string;
   image: string;

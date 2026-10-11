@@ -18,7 +18,7 @@ export function RecordPagination({
 }) {
   const pages = Math.max(1, Math.ceil(total / 50));
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 border-t border-stone py-3 text-xs">
+    <div className="admin-record-pagination flex flex-wrap items-center justify-between gap-3 border-t border-stone py-3 text-xs">
       <span role={error ? "alert" : undefined}>
         {error ? error.message : `${total} records | Page ${page} of ${pages}`}
       </span>

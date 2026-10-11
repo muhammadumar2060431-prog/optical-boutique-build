@@ -71,12 +71,12 @@ export function AdminDashboard() {
         ))}
       </div>
 
-      <section className="rounded-xl border border-[#666666] bg-[#f9f9f9] shadow-sm">
-        <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-[#555555] bg-[#666666] rounded-t-xl px-5 py-4">
+      <section className="rounded-xl border border-[#666666] bg-white shadow-sm">
+        <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-black bg-black text-white rounded-t-xl px-5 py-4">
           <h2 className="truncate font-display text-xl text-white">Recent orders</h2>
           <Link
             to="/admin/orders"
-            className="shrink-0 text-xs tracking-[0.14em] uppercase text-white/80 hover:text-white"
+            className="shrink-0 text-xs tracking-[0.14em] uppercase text-white hover:underline"
           >
             View all
           </Link>

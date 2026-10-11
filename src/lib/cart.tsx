@@ -10,6 +10,12 @@ import {
 
 import type { Product, Variant } from "./types";
 import { trackMetaEvent } from "./meta-events";
+import { productStockForCartItem } from "./cart-stock";
+import { useQuery } from "@tanstack/react-query";
+import { useStore } from "./store";
+import { isSupabaseConfigured, supabase } from "./supabase";
+import { mapDbProductToStore } from "./supabaseSync";
+import { getProductUnitPrice } from "./discounts";
 
 export interface CartItem {
   key: string;
@@ -20,6 +26,7 @@ export interface CartItem {
   image: string;
   price: number;
   qty: number;
+  stockSnapshot?: number | null;
 }
 
 interface CartApi {
@@ -52,8 +59,25 @@ function isCartItem(value: unknown): value is CartItem {
 }
 
 export function CartProvider({ children }: { children: ReactNode }) {
+  const { products } = useStore();
   const [items, setItems] = useState<CartItem[]>([]);
   const [hydrated, setHydrated] = useState(false);
+  const productIds = [...new Set(items.map((item) => item.productId))].sort();
+  const cartProducts = useQuery({
+    queryKey: ["cart-products", productIds],
+    enabled: isSupabaseConfigured && hydrated && productIds.length > 0,
+    staleTime: 0,
+    refetchInterval: 15000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("products")
+        .select("*")
+        .in("id", productIds)
+        .eq("enabled", true);
+      if (error) throw error;
+      return (data ?? []).map(mapDbProductToStore);
+    },
+  });
 
   // Restore after mount so SSR markup and first client render match.
   useEffect(() => {
@@ -72,6 +96,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
               variantId: typeof i.variantId === "string" ? i.variantId : null,
               variantLabel: typeof i.variantLabel === "string" ? i.variantLabel : null,
               qty: Math.max(1, Math.round(i.qty) || 1),
+              stockSnapshot:
+                typeof i.stockSnapshot === "number"
+                  ? Math.max(0, Math.round(i.stockSnapshot) || 0)
+                  : null,
             })),
           );
         }
@@ -107,15 +135,16 @@ export function CartProvider({ children }: { children: ReactNode }) {
           name: product.name,
           variantLabel: variant?.label ?? null,
           image: variant?.image ?? product.image,
-          price: variant?.price ?? product.price,
+          price: getProductUnitPrice(product, variant),
           qty,
+          stockSnapshot: productStockForCartItem(product, variant?.id ?? null),
         },
       ];
     });
     trackMetaEvent({
       eventName: "AddToCart",
       customData: {
-        value: (variant?.price ?? product.price) * qty,
+        value: getProductUnitPrice(product, variant) * qty,
         currency: "PKR",
         contentIds: [product.id],
         contentType: "product",
@@ -137,10 +166,33 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const clearCart = useCallback(() => setItems([]), []);
 
   const value = useMemo<CartApi>(() => {
-    const count = items.reduce((n, i) => n + i.qty, 0);
-    const subtotal = items.reduce((n, i) => n + i.qty * i.price, 0);
-    return { items, count, subtotal, hydrated, addItem, setQty, removeItem, clearCart };
-  }, [items, hydrated, addItem, setQty, removeItem, clearCart]);
+    const availableProducts = new Map(products.map((product) => [product.id, product]));
+    for (const product of cartProducts.data ?? []) {
+      const current = availableProducts.get(product.id);
+      if (!current || (product.inventoryRevision ?? 0) >= (current.inventoryRevision ?? 0)) {
+        availableProducts.set(product.id, product);
+      }
+    }
+    const pricedItems = items.map((item) => {
+      const product = availableProducts.get(item.productId);
+      if (!product) return item;
+      const variant = product.variants.find((entry) => entry.id === item.variantId);
+      return { ...item, price: getProductUnitPrice(product, variant) };
+    });
+    const count = pricedItems.reduce((n, i) => n + i.qty, 0);
+    const subtotal =
+      Math.round(pricedItems.reduce((n, i) => n + Math.round(i.price * 100) * i.qty, 0)) / 100;
+    return {
+      items: pricedItems,
+      count,
+      subtotal,
+      hydrated,
+      addItem,
+      setQty,
+      removeItem,
+      clearCart,
+    };
+  }, [items, products, cartProducts.data, hydrated, addItem, setQty, removeItem, clearCart]);
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
 }

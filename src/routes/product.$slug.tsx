@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, createFileRoute, notFound, useNavigate, useParams } from "@tanstack/react-router";
 import { Check, CheckCircle2, Play, Plus, ShoppingBag, Sparkles, Star } from "lucide-react";
 import { toast } from "sonner";
+import { useQuery } from "@tanstack/react-query";
 
 import { ImageUpload } from "@/components/admin/ImageUpload";
 import { useImageUploads } from "@/lib/use-image-uploads";
@@ -17,7 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useCart } from "@/lib/cart";
-import { supabase } from "@/lib/supabase";
+import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 import { mapDbProductToStore } from "@/lib/supabaseSync";
 import { useProductSelection } from "@/lib/product-selection";
 import { getProductSubImages } from "@/lib/product-images";
@@ -26,6 +27,7 @@ import { breadcrumbSchema, jsonLdScript, productSchema } from "@/lib/schema";
 import type { Product } from "@/lib/types";
 import { formatPrice, useStore } from "@/lib/store";
 import { cn, getDiscountPercent, getSiteUrl } from "@/lib/utils";
+import { getProductUnitPrice } from "@/lib/discounts";
 
 export const Route = createFileRoute("/product/$slug")({
   loader: async ({ params }) => {
@@ -128,7 +130,30 @@ function ProductPage() {
   const { addItem } = useCart();
   const { openWhatsAppModal } = useWhatsAppModal();
   const navigate = useNavigate();
-  const product = getProductBySlug(slug) ?? loadedProduct;
+  const latestProduct = useQuery({
+    queryKey: ["product-detail", slug],
+    enabled: isSupabaseConfigured,
+    initialData: loadedProduct,
+    staleTime: 15000,
+    refetchInterval: 15000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("products")
+        .select("*")
+        .eq("slug", slug)
+        .eq("enabled", true)
+        .maybeSingle();
+      if (error) throw error;
+      return data ? mapDbProductToStore(data) : null;
+    },
+  });
+  const storedProduct = getProductBySlug(slug);
+  const refreshedProduct = latestProduct.data ?? loadedProduct;
+  const product =
+    storedProduct &&
+    (storedProduct.inventoryRevision ?? 0) > (refreshedProduct?.inventoryRevision ?? 0)
+      ? storedProduct
+      : refreshedProduct;
   const relatedSelection = useProductSelection(
     {
       categoryId: product?.categoryId,
@@ -178,6 +203,20 @@ function ProductPage() {
     () => product?.variants.find((v) => v.id === variantId) ?? null,
     [product, variantId],
   );
+
+  useEffect(() => {
+    if (!product?.variants.length) {
+      if (variantId !== null) setVariantId(null);
+      return;
+    }
+    const selected = product.variants.find((item) => item.id === variantId);
+    if (selected && selected.stock > 0) return;
+    const fallback = product.variants.find((item) => item.stock > 0) ?? product.variants[0];
+    if (fallback && fallback.id !== variantId) {
+      setVariantId(fallback.id);
+      setActiveImage(null);
+    }
+  }, [product, variantId]);
 
   // Product social reels - ONLY show reels tagged to this specific product
   // All reels are shown on the homepage; here we show only product-specific ones
@@ -272,10 +311,14 @@ function ProductPage() {
     (product.image && product.image !== "/placeholder.svg" && product.image.trim().length > 0
       ? product.image
       : subImagesList[0] || product.image || "/placeholder.svg");
-  const currentPrice = variant?.price ?? product.salePrice ?? product.price;
-  const isDiscounted = !!product.salePrice && !variant?.price;
-  const discountPercent = getDiscountPercent(product.price, currentPrice);
-  const stock = variant ? variant.stock : productStock(product);
+  const purchaseVariant =
+    variant ??
+    (product.variants.length ? (product.variants.find((item) => item.stock > 0) ?? null) : null);
+  const originalPrice = purchaseVariant?.price ?? product.price;
+  const currentPrice = getProductUnitPrice(product, purchaseVariant);
+  const isDiscounted = currentPrice < originalPrice;
+  const discountPercent = getDiscountPercent(originalPrice, currentPrice);
+  const stock = purchaseVariant ? purchaseVariant.stock : productStock(product);
   const status = stockStatus(stock);
   const outOfStock = status === "Out of stock";
   const related = relatedSelection.items;
@@ -464,13 +507,13 @@ function ProductPage() {
                       {formatPrice(currentPrice)}
                     </p>
                     <p className="text-base text-red-600 line-through font-medium sm:text-lg">
-                      {formatPrice(product.price)}
+                      {formatPrice(originalPrice)}
                     </p>
                     <Badge
                       variant="outline"
                       className="text-xs font-semibold text-emerald-600 border-emerald-500/40 bg-white shadow-xs"
                     >
-                      Save {formatPrice(product.price - currentPrice)}
+                      Save {formatPrice(originalPrice - currentPrice)}
                     </Badge>
                   </>
                 ) : (
@@ -540,8 +583,7 @@ function ProductPage() {
                         type="button"
                         title={v.label}
                         onClick={() => {
-                          const nextVariantId = isSelected ? null : v.id;
-                          setVariantId(nextVariantId);
+                          setVariantId(v.id);
                           setActiveImage(null);
                         }}
                         className="group relative flex flex-col items-center gap-1"
@@ -560,9 +602,9 @@ function ProductPage() {
                             <Check className="h-3.5 w-3.5 text-white drop-shadow-md" />
                           )}
                         </span>
-                        {v.price && v.price !== product.price && (
+                        {v.price != null && v.price !== product.price && (
                           <span className="text-[10px] text-ink/60 font-semibold">
-                            {formatPrice(v.price)}
+                            {formatPrice(getProductUnitPrice(product, v))}
                           </span>
                         )}
                       </button>
@@ -584,7 +626,9 @@ function ProductPage() {
               )}
             >
               <span className="h-2 w-2 rounded-full bg-current inline-block" />
-              {status === "Low stock" ? `Low stock - Only ${stock} left in stock - order soon` : status}
+              {status === "Low stock"
+                ? `Low stock - Only ${stock} left in stock - order soon`
+                : status}
             </p>
 
             {/* Action Buttons */}
@@ -599,7 +643,7 @@ function ProductPage() {
                     size="lg"
                     className="min-h-12 rounded-full bg-black text-white hover:bg-black px-8 font-semibold shadow-md"
                     onClick={() => {
-                      addItem(product, variant);
+                      addItem(product, purchaseVariant);
                       toast.success(`${product.name} added to your shopping bag`, {
                         action: {
                           label: "View bag",
@@ -618,8 +662,8 @@ function ProductPage() {
                   openWhatsAppModal({
                     productName: product.name,
                     productId: product.id,
-                    variantId: variant?.id ?? null,
-                    variantLabel: variant?.label ?? null,
+                    variantId: purchaseVariant?.id ?? null,
+                    variantLabel: purchaseVariant?.label ?? null,
                   })
                 }
                 className="min-h-11 border-b border-stone pb-1 text-xs tracking-[0.18em] uppercase text-black transition-colors hover:border-black hover:text-black cursor-pointer bg-transparent border-0"

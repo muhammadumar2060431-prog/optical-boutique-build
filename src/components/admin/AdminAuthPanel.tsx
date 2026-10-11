@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useStore } from "@/lib/store";
+import { postAdminAuth } from "@/lib/admin-auth";
 import { cn } from "@/lib/utils";
 
 type Mode = "login" | "signup" | "recover";
@@ -18,22 +19,11 @@ const modes: Array<{ id: Mode; label: string; icon: typeof LogIn }> = [
 ];
 
 async function postAuth(path: string, body: unknown) {
-  const response = await fetch(path, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-  const payload = (await response.json().catch(() => ({}))) as {
+  return postAdminAuth<{
     success?: boolean;
     recoveryToken?: string;
     error?: { code?: string; message?: string };
-  };
-  if (!response.ok) {
-    const error = new Error(payload.error?.message ?? "Unable to complete the request.");
-    error.name = payload.error?.code ?? "AuthRequestError";
-    throw error;
-  }
-  return payload;
+  }>(path, body);
 }
 
 export function AdminAuthPanel() {
@@ -50,6 +40,7 @@ export function AdminAuthPanel() {
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
+  const [ready, setReady] = useState(false);
   const [signupAvailable, setSignupAvailable] = useState(false);
   const [recoveryStep, setRecoveryStep] = useState<RecoveryStep>("verify");
   const [recoveryToken, setRecoveryToken] = useState("");
@@ -60,6 +51,7 @@ export function AdminAuthPanel() {
   );
 
   useEffect(() => {
+    setReady(true);
     const controller = new AbortController();
     const timer = window.setTimeout(() => controller.abort(), 5_000);
     void fetch("/api/v1/admin/status", {
@@ -96,8 +88,10 @@ export function AdminAuthPanel() {
     setRecoveryToken("");
   };
 
-  const handleSubmit = async (event: React.FormEvent) => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (!ready || busy) return;
+    const fields = new FormData(event.currentTarget);
     setError("");
     setNotice("");
 
@@ -110,7 +104,13 @@ export function AdminAuthPanel() {
     setBusy(true);
     try {
       if (mode === "login") {
-        const result = await login(email.trim(), password);
+        // Password managers may fill the DOM without firing React change events.
+        const submittedEmail = fields.get("username");
+        const submittedPassword = fields.get("password");
+        if (typeof submittedEmail !== "string" || typeof submittedPassword !== "string") {
+          throw new Error("Please enter your email and password.");
+        }
+        const result = await login(submittedEmail.trim(), submittedPassword);
         if (!result.success) throw new Error(result.error ?? "Incorrect email or password.");
         await navigate({ to: "/admin", replace: true });
         return;
@@ -212,6 +212,7 @@ export function AdminAuthPanel() {
               type="button"
               role="tab"
               aria-selected={mode === item.id}
+              disabled={!ready || busy}
               onClick={() => changeMode(item.id)}
               className={cn(
                 "flex min-h-12 items-center justify-center gap-1.5 border-r border-stone px-2 text-[11px] font-semibold last:border-r-0",
@@ -229,6 +230,7 @@ export function AdminAuthPanel() {
         <form
           key={`${mode}-${recoveryStep}`}
           onSubmit={handleSubmit}
+          method="post"
           className="space-y-4 p-6"
           autoComplete={mode === "login" ? "on" : "off"}
         >
@@ -242,7 +244,7 @@ export function AdminAuthPanel() {
               onChange={(event) => setEmail(event.target.value)}
               autoComplete={mode === "login" ? "username" : "off"}
               required
-              disabled={busy || (mode === "recover" && recoveryStep === "reset")}
+              disabled={!ready || busy || (mode === "recover" && recoveryStep === "reset")}
             />
           </div>
 
@@ -253,13 +255,14 @@ export function AdminAuthPanel() {
               </Label>
               <Input
                 id="admin-password"
+                name={mode === "login" ? "password" : "newPassword"}
                 type="password"
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
                 autoComplete={mode === "login" ? "current-password" : "new-password"}
                 minLength={mode === "login" ? 1 : 10}
                 required
-                disabled={busy}
+                disabled={!ready || busy}
               />
               {mode !== "login" && (
                 <p className="text-[11px] text-ink-muted">
@@ -383,15 +386,24 @@ export function AdminAuthPanel() {
             </p>
           )}
 
-          <Button type="submit" className="min-h-11 w-full" disabled={busy}>
-            {busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />}
-            {mode === "login"
-              ? "Sign in"
-              : mode === "signup"
-                ? "Create admin"
-                : recoveryStep === "verify"
-                  ? "Verify security answers"
-                  : "Change password"}
+          <Button
+            type="submit"
+            className="min-h-11 w-full"
+            disabled={!ready || busy}
+            aria-busy={!ready || busy}
+          >
+            {(!ready || busy) && (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
+            )}
+            {!ready
+              ? "Loading..."
+              : mode === "login"
+                ? "Sign in"
+                : mode === "signup"
+                  ? "Create admin"
+                  : recoveryStep === "verify"
+                    ? "Verify security answers"
+                    : "Change password"}
           </Button>
 
           <Link to="/" className="block text-center text-xs text-ink-muted hover:text-foreground">

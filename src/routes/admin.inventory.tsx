@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { Minus, Plus } from "lucide-react";
+import { Image as ImageIcon, Minus, Plus } from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -107,11 +107,19 @@ function AdminInventory() {
           Nothing matches this view. Clear the filters to see all stock.
         </p>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-[#666666] bg-[#f9f9f9] shadow-sm">
-          <table className="w-full min-w-[720px] text-sm">
-            <thead className="border-b-2 border-[#555555] bg-[#666666] text-left text-xs tracking-[0.14em] uppercase text-white">
+        <div
+          className="overflow-x-auto rounded-xl border border-[#666666] bg-[#f9f9f9] shadow-sm"
+          role="region"
+          aria-label="Inventory table"
+          tabIndex={0}
+        >
+          <table className="admin-inventory-table w-full min-w-[720px] text-sm">
+            <thead className="border-b-2 border-black bg-black text-left text-xs tracking-[0.14em] uppercase text-white">
               <tr>
-                <th className="px-4 py-3 text-white font-semibold">Product / variant</th>
+                <th className="px-4 py-3 text-white font-semibold" aria-label="Product / variant">
+                  <span className="admin-inventory-heading">Product / variant</span>
+                  <ImageIcon className="admin-inventory-icon hidden h-4 w-4" aria-hidden="true" />
+                </th>
                 <th className="px-4 py-3 text-white font-semibold">Category</th>
                 <th className="px-4 py-3 text-white font-semibold">Stock</th>
                 <th className="px-4 py-3 text-white font-semibold">Status</th>
@@ -129,14 +137,20 @@ function AdminInventory() {
                 >
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 shrink-0 overflow-hidden rounded-md bg-white border border-zinc-200 flex items-center justify-center">
+                      <div
+                        className="h-10 w-10 shrink-0 overflow-hidden rounded-md bg-white border border-zinc-200 flex items-center justify-center"
+                        title={r.name}
+                      >
                         <img
                           src={r.image || "/placeholder.svg"}
                           alt={r.name}
                           className="h-full w-full object-cover"
                         />
                       </div>
-                      <span className="font-semibold max-w-[200px] truncate" title={r.name}>
+                      <span
+                        className="admin-inventory-name font-semibold max-w-[200px] truncate"
+                        title={r.name}
+                      >
                         {r.name}
                       </span>
                     </div>

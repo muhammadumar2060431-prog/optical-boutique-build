@@ -265,7 +265,7 @@ function OrderDetailsModal({
   return (
     <div className="flex flex-col max-h-[85vh]">
       {/* Header Banner */}
-      <div className="bg-gradient-to-r from-[#505050] via-[#666666] to-[#505050] border-b border-[#444444] px-6 py-5 text-white">
+      <div className="bg-black border-b border-black px-6 py-5 text-white">
         <div className="flex flex-wrap items-center justify-between gap-3">
           {/* Reference pill */}
           <div className="flex items-center gap-2">
@@ -756,9 +756,14 @@ function AdminOrders() {
           No orders yet — new Checkout and WhatsApp orders will appear here automatically.
         </p>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-[#666666] bg-[#f9f9f9] shadow-sm">
+        <div
+          className="overflow-x-auto rounded-xl border border-[#666666] bg-[#f9f9f9] shadow-sm"
+          role="region"
+          aria-label="Orders table"
+          tabIndex={0}
+        >
           <table className="w-full min-w-[720px] text-sm">
-            <thead className="border-b-2 border-[#555555] bg-[#666666] text-left text-xs tracking-[0.14em] uppercase text-white">
+            <thead className="border-b-2 border-black bg-black text-left text-xs tracking-[0.14em] uppercase text-white">
               <tr>
                 <th className="px-4 py-3 text-white font-semibold">Ref</th>
                 <th className="px-4 py-3 text-white font-semibold">Date</th>
@@ -865,7 +870,7 @@ function AdminOrders() {
       <Dialog open={!!selected} onOpenChange={(v) => !v && setSelected(null)}>
         <DialogContent
           key={selected?.id}
-          className="max-w-2xl overflow-hidden p-0 rounded-2xl border-zinc-200 bg-white shadow-2xl"
+          className="admin-theme max-w-2xl overflow-hidden p-0 rounded-2xl border-zinc-200 bg-white shadow-2xl"
         >
           {selected && (
             <OrderDetailsModal

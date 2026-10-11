@@ -370,7 +370,7 @@ function AdminTestimonials() {
 
       {/* -- Add / Edit Review Modal -- */}
       <Dialog open={!!draft} onOpenChange={(v) => !v && setDraft(null)}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto max-w-lg">
+        <DialogContent className="admin-theme max-h-[90vh] overflow-y-auto max-w-lg">
           {draft && (
             <>
               <DialogHeader>

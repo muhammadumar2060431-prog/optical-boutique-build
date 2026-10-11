@@ -1,6 +1,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { requestStorageMaintenance } from "./storage-maintenance.ts";
 
 export async function invalidatePublicStorefront(client: SupabaseClient): Promise<boolean> {
+  void requestStorageMaintenance(client).catch(() => undefined);
   try {
     const session = await client.auth.getSession();
     const token = session.data.session?.access_token;

@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useCart } from "@/lib/cart";
+import { resolveCartItemStock } from "@/lib/cart-stock";
 import { formatPrice, newOrderReference, useStore } from "@/lib/store";
 import { saveOrderReceipt } from "@/lib/last-order";
 import { reuseCheckoutAttempt, type CheckoutAttempt } from "@/lib/checkout-attempt";
@@ -80,7 +81,7 @@ type NewOrderInput = Parameters<ReturnType<typeof useStore>["addOrders"]>[0][num
 
 function CheckoutPage() {
   const { items, subtotal, clearCart, hydrated } = useCart();
-  const { addOrders, getStockFor } = useStore();
+  const { addOrders, getProductById } = useStore();
   const navigate = useNavigate();
 
   const [values, setValues] = useState({ name: "", email: "", phone: "", address: "", notes: "" });
@@ -116,7 +117,7 @@ function CheckoutPage() {
 
   const stockLines = items.map((item) => ({
     item,
-    stock: getStockFor(item.productId, item.variantId),
+    stock: resolveCartItemStock(item, getProductById(item.productId)),
   }));
   const stockBlocked = stockLines.some(({ item, stock }) => stock <= 0 || item.qty > stock);
 

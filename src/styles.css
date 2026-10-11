@@ -579,39 +579,95 @@
   background-color: #ffffff !important;
 }
 
-/* 1 & 2: Tables light gray with dark gray borders, heading #666666 with white text */
+:is(.admin-portal, .admin-theme) {
+  --color-accent-gold: #000000;
+  --color-accent-gold-soft: #000000;
+  --color-text-primary: #000000;
+  --color-text-secondary: #000000;
+  --foreground: #000000;
+  --card-foreground: #000000;
+  --popover-foreground: #000000;
+  --primary: #000000;
+  --primary-foreground: #ffffff;
+  --muted-foreground: #000000;
+  --secondary-foreground: #000000;
+  --accent-foreground: #000000;
+  --ring: #000000;
+  color: #000000;
+}
+
+:is(.admin-portal, .admin-theme)
+  :is(
+    [class*="text-zinc-4"],
+    [class*="text-zinc-5"],
+    [class*="text-zinc-6"],
+    [class*="text-zinc-7"],
+    [class*="text-zinc-8"],
+    [class*="text-zinc-9"],
+    [class*="text-gray-"],
+    [class*="text-neutral-"],
+    [class*="text-slate-"],
+    [class*="text-stone-"]
+  ) {
+  color: #000000;
+}
+
+:is(.admin-portal, .admin-theme) [class~="bg-[#666666]"],
+:is(.admin-portal, .admin-theme) [class~="bg-zinc-800"],
+:is(.admin-portal, .admin-theme) [class~="bg-primary"],
+:is(.admin-portal, .admin-theme) [class~="bg-secondary"],
+:is(.admin-portal, .admin-theme) button[class~="hover:bg-[#666666]"]:hover {
+  background-color: #000000;
+  color: #ffffff;
+}
+
+:is(.admin-portal, .admin-theme) [class~="bg-[#666666]"]:hover {
+  background-color: #000000;
+}
+
+:is(.admin-portal, .admin-theme)
+  .bg-black
+  :is(.text-gold, .text-gold-soft, .text-ink-muted, [class*="text-zinc-"]) {
+  color: #ffffff;
+}
+
+/* Admin tables use white rows and black headers with white text. */
 .admin-portal table {
-  background-color: #f4f4f6 !important;
+  background-color: #ffffff !important;
 }
 
 .admin-portal .admin-table-container,
 .admin-portal div:has(> table) {
-  background-color: #f4f4f6 !important;
+  background-color: #ffffff !important;
   border: 1px solid #666666 !important;
   border-radius: 0.75rem;
   overflow: hidden;
 }
 
 .admin-portal thead {
-  background-color: #666666 !important;
+  background-color: #000000 !important;
   color: #ffffff !important;
-  border-bottom: 2px solid #555555 !important;
+  border-bottom: 2px solid #000000 !important;
 }
 
 .admin-portal thead th {
   color: #ffffff !important;
   font-weight: 600 !important;
   letter-spacing: 0.12em !important;
-  border-bottom: 2px solid #555555 !important;
+  border-bottom: 2px solid #000000 !important;
+}
+
+.admin-portal tbody {
+  background-color: #ffffff !important;
 }
 
 .admin-portal tbody tr {
-  background-color: #f4f4f6;
+  background-color: #ffffff !important;
   transition: background-color 0.15s ease;
 }
 
 .admin-portal tbody tr:hover {
-  background-color: #e8e8ec !important;
+  background-color: #f5f5f5 !important;
 }
 
 .admin-portal tbody.divide-y > tr,
@@ -624,9 +680,9 @@
 .admin-portal
   input:not([type="checkbox"]):not([type="radio"]):not([type="color"]):not([type="file"]),
 .admin-portal button[role="combobox"] {
-  background-color: #f0f0f3 !important;
+  background-color: #ffffff !important;
   border: 1px solid #d1d5db !important;
-  color: #1b1b1d !important;
+  color: #000000 !important;
 }
 
 .admin-portal input:focus,
@@ -641,6 +697,179 @@
   background-color: #fee2e2 !important;
   color: #b91c1c !important;
   border: 1px solid #fca5a5 !important;
+}
+
+/* Mobile admin layout; desktop tables retain their existing dimensions. */
+@media (max-width: 767px) {
+  .admin-portal {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .admin-portal > .flex-1 > div {
+    padding: 20px 12px;
+  }
+
+  .admin-portal :is(header, form, section, .grid) {
+    min-width: 0;
+  }
+
+  .admin-portal h1 {
+    font-size: 24px;
+    overflow-wrap: anywhere;
+  }
+
+  .admin-portal h2 {
+    font-size: 18px;
+  }
+
+  .admin-portal header.grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .admin-portal :is(input, button[role="combobox"]) {
+    min-width: 0;
+    font-size: 16px;
+  }
+
+  .admin-portal :is(button, a[role="button"], button[role="combobox"]) {
+    min-height: 44px;
+  }
+
+  .admin-portal button:has(> svg):not(:has(> span)) {
+    min-width: 44px;
+  }
+
+  .admin-portal [role="tablist"] {
+    display: flex;
+    max-width: 100%;
+    overflow-x: auto;
+  }
+
+  .admin-portal [role="tab"] {
+    flex-shrink: 0;
+  }
+
+  .admin-portal .admin-table-container,
+  .admin-portal div:has(> table) {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    overflow-x: auto !important;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+    border-radius: 8px;
+  }
+
+  .admin-portal table {
+    width: max-content;
+    min-width: 100%;
+    font-size: 12px;
+  }
+
+  .admin-portal :is(th, td) {
+    max-width: 180px;
+    padding: 10px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .admin-portal thead th {
+    font-size: 10px;
+    letter-spacing: 0 !important;
+  }
+
+  .admin-portal td:has(button) {
+    max-width: none;
+    overflow: visible;
+  }
+
+  .admin-portal td :is(p, .truncate),
+  .admin-portal td > span:not(.inline-flex) {
+    display: block;
+    max-width: 160px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  .admin-portal .admin-inventory-table .admin-inventory-name,
+  .admin-portal .admin-inventory-heading {
+    display: none;
+  }
+
+  .admin-portal .admin-inventory-icon {
+    display: block;
+  }
+
+  .admin-portal .admin-inventory-table :is(th, td):first-child {
+    position: sticky;
+    left: 0;
+    z-index: 1;
+    width: 64px;
+    min-width: 64px;
+    max-width: 64px;
+    background: #ffffff;
+  }
+
+  .admin-portal .admin-inventory-table th:first-child {
+    background: #000000;
+    z-index: 2;
+  }
+
+  .admin-portal .admin-inventory-table input[type="number"] {
+    width: 60px;
+    min-height: 44px;
+  }
+
+  .admin-portal .admin-record-pagination > span {
+    min-width: 0;
+    flex: 1 1 140px;
+    overflow-wrap: anywhere;
+  }
+
+  .admin-portal .admin-record-pagination > div {
+    margin-left: auto;
+    flex-shrink: 0;
+  }
+
+  .admin-theme[role="dialog"] {
+    width: calc(100% - 24px);
+    max-width: calc(100% - 24px);
+    max-height: 90dvh;
+    overflow-y: auto;
+  }
+
+  .admin-theme[role="dialog"] > *,
+  .admin-theme[role="dialog"] :is(.grid, .flex) > * {
+    min-width: 0;
+  }
+
+  .admin-theme[role="dialog"] h2 {
+    gap: 4px;
+    padding-right: 40px;
+    font-size: 18px;
+    line-height: 1.4;
+    text-align: left;
+    flex-wrap: wrap;
+  }
+
+  .admin-theme[role="dialog"] h2 > span:first-child {
+    max-width: 100%;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  .admin-theme[role="dialog"] :is(input, textarea, button[role="combobox"]) {
+    min-width: 0;
+    font-size: 16px;
+  }
+
+  .admin-theme[role="dialog"] button {
+    min-height: 44px;
+  }
 }
 
 /* Mobile storefront responsive polish */

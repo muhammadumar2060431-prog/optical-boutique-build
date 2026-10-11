@@ -3,7 +3,7 @@ import { ApiError, json } from "./http.server.ts";
 import { incrementCacheRevision } from "./redis-json-cache.server.ts";
 import { STOREFRONT_REVISION_KEY } from "./storefront-cache.server.ts";
 
-export async function invalidateStorefrontHandler(request: Request) {
+export async function requireAdminClient(request: Request) {
   const authorization = request.headers.get("authorization");
   if (!authorization?.startsWith("Bearer "))
     throw new ApiError(401, "UNAUTHORIZED", "Admin sign-in required.");
@@ -20,6 +20,11 @@ export async function invalidateStorefrontHandler(request: Request) {
   const admin = await client.rpc("is_admin");
   if (admin.error || admin.data !== true)
     throw new ApiError(403, "FORBIDDEN", "Administrator permission required.");
+  return client;
+}
+
+export async function invalidateStorefrontHandler(request: Request) {
+  await requireAdminClient(request);
   if (!(await incrementCacheRevision(STOREFRONT_REVISION_KEY)))
     throw new ApiError(503, "CACHE_UNAVAILABLE", "Data is saved but public cache refresh failed.");
   return json({ ok: true });

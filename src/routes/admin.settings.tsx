@@ -4,6 +4,7 @@ import { Loader2, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 
 import { ImageUpload } from "@/components/admin/ImageUpload";
+import { StorageMaintenance } from "@/components/admin/StorageMaintenance";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -158,6 +159,8 @@ function AdminSettings() {
           {savingSettings ? "Saving..." : "Save settings"}
         </Button>
       </div>
+
+      <StorageMaintenance />
 
       <div className="space-y-5 rounded-lg border border-stone bg-card p-6">
         <div className="flex items-center gap-3">

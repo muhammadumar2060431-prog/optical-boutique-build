@@ -13,12 +13,15 @@ import {
 } from "react";
 import { supabase, isSupabaseConfigured } from "./supabase";
 import { invalidatePublicStorefront } from "./storefront-invalidate.ts";
+import { mapAnnouncementRecord } from "./announcements.ts";
+import { requestStorageMaintenance } from "./storage-maintenance.ts";
 import { publicBrowserCache } from "./public-browser-cache.ts";
 import { hasStorefrontContent } from "./storefront-loading.ts";
 import { stableCheckoutOrderIds } from "./checkout-attempt.ts";
 import { useQueryClient } from "@tanstack/react-query";
 import { isProductDataQuery } from "./product-selection-query.ts";
 import { isAdminActivityExpired } from "./admin-session";
+import { AdminAuthError, postAdminAuth } from "./admin-auth";
 import {
   fetchInitialSupabaseData,
   dbUpsertProduct,
@@ -222,7 +225,7 @@ interface StoreApi extends StoreState {
   updateHeroSlide: (id: string, patch: Partial<HeroSlide>) => void;
   deleteHeroSlide: (id: string) => Promise<boolean>;
   moveHeroSlide: (id: string, dir: -1 | 1) => void;
-  updateAnnouncement: (patch: Partial<AnnouncementSettings>) => void;
+  updateAnnouncement: (patch: Partial<AnnouncementSettings>) => Promise<boolean>;
   saveTestimonial: (t: Testimonial) => Promise<boolean>;
   addCustomerReview: (
     review: Pick<
@@ -546,6 +549,9 @@ export function StoreProvider({
   const [announcement, setAnnouncement] = useState<AnnouncementSettings>(
     initialData?.announcement ?? seedAnnouncement,
   );
+  const announcementRef = useRef(announcement);
+  const announcementVersionRef = useRef(0);
+  announcementRef.current = announcement;
   const [testimonials, setTestimonials] = useState<Testimonial[]>(
     initialData?.testimonials ?? seedTestimonials,
   );
@@ -688,8 +694,8 @@ export function StoreProvider({
         );
       });
 
-    const applySession = async (session: { access_token: string } | null) => {
-      const version = ++authSessionVersionRef.current;
+    const applySession = async (session: { access_token: string } | null, version: number) => {
+      if (cancelled || version !== authSessionVersionRef.current) return;
       try {
         if (session && isAdminSessionInactive()) {
           clearAdminActivity();
@@ -716,19 +722,24 @@ export function StoreProvider({
     withTimeout(supabase.auth.getSession(), 5_000)
       .then(({ data }) => {
         if (cancelled || authSessionVersionRef.current !== initialVersion) return;
-        void applySession(data.session);
+        void applySession(data.session, ++authSessionVersionRef.current);
       })
       .catch(() => {
         if (cancelled || authSessionVersionRef.current !== initialVersion) return;
         setIsAdmin(false);
       });
 
+    let sessionTimer: number | undefined;
     const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
-      void applySession(session);
+      const version = ++authSessionVersionRef.current;
+      window.clearTimeout(sessionTimer);
+      // Run database checks after the auth callback has released SDK session coordination.
+      sessionTimer = window.setTimeout(() => void applySession(session, version), 0);
     });
 
     return () => {
       cancelled = true;
+      window.clearTimeout(sessionTimer);
       authListener.subscription?.unsubscribe();
     };
   }, []);
@@ -751,12 +762,16 @@ export function StoreProvider({
 
     let cancelled = false;
 
+    const announcementVersion = announcementVersionRef.current;
     void fetchInitialSupabaseData({ includePrivate: true }).then((data) => {
       if (cancelled || !data) return;
       if (data.orders) setOrders(data.orders);
       if (data.queries) setQueries(data.queries);
       if (data.subscribers) setSubscribersState(data.subscribers);
       if (data.settings) setSettings(data.settings);
+      if (data.announcement && announcementVersion === announcementVersionRef.current) {
+        setAnnouncement(data.announcement);
+      }
       if (data.testimonials) setTestimonials(data.testimonials);
       if (data.products) setProducts(data.products);
       if (data.categories) setCategories(data.categories);
@@ -1087,23 +1102,7 @@ export function StoreProvider({
           if (newRecord) setSettings((prev) => ({ ...prev, ...newRecord }));
         } else if (table === "announcements") {
           if (newRecord) {
-            setAnnouncement((prev) => ({
-              ...prev,
-              enabled: newRecord.enabled ?? newRecord.active ?? prev.enabled,
-              messages: Array.isArray(newRecord.messages)
-                ? newRecord.messages
-                : newRecord.text
-                  ? String(newRecord.text)
-                      .split("\n")
-                      .filter((message) => message.trim().length > 0)
-                  : newRecord.message
-                    ? String(newRecord.message)
-                        .split("\n")
-                        .filter((message) => message.trim().length > 0)
-                    : prev.messages,
-              background: newRecord.background || newRecord.bg_color || prev.background,
-              textColor: newRecord.text_color || prev.textColor,
-            }));
+            setAnnouncement((prev) => mapAnnouncementRecord(newRecord, prev));
           }
         } else if (table === "testimonials") {
           if (eventType === "DELETE")
@@ -1620,7 +1619,7 @@ export function StoreProvider({
         salePrice:
           product.salePrice != null &&
           !isNaN(Number(product.salePrice)) &&
-          Number(product.salePrice) > 0
+          Number(product.salePrice) >= 0
             ? Number(product.salePrice)
             : null,
         stock: Math.max(0, Math.round(Number(product.stock) || 0)),
@@ -1860,12 +1859,20 @@ export function StoreProvider({
     });
   }, []);
 
-  const updateAnnouncement = useCallback<StoreApi["updateAnnouncement"]>((patch) => {
-    setAnnouncement((prev) => {
-      const next = { ...prev, ...patch };
-      persistWithFeedback(dbUpsertAnnouncement(next), "announcement-save-error", "Announcement");
-      return next;
-    });
+  const updateAnnouncement = useCallback<StoreApi["updateAnnouncement"]>(async (patch) => {
+    const next = { ...announcementRef.current, ...patch };
+    announcementVersionRef.current += 1;
+    if (isSupabaseConfigured && !(await dbUpsertAnnouncement(next))) {
+      toast.error("Announcement could not be saved. Please retry.");
+      return false;
+    }
+    announcementRef.current = next;
+    setAnnouncement(next);
+    saveItem("announcement", next);
+    if (isSupabaseConfigured && !(await invalidatePublicStorefront(supabase))) {
+      toast.warning("Announcement saved. Public cache refresh is delayed.");
+    }
+    return true;
   }, []);
 
   const saveTestimonial = useCallback<StoreApi["saveTestimonial"]>(async (t) => {
@@ -2213,25 +2220,17 @@ export function StoreProvider({
 
   const login = useCallback<StoreApi["login"]>(async (email, password) => {
     const trimmedEmail = email.trim();
-    const trimmedPassword = password.trim();
 
     if (isSupabaseConfigured) {
       try {
-        const response = await fetch("/api/v1/admin/login", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email: trimmedEmail, password: trimmedPassword }),
-        });
-        const payload = (await response.json()) as {
+        const payload = await postAdminAuth<{
           accessToken?: string;
           refreshToken?: string;
-          error?: { message?: string; retryAfter?: number };
-        };
-        if (!response.ok || !payload.accessToken || !payload.refreshToken) {
+        }>("/api/v1/admin/login", { email: trimmedEmail, password });
+        if (!payload.accessToken || !payload.refreshToken) {
           return {
             success: false,
-            error: payload.error?.message ?? "Incorrect email or password.",
-            ...(payload.error?.retryAfter ? { retryAfter: payload.error.retryAfter } : {}),
+            error: "Authentication returned an invalid session. Please try again.",
           };
         }
 
@@ -2244,10 +2243,19 @@ export function StoreProvider({
           clearAdminActivity();
           return { success: false, error: "Authentication is temporarily unavailable." };
         }
+        // The login endpoint already verified admin permission; discard older checks.
+        authSessionVersionRef.current++;
         setIsAdmin(true);
         return { success: true };
-      } catch {
-        return { success: false, error: "Authentication is temporarily unavailable." };
+      } catch (error) {
+        return {
+          success: false,
+          error:
+            error instanceof Error ? error.message : "Authentication is temporarily unavailable.",
+          ...(error instanceof AdminAuthError && error.retryAfter
+            ? { retryAfter: error.retryAfter }
+            : {}),
+        };
       }
     }
 
@@ -2259,7 +2267,7 @@ export function StoreProvider({
     if (
       developmentLoginEnabled &&
       trimmedEmail.toLowerCase() === developmentEmail.toLowerCase() &&
-      trimmedPassword === developmentPassword
+      password === developmentPassword
     ) {
       setIsAdmin(true);
       return { success: true };
@@ -2295,6 +2303,25 @@ export function StoreProvider({
       } catch {}
     }
   }, []);
+
+  useEffect(() => {
+    if (!isAdmin || !isSupabaseConfigured) return;
+    let busy = false;
+    const cleanup = async () => {
+      if (busy || document.visibilityState !== "visible") return;
+      busy = true;
+      try {
+        await requestStorageMaintenance(supabase);
+      } catch {
+        /* Retained in the database queue for retry. */
+      } finally {
+        busy = false;
+      }
+    };
+    void cleanup();
+    const timer = window.setInterval(() => void cleanup(), 60000);
+    return () => window.clearInterval(timer);
+  }, [isAdmin]);
 
   useEffect(() => {
     if (!isAdmin) return;

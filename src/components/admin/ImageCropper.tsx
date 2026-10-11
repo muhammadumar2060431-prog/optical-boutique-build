@@ -81,7 +81,7 @@ export function ImageCropper({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && !isProcessing && onClose()}>
-      <DialogContent className="max-w-2xl p-0 overflow-hidden bg-card border-stone gap-0">
+      <DialogContent className="admin-theme max-w-2xl p-0 overflow-hidden bg-card border-stone gap-0">
         {/* Header */}
         <DialogHeader className="px-6 pt-5 pb-3 border-b border-stone">
           <DialogTitle className="flex items-center gap-2 text-base font-semibold">

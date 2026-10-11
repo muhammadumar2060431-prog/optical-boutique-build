@@ -1,5 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any, no-empty -- Legacy Supabase schema variants are normalized at this boundary. */
 import { supabase } from "./supabase";
+import { discountedPrice } from "./discounts.ts";
+import { mapAnnouncementRecord } from "./announcements.ts";
 import { imageDataUrlToBlob } from "./image-data.ts";
 import { faqPages } from "./faq-pages.ts";
 import { fetchInitialProducts } from "./product-selection-query.ts";
@@ -154,6 +156,8 @@ function isMissingColumnError(error: any, column: string) {
   return error?.code === "PGRST204" && message.includes(`'${column}' column`);
 }
 function mapStoreProductToDb(product: Product): any {
+  const manualSalePrice =
+    product.manualSalePrice !== undefined ? product.manualSalePrice : product.salePrice;
   const subImages = (
     Array.isArray(product.subImages) && product.subImages.length > 0
       ? product.subImages
@@ -180,8 +184,8 @@ function mapStoreProductToDb(product: Product): any {
     sku: product.sku || null,
     price: Math.round(Math.max(0, Number(product.price) || 0) * 100) / 100,
     compare_at:
-      product.salePrice && Number(product.salePrice) > 0
-        ? Math.round(Number(product.salePrice) * 100) / 100
+      manualSalePrice != null && Number(manualSalePrice) >= 0
+        ? Math.round(Number(manualSalePrice) * 100) / 100
         : null,
     category_id: product.categoryId || null,
     collection_ids: product.collectionId ? [product.collectionId] : [],
@@ -235,11 +239,15 @@ export function mapDbProductToStore(raw: any): Product {
     slug: raw.slug || raw.id,
     sku: raw.sku || null,
     price: Number(raw.price) || 0,
-    salePrice: raw.compare_at
-      ? Number(raw.compare_at)
-      : raw.salePrice
-        ? Number(raw.salePrice)
-        : null,
+    manualSalePrice: raw.compare_at != null ? Number(raw.compare_at) : (raw.salePrice ?? null),
+    bulkDiscountPercent:
+      raw.bulk_discount_percent == null ? null : Number(raw.bulk_discount_percent),
+    salePrice:
+      raw.bulk_discount_percent != null
+        ? discountedPrice(Number(raw.price) || 0, Number(raw.bulk_discount_percent))
+        : raw.compare_at != null
+          ? Number(raw.compare_at)
+          : (raw.salePrice ?? null),
     categoryId: raw.category_id !== undefined ? raw.category_id || "" : raw.categoryId || "",
     collectionId: Array.isArray(raw.collection_ids)
       ? raw.collection_ids[0] || null
@@ -625,24 +633,7 @@ export async function fetchInitialSupabaseData(
     const announcementRaw =
       announcementRes.status === "fulfilled" ? (announcementRes.value.data as any) : null;
     const announcement: AnnouncementSettings | null = announcementRaw
-      ? {
-          enabled: announcementRaw.enabled ?? announcementRaw.active ?? true,
-          // Support both old single-text and new messages-array column
-          messages:
-            Array.isArray(announcementRaw.messages) && announcementRaw.messages.length > 0
-              ? announcementRaw.messages
-              : announcementRaw.text
-                ? String(announcementRaw.text)
-                    .split("\n")
-                    .filter((message) => message.trim().length > 0)
-                : announcementRaw.message
-                  ? String(announcementRaw.message)
-                      .split("\n")
-                      .filter((message) => message.trim().length > 0)
-                  : ["Complimentary delivery"],
-          background: announcementRaw.background || announcementRaw.bg_color || "#000000",
-          textColor: announcementRaw.text_color || announcementRaw.textColor || "#ffffff",
-        }
+      ? mapAnnouncementRecord(announcementRaw)
       : null;
 
     const videoRaw = videoRes.status === "fulfilled" ? (videoRes.value.data as any) : null;
@@ -1267,6 +1258,10 @@ export async function dbUpsertSettings(settings: StoreSettings): Promise<boolean
 }
 
 export async function dbUpsertAnnouncement(announcement: AnnouncementSettings): Promise<boolean> {
+  return contentMutations("announcement:default", () => upsertAnnouncement(announcement));
+}
+
+async function upsertAnnouncement(announcement: AnnouncementSettings): Promise<boolean> {
   try {
     const messages = announcement.messages || [];
     const { error } = await supabase.from("announcements").upsert({

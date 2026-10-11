@@ -9,6 +9,7 @@ import {
   Pencil,
   Play,
   Plus,
+  Save,
   Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -341,21 +342,51 @@ function BrandPreviewItem({ brand }: { brand: Brand }) {
 function AnnouncementPanel() {
   const { announcement, updateAnnouncement } = useStore();
   const [text, setText] = useState(announcement.messages.join("\n"));
-  const [isEditing, setIsEditing] = useState(false);
+  const [draft, setDraft] = useState(announcement);
+  const [dirty, setDirty] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (!isEditing) {
+    if (!dirty) {
       setText(announcement.messages.join("\n"));
+      setDraft(announcement);
     }
-  }, [announcement.messages, isEditing]);
+  }, [announcement, dirty]);
+
+  const save = async () => {
+    if (saving) return;
+    setSaving(true);
+    try {
+      const saved = await updateAnnouncement({
+        ...draft,
+        messages: text
+          .split(/\r?\n/)
+          .map((message) => message.trim())
+          .filter(Boolean),
+      });
+      if (saved) {
+        setDirty(false);
+        toast.success("Announcement saved.");
+      }
+    } catch {
+      toast.error("Announcement could not be saved. Please retry.");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <div className="space-y-5 rounded-xl border border-stone bg-card p-6">
       <label className="flex min-h-11 items-center justify-between gap-4">
         <span className="text-sm font-semibold">Show the announcement bar</span>
         <Switch
-          checked={announcement.enabled}
-          onCheckedChange={(v) => updateAnnouncement({ enabled: v })}
+          checked={draft.enabled}
+          className="min-h-5!"
+          disabled={saving}
+          onCheckedChange={(enabled) => {
+            setDraft((current) => ({ ...current, enabled }));
+            setDirty(true);
+          }}
         />
       </label>
 
@@ -365,14 +396,11 @@ function AnnouncementPanel() {
           id="a-messages"
           rows={5}
           value={text}
-          onFocus={() => setIsEditing(true)}
-          onBlur={() => setIsEditing(false)}
+          disabled={saving}
           onChange={(e) => {
             const nextText = e.target.value.replace(/\r\n/g, "\n");
             setText(nextText);
-            updateAnnouncement({
-              messages: nextText.split("\n"),
-            });
+            setDirty(true);
           }}
         />
       </div>
@@ -383,8 +411,12 @@ function AnnouncementPanel() {
           <Input
             id="a-bg"
             type="color"
-            value={announcement.background}
-            onChange={(e) => updateAnnouncement({ background: e.target.value })}
+            value={draft.background}
+            disabled={saving}
+            onChange={(e) => {
+              setDraft((current) => ({ ...current, background: e.target.value }));
+              setDirty(true);
+            }}
             className="h-11 w-full"
           />
         </div>
@@ -393,8 +425,12 @@ function AnnouncementPanel() {
           <Input
             id="a-fg"
             type="color"
-            value={announcement.textColor}
-            onChange={(e) => updateAnnouncement({ textColor: e.target.value })}
+            value={draft.textColor}
+            disabled={saving}
+            onChange={(e) => {
+              setDraft((current) => ({ ...current, textColor: e.target.value }));
+              setDirty(true);
+            }}
             className="h-11 w-full"
           />
         </div>
@@ -404,7 +440,7 @@ function AnnouncementPanel() {
         <p className="eyebrow text-ink-muted">Live preview</p>
         <div
           className="overflow-hidden rounded-md py-2 text-xs tracking-[0.14em] uppercase"
-          style={{ backgroundColor: announcement.background, color: announcement.textColor }}
+          style={{ backgroundColor: draft.background, color: draft.textColor }}
         >
           <div className="marquee-track whitespace-nowrap">
             {(() => {
@@ -426,6 +462,10 @@ function AnnouncementPanel() {
           </div>
         </div>
       </div>
+      <Button disabled={saving || !dirty} onClick={() => void save()}>
+        <Save className="mr-2 h-4 w-4" />
+        {saving ? "Saving..." : "Save announcement"}
+      </Button>
     </div>
   );
 }
@@ -514,15 +554,12 @@ function HeroPanel() {
 
               <ImageUpload
                 label="Slide image"
-                maxBytes={300 * 1024}
-                cropAspect={2}
+                preserveOriginal
+                maxBytes={5 * 1024 * 1024}
                 value={slide.image}
                 onChange={(img) => updateHeroSlide(slide.id, { image: img ?? "" })}
-                hint="Up to 1920 x 960 px - JPG/WebP landscape"
+                hint="1440 x 720 px recommended - Original quality - JPG/PNG/WebP/AVIF - Max 5 MB"
                 aspectHint="2:1 wide"
-                maxWidth={1920}
-                maxHeight={960}
-                outputQuality={0.88}
                 storageFolder="hero"
               />
 
@@ -1025,9 +1062,14 @@ function SocialReelsPanel() {
           </Button>
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-[#666666] bg-[#f9f9f9] shadow-sm">
+        <div
+          className="overflow-x-auto rounded-xl border border-[#666666] bg-[#f9f9f9] shadow-sm"
+          role="region"
+          aria-label="Social content table"
+          tabIndex={0}
+        >
           <table className="w-full min-w-[700px] text-sm">
-            <thead className="border-b-2 border-[#555555] bg-[#666666] text-left text-xs tracking-[0.14em] uppercase text-white">
+            <thead className="border-b-2 border-black bg-black text-left text-xs tracking-[0.14em] uppercase text-white">
               <tr>
                 <th className="px-4 py-3 text-white font-semibold">Thumbnail / Duration</th>
                 <th className="px-4 py-3 text-white font-semibold">Creator & Title</th>
@@ -1156,7 +1198,7 @@ function SocialReelsPanel() {
 
       {/* Reel Add / Edit Dialog */}
       <Dialog open={!!draft} onOpenChange={(v) => !v && setDraft(null)}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogContent className="admin-theme max-w-lg max-h-[90vh] overflow-y-auto">
           {draft && (
             <>
               <DialogHeader>
