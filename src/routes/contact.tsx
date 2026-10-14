@@ -5,7 +5,7 @@ import { CheckCircle2, Mail, Phone } from "lucide-react";
 import { SiteLayout } from "@/components/site/SiteLayout";
 import { PageFaqs } from "@/components/site/PageFaqs";
 import { WhatsAppIcon } from "@/components/site/WhatsAppIcon";
-import { useWhatsAppModal } from "@/components/site/WhatsAppModal";
+import { whatsappLink } from "@/lib/whatsapp";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -66,7 +66,6 @@ interface Errors {
 function ContactPage() {
   const search = useSearch({ from: "/contact" });
   const { settings, products } = useStore();
-  const { openWhatsAppModal } = useWhatsAppModal();
   const [name, setName] = useState("");
   const [contact, setContact] = useState("");
   const [productRef, setProductRef] = useState(search.product ?? "");
@@ -245,13 +244,13 @@ function ContactPage() {
           </div>
 
           <aside className="space-y-5 sm:space-y-6">
-            <button
-              type="button"
-              onClick={() =>
-                openWhatsAppModal({
-                  productName: productRef ? `Inquiry: ${productRef}` : "General Contact Inquiry",
-                })
-              }
+            <a
+              href={whatsappLink(
+                settings.whatsapp,
+                `Hello ${settings.storeName}! ${productRef ? `I'd like to enquire about ${productRef}.` : "I'd like to speak with an optician."}`,
+              )}
+              target="_blank"
+              rel="noopener noreferrer"
               className="flex w-full min-w-0 items-center gap-4 rounded-xl bg-jet p-5 text-left text-cream transition-transform duration-200 hover:scale-[1.01] cursor-pointer border-0 sm:p-6"
             >
               <span className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-[#25D366] text-white shadow-md">
@@ -263,7 +262,7 @@ function ContactPage() {
                 </span>
                 <span className="block truncate text-xs text-white">{settings.whatsapp}</span>
               </span>
-            </button>
+            </a>
 
             {(settings.phone?.trim() || settings.email?.trim()) && (
               <div className="space-y-4 rounded-xl border border-stone bg-mist p-5 text-sm sm:p-6">

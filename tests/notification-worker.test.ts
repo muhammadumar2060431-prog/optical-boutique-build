@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { it } from "node:test";
+import { notificationEmails } from "../supabase/functions/notification-worker/emails.ts";
 import {
   drainNotifications,
   type NotificationJob,
@@ -22,6 +23,84 @@ const job: NotificationJob = {
     },
   },
 };
+
+it("sends both order receipts and newsletter emails as independent jobs", () => {
+  const order = notificationEmails(
+    {
+      table: "orders",
+      record: {
+        id: "order-test",
+        reference: "OPT-TEST",
+        phone: "03001234567",
+        email: "buyer@example.test",
+        product_name: "Frame",
+        total: 1999,
+      },
+    },
+    "admin@example.test",
+  );
+  const subscriber = notificationEmails(
+    { table: "subscribers", record: { email: "buyer@example.test" } },
+    "admin@example.test",
+  );
+  assert.deepEqual(
+    order.map((mail) => [mail.target, mail.to]),
+    [
+      ["customer", "buyer@example.test"],
+      ["admin", "admin@example.test"],
+    ],
+  );
+  assert.deepEqual(
+    subscriber.map((mail) => [mail.target, mail.to]),
+    [
+      ["subscriber", "buyer@example.test"],
+      ["admin", "admin@example.test"],
+    ],
+  );
+  assert.match(order[0]!.subject, /Order Confirmed/);
+  assert.match(order[1]!.subject, /New Order/);
+  assert.match(subscriber[0]!.subject, /Welcome/);
+  assert.match(subscriber[1]!.subject, /New Subscriber/);
+  assert.match(order[0]!.html, /PKR 1,999.00/);
+});
+
+it("uses legacy checkout item contact and notes when top-level fields are absent", () => {
+  const mails = notificationEmails(
+    {
+      table: "orders",
+      record: {
+        id: "legacy-order",
+        phone: "03001234567",
+        items: [
+          {
+            contact: "03001234567 / buyer@example.test",
+            productName: "Classic Frame",
+            message: "Delivery address: Lahore",
+            quantity: 2,
+          },
+        ],
+      },
+    },
+    "admin@example.test",
+  );
+  assert.equal(mails[0]!.to, "buyer@example.test");
+  assert.match(mails[0]!.html, /Classic Frame/);
+  assert.match(mails[0]!.html, /Delivery address: Lahore/);
+});
+
+it("retains combined phone-email checkout contacts and never suppresses the admin order alert", () => {
+  const mails = notificationEmails(
+    { table: "orders", record: { id: "combined", phone: "03001234567 / buyer@example.test" } },
+    "admin@example.test",
+  );
+  assert.equal(mails[0]!.to, "buyer@example.test");
+  const noEmail = notificationEmails(
+    { table: "orders", record: { id: "phone-only", phone: "03001234567" } },
+    "admin@example.test",
+  );
+  assert.equal(noEmail.length, 1);
+  assert.equal(noEmail[0]!.target, "admin");
+});
 it("acknowledges successful sends and records recipient-level receipts", async () => {
   const calls: Array<{ name: string; args: Record<string, unknown> }> = [];
   const keys: string[] = [];

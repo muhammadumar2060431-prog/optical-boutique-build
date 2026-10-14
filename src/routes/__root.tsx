@@ -14,7 +14,6 @@ import appCss from "../styles.css?url";
 import { StoreProvider } from "@/lib/store";
 import { loadStorefront } from "@/lib/storefront-bootstrap";
 import { CartProvider } from "@/lib/cart";
-import { WhatsAppModalProvider } from "@/components/site/WhatsAppModal";
 import { Toaster } from "@/components/ui/sonner";
 import {
   jsonLdScript,
@@ -365,11 +364,9 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <StoreProvider initialData={initialData?.storefront ?? null}>
         <CartProvider>
-          <WhatsAppModalProvider>
-            {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-            <Outlet />
-            <Toaster position="top-right" />
-          </WhatsAppModalProvider>
+          {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+          <Outlet />
+          <Toaster position="top-right" />
         </CartProvider>
       </StoreProvider>
     </QueryClientProvider>

@@ -89,9 +89,8 @@ function CheckoutPage() {
   const [touched, setTouched] = useState<Partial<Record<FieldName, boolean>>>({});
   const [submitting, setSubmitting] = useState(false);
   const [newsletterChecked, setNewsletterChecked] = useState(false);
-  const [newsletterSubmitting, setNewsletterSubmitting] = useState(false);
-  const newsletterSubmittingRef = useRef(false);
   const submittingRef = useRef(false);
+  const orderCompletedRef = useRef(false);
   const attemptRef = useRef<CheckoutAttempt<{
     reference: string;
     purchaseEvent: Parameters<typeof trackMetaBrowserEvent>[0] & {
@@ -148,39 +147,25 @@ function CheckoutPage() {
     setErrors(validate());
   };
 
-  const subscribeToNewsletter = async (checked: boolean) => {
-    if (newsletterSubmittingRef.current) return;
-    if (!checked) {
-      setNewsletterChecked(false);
-      return;
-    }
-    const email = checkoutSchema.shape.email.safeParse(values.email);
-    if (!email.success) {
-      blurField("email");
-      document.getElementById("co-email")?.focus();
-      return;
-    }
-
-    newsletterSubmittingRef.current = true;
-    setNewsletterSubmitting(true);
+  const subscribeToNewsletter = async (emailAddress: string) => {
     try {
-      const result = await addSubscriber(email.data);
+      const result = await addSubscriber(emailAddress);
       if (!result.ok) {
-        toast.error(result.message);
+        toast.warning(
+          "Your order was placed, but newsletter signup failed. Please try subscribing again.",
+        );
         return;
       }
-      setNewsletterChecked(true);
       trackMetaEvent({
         eventName: "CompleteRegistration",
-        userData: { email: email.data },
+        userData: { email: emailAddress },
         customData: { contentName: "Email newsletter" },
       });
       toast.success(result.message);
     } catch {
-      toast.error("We could not subscribe this email right now. Please try again.");
-    } finally {
-      newsletterSubmittingRef.current = false;
-      setNewsletterSubmitting(false);
+      toast.warning(
+        "Your order was placed, but newsletter signup failed. Please try subscribing again.",
+      );
     }
   };
 
@@ -190,7 +175,7 @@ function CheckoutPage() {
     setErrors(found);
     setTouched({ name: true, email: true, phone: true, address: true, notes: true });
     if (Object.keys(found).length > 0 || items.length === 0 || stockBlocked) return;
-    if (submittingRef.current) return;
+    if (submittingRef.current || orderCompletedRef.current) return;
     submittingRef.current = true;
     setSubmitting(true);
 
@@ -255,6 +240,7 @@ function CheckoutPage() {
     } catch {
       savedOrders = null;
     } finally {
+      orderCompletedRef.current = Boolean(savedOrders);
       submittingRef.current = false;
       setSubmitting(false);
     }
@@ -282,6 +268,7 @@ function CheckoutPage() {
       subtotal,
     });
     trackMetaBrowserEvent(purchaseEvent);
+    if (newsletterChecked) void subscribeToNewsletter(values.email.trim());
     clearCart();
     void navigate({ to: "/order-confirmation", search: { ref: reference } });
   };
@@ -362,7 +349,7 @@ function CheckoutPage() {
                   type="email"
                   inputMode="email"
                   autoComplete="email"
-                  disabled={newsletterSubmitting}
+                  disabled={submitting}
                   value={values.email}
                   onChange={(e) => setField("email", e.target.value)}
                   onBlur={() => blurField("email")}
@@ -380,8 +367,8 @@ function CheckoutPage() {
                     id="co-newsletter"
                     type="checkbox"
                     checked={newsletterChecked}
-                    disabled={newsletterSubmitting}
-                    onChange={(event) => void subscribeToNewsletter(event.target.checked)}
+                    disabled={submitting}
+                    onChange={(event) => setNewsletterChecked(event.target.checked)}
                     className="mt-0.5 h-4 w-4 shrink-0 accent-black disabled:cursor-wait"
                   />
                   <span>Email me with news and offers</span>
@@ -430,7 +417,7 @@ function CheckoutPage() {
             <Button
               type="submit"
               size="lg"
-              disabled={stockBlocked || submitting || newsletterSubmitting}
+              disabled={stockBlocked || submitting}
               className="min-h-12 w-full max-w-full rounded-full bg-black text-white hover:bg-black px-6 text-sm sm:w-auto sm:px-10"
             >
               {submitting ? "Saving order..." : "Place order"}

@@ -37,18 +37,33 @@ export function notificationEmails(
   const record = payload.record;
   if (!record) throw new Error("INVALID_JOB");
   if (payload.table === "orders") {
+    const firstItem =
+      Array.isArray(record["items"]) && record["items"][0] && typeof record["items"][0] === "object"
+        ? (record["items"][0] as Record<string, unknown>)
+        : {};
+    const customerEmail =
+      email(record["email"]) ||
+      email(record["phone"]) ||
+      email(record["contact"]) ||
+      email(firstItem["contact"]);
     const order = {
-      reference: record["reference"] || record["id"],
-      customer_name: record["customer_name"] || "Customer",
-      contact: record["phone"] || "",
-      product_name: record["product_name"] || "Nigah Frames",
-      variant_label: record["variant_label"] || "",
-      source: record["source"] || "Website",
-      message: record["address"] || "",
+      reference: record["reference"] || firstItem["reference"] || record["id"],
+      customer_name: record["customer_name"] || firstItem["customerName"] || "Customer",
+      contact: [record["phone"] || record["contact"] || firstItem["contact"], customerEmail]
+        .filter(
+          (value, index, values) =>
+            value && (index === 0 || !String(values[0]).includes(String(value))),
+        )
+        .join(" / "),
+      product_name: record["product_name"] || firstItem["productName"] || "Nigah Frames",
+      variant_label: record["variant_label"] || firstItem["variantLabel"] || "",
+      source: record["source"] || firstItem["source"] || "Website",
+      message: record["address"]
+        ? [record["address"], record["city"], record["notes"]].filter(Boolean).join("\n")
+        : record["message"] || firstItem["message"] || "",
       total: record["total"] ?? null,
-      quantity: record["quantity"] ?? null,
+      quantity: record["quantity"] ?? firstItem["quantity"] ?? null,
     };
-    const customerEmail = email(order.contact);
     return [
       ...(customerEmail
         ? [

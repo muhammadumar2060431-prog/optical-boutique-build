@@ -20,7 +20,7 @@ import { ProductCard } from "@/components/site/ProductCard";
 import { ProductImage } from "@/components/site/ProductImage";
 import { Reveal } from "@/components/site/Reveal";
 import { SiteLayout } from "@/components/site/SiteLayout";
-import { useWhatsAppModal } from "@/components/site/WhatsAppModal";
+import { whatsappLink } from "@/lib/whatsapp";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
@@ -133,12 +133,12 @@ function ProductPage() {
     stockStatus,
     productStock,
     testimonials,
+    settings,
     addCustomerReview,
     socialReels,
   } = useStore();
 
   const { addItem } = useCart();
-  const { openWhatsAppModal } = useWhatsAppModal();
   const navigate = useNavigate();
   const latestProduct = useQuery({
     queryKey: ["product-detail", slug],
@@ -677,20 +677,17 @@ function ProductPage() {
                   </Button>
                 </>
               )}
-              <button
-                type="button"
-                onClick={() =>
-                  openWhatsAppModal({
-                    productName: product.name,
-                    productId: product.id,
-                    variantId: purchaseVariant?.id ?? null,
-                    variantLabel: purchaseVariant?.label ?? null,
-                  })
-                }
+              <a
+                href={whatsappLink(
+                  settings.whatsapp,
+                  `Hello ${settings.storeName}! I'd like to enquire about "${product.name}"${purchaseVariant?.label ? ` (${purchaseVariant.label})` : ""}. ${getSiteUrl(`/product/${product.slug}`)}`,
+                )}
+                target="_blank"
+                rel="noopener noreferrer"
                 className="min-h-11 border-b border-stone pb-1 text-xs tracking-[0.18em] uppercase text-black transition-colors hover:border-black hover:text-black cursor-pointer bg-transparent border-0"
               >
-                Enquire via form
-              </button>
+                Enquire on WhatsApp
+              </a>
             </div>
           </div>
         </div>

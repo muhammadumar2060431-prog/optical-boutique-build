@@ -74,7 +74,7 @@ it("uses the requested GTM event names with unique IDs even before the Pixel loa
   assert.equal(new Set(browser.dataLayer.map((event) => event["event_id"])).size, 4);
 });
 
-it("continues direct Pixel tracking for non-commerce events", (t) => {
+it("routes non-commerce events through GTM without calling the Pixel directly", (t) => {
   const originalWindow = Object.getOwnPropertyDescriptor(globalThis, "window");
   const calls: unknown[][] = [];
   const browser = {
@@ -88,7 +88,7 @@ it("continues direct Pixel tracking for non-commerce events", (t) => {
   });
   trackMetaBrowserEvent({ eventName: "Lead", eventId: "lead:test-12345" });
   assert.equal(browser.dataLayer[0]?.["event"], "meta_event");
-  assert.deepEqual(calls[0], ["track", "Lead", {}, { eventID: "lead:test-12345" }]);
+  assert.deepEqual(calls, []);
 });
 
 it("waits for an asynchronously loaded Pixel cookie before sending an anonymous event", async (t) => {

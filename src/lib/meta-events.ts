@@ -9,7 +9,6 @@ import { buildMetaCustomData } from "./meta-custom-data.ts";
 declare global {
   interface Window {
     dataLayer?: Array<Record<string, unknown>>;
-    fbq?: (...args: unknown[]) => void;
   }
 }
 
@@ -63,10 +62,6 @@ export function trackMetaBrowserEvent(input: TrackMetaEventOptions) {
     ...customData,
   });
 
-  // GTM owns commerce Pixel tags; direct calls would send the event twice.
-  if (!commerceEvent && typeof window.fbq === "function") {
-    window.fbq("track", input.eventName, customData, { eventID: eventId });
-  }
   return eventId;
 }
 
