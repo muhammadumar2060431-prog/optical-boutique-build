@@ -11,7 +11,7 @@ it("allows the configured Facebook Pixel script and event connection", () => {
   assert.match(policy, /object-src 'none'/);
 });
 
-it("maps Pixel parameters and preserves the same deduplication ID for GTM", (t) => {
+it("pushes normalized commerce fields for GTM without firing the Pixel twice", (t) => {
   const originalWindow = Object.getOwnPropertyDescriptor(globalThis, "window");
   const calls: unknown[][] = [];
   const browser = {
@@ -35,20 +35,60 @@ it("maps Pixel parameters and preserves the same deduplication ID for GTM", (t) 
     },
   });
   assert.equal(id, "cart:test-12345");
-  assert.deepEqual(calls[0], [
-    "track",
-    "AddToCart",
-    {
-      currency: "PKR",
-      content_ids: ["frame-1"],
-      content_type: "product",
-      num_items: 2,
-      value: 4000,
-    },
-    { eventID: id },
-  ]);
+  assert.deepEqual(calls, []);
+  assert.equal(browser.dataLayer[0]?.["event"], "meta_add_to_cart");
+  assert.equal(browser.dataLayer[0]?.["value"], 4000);
+  assert.equal(browser.dataLayer[0]?.["currency"], "PKR");
+  assert.deepEqual(browser.dataLayer[0]?.["content_ids"], ["frame-1"]);
   assert.equal(browser.dataLayer[0]?.["event_id"], id);
   assert.deepEqual(browser.dataLayer[0]?.["contentIds"], ["frame-1"]);
+});
+
+it("uses the requested GTM event names with unique IDs even before the Pixel loads", (t) => {
+  const originalWindow = Object.getOwnPropertyDescriptor(globalThis, "window");
+  const browser = { dataLayer: [] as Record<string, unknown>[] };
+  Object.defineProperty(globalThis, "window", { configurable: true, value: browser });
+  t.after(() => {
+    if (originalWindow) Object.defineProperty(globalThis, "window", originalWindow);
+    else Reflect.deleteProperty(globalThis, "window");
+  });
+  const events = [
+    ["ViewContent", "meta_view_content"],
+    ["AddToCart", "meta_add_to_cart"],
+    ["InitiateCheckout", "meta_initiate_checkout"],
+    ["Purchase", "meta_purchase"],
+  ] as const;
+  for (const [eventName, event] of events) {
+    const id = trackMetaBrowserEvent({
+      eventName,
+      customData: { value: 1999.5, currency: "PKR", contentIds: ["product-1", "product-2"] },
+    });
+    const pushed = browser.dataLayer.at(-1)!;
+    assert.equal(pushed["event"], event);
+    assert.equal(pushed["event_id"], id);
+    assert.equal(pushed["value"], 1999.5);
+    assert.equal(typeof pushed["value"], "number");
+    assert.equal(pushed["currency"], "PKR");
+    assert.deepEqual(pushed["content_ids"], ["product-1", "product-2"]);
+  }
+  assert.equal(new Set(browser.dataLayer.map((event) => event["event_id"])).size, 4);
+});
+
+it("continues direct Pixel tracking for non-commerce events", (t) => {
+  const originalWindow = Object.getOwnPropertyDescriptor(globalThis, "window");
+  const calls: unknown[][] = [];
+  const browser = {
+    fbq: (...args: unknown[]) => calls.push(args),
+    dataLayer: [] as Record<string, unknown>[],
+  };
+  Object.defineProperty(globalThis, "window", { configurable: true, value: browser });
+  t.after(() => {
+    if (originalWindow) Object.defineProperty(globalThis, "window", originalWindow);
+    else Reflect.deleteProperty(globalThis, "window");
+  });
+  trackMetaBrowserEvent({ eventName: "Lead", eventId: "lead:test-12345" });
+  assert.equal(browser.dataLayer[0]?.["event"], "meta_event");
+  assert.deepEqual(calls[0], ["track", "Lead", {}, { eventID: "lead:test-12345" }]);
 });
 
 it("waits for an asynchronously loaded Pixel cookie before sending an anonymous event", async (t) => {

@@ -83,7 +83,7 @@ function blankProduct(categoryId: string, collectionId?: string): Product {
       lensMaterial: "Polycarbonate",
       lensType: ["Single Vision"],
       uvProtection: "UV400",
-      warranty: "1 Year Official Nigah Guarantee",
+      warranty: "1 Week Official Nigah Guarantee",
       material: "",
       lensInfo: "",
       care: "",
@@ -715,7 +715,7 @@ function ProductDialog({
                         details: { ...value.details, warranty: e.target.value },
                       })
                     }
-                    placeholder="e.g. 1 Year Official Nigah Guarantee"
+                    placeholder="e.g. 1 Week Official Nigah Guarantee"
                     className="min-h-11"
                   />
                 </div>

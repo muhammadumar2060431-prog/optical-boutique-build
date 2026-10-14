@@ -13,13 +13,13 @@ import { getSiteUrl } from "@/lib/utils";
 export const Route = createFileRoute("/cart")({
   head: () => ({
     meta: [
-      { title: "Shopping Bag — Nigah Eyewear" },
+      { title: "Shopping Bag | Nigah Eyewear" },
       {
         name: "description",
         content:
           "Review your selected frames, prescription sunglasses, and contact lenses before checkout.",
       },
-      { property: "og:title", content: "Shopping Bag — Nigah Eyewear" },
+      { property: "og:title", content: "Shopping Bag | Nigah Eyewear" },
       {
         property: "og:description",
         content: "Review your selected frames and lenses before checkout.",
@@ -62,7 +62,7 @@ function CartPage() {
             </p>
             <Link
               to="/glasses"
-              className="mt-6 inline-flex min-h-11 items-center rounded-full bg-gold px-6 text-xs tracking-[0.18em] uppercase text-primary-foreground"
+              className="mt-6 inline-flex min-h-11 items-center rounded-full bg-black px-6 text-xs tracking-[0.18em] uppercase text-white transition-colors hover:bg-neutral-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black focus-visible:ring-offset-2"
             >
               Explore Collection
             </Link>
@@ -92,11 +92,11 @@ function CartPage() {
                     </p>
                     {outOfStock ? (
                       <p className="mt-1 text-xs font-semibold text-destructive">
-                        Out of stock — remove this item to continue
+                        Out of stock. Remove this item to continue
                       </p>
                     ) : exceeds ? (
                       <p className="mt-1 text-xs font-semibold text-destructive">
-                        Only {stock} left — reduce the quantity to continue
+                        Only {stock} left. Reduce the quantity to continue
                       </p>
                     ) : stock <= 3 ? (
                       <p className="mt-1 text-xs text-black">Only {stock} left in stock</p>
@@ -145,7 +145,7 @@ function CartPage() {
                 </div>
                 <div className="flex min-w-0 justify-between gap-4">
                   <dt className="text-black">Delivery</dt>
-                  <dd className="text-right text-black">Confirmed at checkout</dd>
+                  <dd className="text-right font-semibold text-black">Free</dd>
                 </div>
               </dl>
               {blocked ? (

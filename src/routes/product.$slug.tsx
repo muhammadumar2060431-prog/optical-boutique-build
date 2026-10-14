@@ -1,6 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, createFileRoute, notFound, useNavigate, useParams } from "@tanstack/react-router";
-import { Check, CheckCircle2, Play, Plus, ShoppingBag, Sparkles, Star } from "lucide-react";
+import {
+  Check,
+  CheckCircle2,
+  Package,
+  Play,
+  Plus,
+  ShoppingBag,
+  Sparkles,
+  Star,
+  Truck,
+} from "lucide-react";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
 
@@ -21,7 +31,7 @@ import { useCart } from "@/lib/cart";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 import { mapDbProductToStore } from "@/lib/supabaseSync";
 import { useProductSelection } from "@/lib/product-selection";
-import { getProductSubImages } from "@/lib/product-images";
+import { getProductGalleryImages, getProductSubImages } from "@/lib/product-images";
 import { trackMetaEvent } from "@/lib/meta-events";
 import { breadcrumbSchema, jsonLdScript, productSchema } from "@/lib/schema";
 import type { Product } from "@/lib/types";
@@ -175,7 +185,6 @@ function ProductPage() {
   const [revEmail, setRevEmail] = useState("");
   const [revName, setRevName] = useState("");
   const [revRating, setRevRating] = useState(5);
-  const [revTitle, setRevTitle] = useState("");
   const [revQuote, setRevQuote] = useState("");
   const [revImage, setRevImage] = useState<string | null>(null);
   const [reviewSubmitting, setReviewSubmitting] = useState(false);
@@ -286,24 +295,11 @@ function ProductPage() {
   // Build full gallery including primary image, sub images and variant images
   const subImagesList = getProductSubImages(product);
 
-  const variantImagesList: string[] = Array.isArray(product.variants)
-    ? product.variants
-        .map((v) => v.image)
-        .filter((img): img is string => typeof img === "string" && img.trim().length > 0)
-    : [];
-
-  const galleryItems = [
-    { src: product.image, id: "main-0", label: "Primary View" },
-    ...subImagesList.map((img, i) => ({ src: img, id: `angle-${i}`, label: `Angle ${i + 1}` })),
-    ...variantImagesList.map((img, i) => ({
-      src: img,
-      id: `variant-${i}`,
-      label: `Option ${i + 1}`,
-    })),
-  ].filter(
-    (item): item is { src: string; id: string; label: string } =>
-      typeof item.src === "string" && item.src.trim().length > 0,
-  );
+  const galleryItems = getProductGalleryImages(product).map((src, index) => ({
+    src,
+    id: src,
+    label: src === product.image ? "Primary View" : `View ${index + 1}`,
+  }));
 
   const mainImage =
     (activeImage && activeImage.trim().length > 0 ? activeImage : null) ??
@@ -345,7 +341,7 @@ function ProductPage() {
       email: revEmail.trim(),
       productId: product.id,
       productName: product.name,
-      title: revTitle.trim() || "Customer Review",
+      title: "Customer Review",
       quote: revQuote.trim(),
       rating: revRating,
       reviewImage: revImage,
@@ -363,7 +359,6 @@ function ProductPage() {
 
     setRevEmail("");
     setRevName("");
-    setRevTitle("");
     setRevQuote("");
     setRevImage(null);
     setReviewFormOpen(false);
@@ -435,17 +430,18 @@ function ProductPage() {
 
             {galleryItems.length > 1 && (
               <div className="flex min-w-0 max-w-full gap-3 overflow-x-auto pb-2">
-                {galleryItems.map((item, idx) => (
+                {galleryItems.map((item) => (
                   <button
                     key={item.id}
                     type="button"
+                    aria-label={`Show ${item.label}`}
+                    aria-pressed={mainImage === item.src}
                     onClick={() => {
                       setActiveImage(item.src);
-                      if (item.src === product.image) setVariantId(null);
                     }}
                     className={cn(
                       "h-20 w-20 shrink-0 overflow-hidden rounded-xl border bg-jet transition-all duration-200 cursor-pointer",
-                      mainImage === item.src || (!activeImage && idx === 0)
+                      mainImage === item.src
                         ? "border-gold ring-2 ring-gold/30 scale-95"
                         : "border-stone hover:border-gold/60 opacity-80 hover:opacity-100",
                     )}
@@ -555,6 +551,31 @@ function ProductPage() {
                 </div>
               );
             })()}
+
+            <ul
+              aria-label="Included with your order"
+              className="grid grid-cols-3 divide-x divide-neutral-200 rounded-lg border border-neutral-200 bg-neutral-50 py-4"
+            >
+              {[
+                { icon: Truck, label: "Free Delivery" },
+                { icon: Package, label: "Free Glasses Box" },
+                { icon: Sparkles, label: "Free Cleaning Kit" },
+              ].map(({ icon: Icon, label }) => (
+                <li
+                  key={label}
+                  className="flex min-w-0 flex-col items-center gap-2 px-2 text-center sm:px-3"
+                >
+                  <Icon
+                    aria-hidden="true"
+                    className="h-5 w-5 shrink-0 text-emerald-700"
+                    strokeWidth={1.75}
+                  />
+                  <span className="text-xs font-semibold leading-5 text-neutral-900 sm:text-sm">
+                    {label}
+                  </span>
+                </li>
+              ))}
+            </ul>
 
             {/* Interactive Colour Swatches */}
             {product.variants.length > 0 && (
@@ -805,17 +826,6 @@ function ProductPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="rev-title">Review Headline / Summary</Label>
-                <Input
-                  id="rev-title"
-                  value={revTitle}
-                  onChange={(e) => setRevTitle(e.target.value)}
-                  placeholder="e.g. Love It: My Recent Eyewear Purchase"
-                  className="bg-card min-h-11"
-                />
-              </div>
-
-              <div className="space-y-2">
                 <Label htmlFor="rev-quote" className="font-semibold">
                   Review Message <span className="text-destructive">*</span>
                 </Label>
@@ -856,7 +866,7 @@ function ProductPage() {
                 <Button
                   type="submit"
                   disabled={reviewSubmitting || reviewImageUploading}
-                  className="min-h-11 rounded-full px-8 font-semibold"
+                  className="min-h-11 rounded-full bg-black px-8 font-semibold text-white hover:bg-neutral-800"
                 >
                   {reviewSubmitting ? "Submitting..." : "Submit Review"}
                 </Button>

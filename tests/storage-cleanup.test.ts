@@ -1,6 +1,52 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { processStorageCleanup, type StorageCleanupBackend } from "../src/lib/storage-cleanup.ts";
+import {
+  processStorageCleanup,
+  storageObjectExists,
+  type StorageCleanupBackend,
+} from "../src/lib/storage-cleanup.ts";
+
+describe("storage verification without unsupported HEAD requests", () => {
+  it("checks the exact name in its folder, not similar filenames", async () => {
+    assert.equal(
+      await storageObjectExists("hero/a.webp", async (folder, options) => {
+        assert.equal(folder, "hero");
+        assert.deepEqual(options, { search: "a.webp", limit: 1000 });
+        return { data: [{ name: "a.webp.backup" }], error: null };
+      }),
+      false,
+    );
+    assert.equal(
+      await storageObjectExists("hero/a.webp", async () => ({
+        data: [{ name: "a.webp" }],
+        error: null,
+      })),
+      true,
+    );
+  });
+  it("retains failures and missing listing responses as unconfirmed", async () => {
+    await assert.rejects(
+      storageObjectExists("hero/a.webp", async () => ({
+        data: null,
+        error: new Error("Unavailable"),
+      })),
+      /Unavailable/,
+    );
+    await assert.rejects(
+      storageObjectExists("hero/a.webp", async () => ({ data: null, error: null })),
+      /could not be verified/,
+    );
+  });
+  it("does not infer absence from truncated results", async () => {
+    await assert.rejects(
+      storageObjectExists("hero/a.webp", async () => ({
+        data: Array.from({ length: 1000 }, () => ({ name: "other" })),
+        error: null,
+      })),
+      /incomplete/,
+    );
+  });
+});
 
 function backend(paths: string[]) {
   const removed: string[][] = [];

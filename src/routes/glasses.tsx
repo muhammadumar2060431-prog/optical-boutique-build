@@ -9,7 +9,7 @@ import { getSiteUrl } from "@/lib/utils";
 export const Route = createFileRoute("/glasses")({
   head: () => ({
     meta: [
-      { title: "Designer Eyeglasses & Frames — Handcrafted Optics | Nigah" },
+      { title: "Designer Eyeglasses & Frames | Handcrafted Optics | Nigah" },
       {
         name: "description",
         content:

@@ -15,13 +15,13 @@ export const Route = createFileRoute("/order-confirmation")({
   }),
   head: () => ({
     meta: [
-      { title: "Order Confirmed — Nigah Eyewear" },
+      { title: "Order Confirmed | Nigah Eyewear" },
       {
         name: "description",
         content:
           "Your Nigah order is confirmed. Review your items, total and next steps to reach our opticians on WhatsApp.",
       },
-      { property: "og:title", content: "Order Confirmed — Nigah Eyewear" },
+      { property: "og:title", content: "Order Confirmed | Nigah Eyewear" },
       {
         property: "og:description",
         content: "Your order details, totals and next steps.",
@@ -91,8 +91,8 @@ function OrderConfirmationPage() {
             Thank you{customerName ? `, ${customerName.split(" ")[0]}` : ""}
           </h1>
           <p className="mt-3 text-sm text-black">
-            Your reference is <span className="font-semibold text-ink">{ref}</span>. Keep it safe —
-            you can check progress any time on the order status page.
+            Your reference is <span className="font-semibold text-ink">{ref}</span>. Keep it safe.
+            You can check progress any time on the order status page.
           </p>
         </div>
 

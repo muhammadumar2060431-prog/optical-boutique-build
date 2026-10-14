@@ -1,5 +1,5 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import { processStorageCleanup } from "../storage-cleanup.ts";
+import { processStorageCleanup, storageObjectExists } from "../storage-cleanup.ts";
 import { requireAdminClient } from "./storefront-invalidate.server.ts";
 import { ApiError, json } from "./http.server.ts";
 
@@ -28,11 +28,10 @@ export async function runStorageCleanup(client: SupabaseClient = storageCleanupC
       const { error } = await client.storage.from(BUCKET).remove(paths);
       if (error) throw error;
     },
-    exists: async (path) => {
-      const { data, error } = await client.storage.from(BUCKET).exists(path);
-      if (error) throw error;
-      return data;
-    },
+    exists: (path) =>
+      storageObjectExists(path, (folder, options) =>
+        client.storage.from(BUCKET).list(folder, options),
+      ),
     finish: async (paths, errorMessage) => {
       const { error } = await client.rpc("finish_storage_cleanup_v1", {
         p_paths: paths,

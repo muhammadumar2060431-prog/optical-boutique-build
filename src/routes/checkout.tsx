@@ -25,13 +25,13 @@ import { getSiteUrl } from "@/lib/utils";
 export const Route = createFileRoute("/checkout")({
   head: () => ({
     meta: [
-      { title: "Checkout — Nigah Boutique Eyewear" },
+      { title: "Checkout | Nigah Boutique Eyewear" },
       {
         name: "description",
         content:
           "Complete your eyewear order. Our optical team reviews every prescription and order detail for precision delivery.",
       },
-      { property: "og:title", content: "Checkout — Nigah Boutique Eyewear" },
+      { property: "og:title", content: "Checkout | Nigah Boutique Eyewear" },
       {
         property: "og:description",
         content: "Confirm your delivery details and place your order.",
@@ -81,13 +81,16 @@ type NewOrderInput = Parameters<ReturnType<typeof useStore>["addOrders"]>[0][num
 
 function CheckoutPage() {
   const { items, subtotal, clearCart, hydrated } = useCart();
-  const { addOrders, getProductById } = useStore();
+  const { addOrders, getProductById, addSubscriber } = useStore();
   const navigate = useNavigate();
 
   const [values, setValues] = useState({ name: "", email: "", phone: "", address: "", notes: "" });
   const [errors, setErrors] = useState<Errors>({});
   const [touched, setTouched] = useState<Partial<Record<FieldName, boolean>>>({});
   const [submitting, setSubmitting] = useState(false);
+  const [newsletterChecked, setNewsletterChecked] = useState(false);
+  const [newsletterSubmitting, setNewsletterSubmitting] = useState(false);
+  const newsletterSubmittingRef = useRef(false);
   const submittingRef = useRef(false);
   const attemptRef = useRef<CheckoutAttempt<{
     reference: string;
@@ -134,6 +137,7 @@ function CheckoutPage() {
   };
 
   const setField = (field: FieldName, value: string) => {
+    if (field === "email") setNewsletterChecked(false);
     const next = { ...values, [field]: value };
     setValues(next);
     if (touched[field]) setErrors(validate(next));
@@ -142,6 +146,42 @@ function CheckoutPage() {
   const blurField = (field: FieldName) => {
     setTouched((prev) => ({ ...prev, [field]: true }));
     setErrors(validate());
+  };
+
+  const subscribeToNewsletter = async (checked: boolean) => {
+    if (newsletterSubmittingRef.current) return;
+    if (!checked) {
+      setNewsletterChecked(false);
+      return;
+    }
+    const email = checkoutSchema.shape.email.safeParse(values.email);
+    if (!email.success) {
+      blurField("email");
+      document.getElementById("co-email")?.focus();
+      return;
+    }
+
+    newsletterSubmittingRef.current = true;
+    setNewsletterSubmitting(true);
+    try {
+      const result = await addSubscriber(email.data);
+      if (!result.ok) {
+        toast.error(result.message);
+        return;
+      }
+      setNewsletterChecked(true);
+      trackMetaEvent({
+        eventName: "CompleteRegistration",
+        userData: { email: email.data },
+        customData: { contentName: "Email newsletter" },
+      });
+      toast.success(result.message);
+    } catch {
+      toast.error("We could not subscribe this email right now. Please try again.");
+    } finally {
+      newsletterSubmittingRef.current = false;
+      setNewsletterSubmitting(false);
+    }
   };
 
   const placeOrder = async (event: React.FormEvent) => {
@@ -194,7 +234,7 @@ function CheckoutPage() {
             variantLabel: item.variantLabel,
             quantity: item.qty,
             message: [
-              `Checkout order ${reference} — quantity ${item.qty} (${formatPrice(item.price * item.qty)}).`,
+              `Checkout order ${reference}, quantity ${item.qty} (${formatPrice(item.price * item.qty)}).`,
               `Delivery address: ${values.address.trim()}`,
               values.notes.trim() ? `Customer notes: ${values.notes.trim()}` : "",
             ]
@@ -321,6 +361,8 @@ function CheckoutPage() {
                   id="co-email"
                   type="email"
                   inputMode="email"
+                  autoComplete="email"
+                  disabled={newsletterSubmitting}
                   value={values.email}
                   onChange={(e) => setField("email", e.target.value)}
                   onBlur={() => blurField("email")}
@@ -330,6 +372,20 @@ function CheckoutPage() {
                   placeholder="ayesha@example.com"
                 />
                 {fieldError("email")}
+                <label
+                  htmlFor="co-newsletter"
+                  className="flex min-h-7 cursor-pointer items-start gap-2 text-sm leading-5 text-black"
+                >
+                  <input
+                    id="co-newsletter"
+                    type="checkbox"
+                    checked={newsletterChecked}
+                    disabled={newsletterSubmitting}
+                    onChange={(event) => void subscribeToNewsletter(event.target.checked)}
+                    className="mt-0.5 h-4 w-4 shrink-0 accent-black disabled:cursor-wait"
+                  />
+                  <span>Email me with news and offers</span>
+                </label>
               </div>
             </div>
             <div className="space-y-2">
@@ -374,13 +430,13 @@ function CheckoutPage() {
             <Button
               type="submit"
               size="lg"
-              disabled={stockBlocked || submitting}
+              disabled={stockBlocked || submitting || newsletterSubmitting}
               className="min-h-12 w-full max-w-full rounded-full bg-black text-white hover:bg-black px-6 text-sm sm:w-auto sm:px-10"
             >
               {submitting ? "Saving order..." : "Place order"}
             </Button>
             <p className="mt-1 block text-xs leading-snug text-black">
-              No payment is taken online — our team confirms your order and arranges payment on
+              No payment is taken online. Our team confirms your order and arranges payment on
               delivery or in the showroom.
             </p>
           </form>
@@ -415,9 +471,13 @@ function CheckoutPage() {
                 <span className="text-black">Subtotal</span>
                 <span className="font-semibold text-black">{formatPrice(subtotal)}</span>
               </div>
+              <div className="mt-3 flex min-w-0 justify-between gap-4 text-sm">
+                <span className="text-black">Delivery</span>
+                <span className="font-semibold text-black">Free</span>
+              </div>
               <Link
                 to="/cart"
-                className="mt-4 block text-xs tracking-[0.16em] uppercase text-black transition-colors hover:text-black"
+                className="mt-5 flex min-h-11 w-full items-center justify-center rounded-lg bg-black px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-neutral-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black focus-visible:ring-offset-2"
               >
                 Edit bag
               </Link>

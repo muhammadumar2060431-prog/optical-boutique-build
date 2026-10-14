@@ -9,13 +9,13 @@ import { getSiteUrl } from "@/lib/utils";
 export const Route = createFileRoute("/privacy-policy")({
   head: () => ({
     meta: [
-      { title: "Privacy Policy & Prescription Data Security — Nigah Eyewear" },
+      { title: "Privacy Policy & Prescription Data Security | Nigah Eyewear" },
       {
         name: "description",
         content:
           "Read how Nigah Optical Boutique protects your personal information, optical prescriptions, doctor slips, and payment details under strict privacy standards.",
       },
-      { property: "og:title", content: "Privacy Policy — Nigah Eyewear" },
+      { property: "og:title", content: "Privacy Policy | Nigah Eyewear" },
       {
         property: "og:description",
         content:

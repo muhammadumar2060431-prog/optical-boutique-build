@@ -280,13 +280,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Nigah — Premium Eyeglasses, Sunglasses & Contact Lenses" },
+      { title: "Nigah | Premium Eyeglasses, Sunglasses & Contact Lenses" },
       {
         name: "description",
         content:
           "Discover handcrafted designer eyeglasses, premium sunglasses, and precision contact lenses. Experience unmatched clarity, comfort, and bespoke styling.",
       },
-      { property: "og:title", content: "Nigah — Premium Eyewear & Optical Boutique" },
+      { property: "og:title", content: "Nigah | Premium Eyewear & Optical Boutique" },
       {
         property: "og:description",
         content:

@@ -9,13 +9,13 @@ import { getSiteUrl } from "@/lib/utils";
 export const Route = createFileRoute("/about")({
   head: () => ({
     meta: [
-      { title: "About Nigah — Handcrafted Eyewear & Precision Optics" },
+      { title: "About Nigah | Handcrafted Eyewear & Precision Optics" },
       {
         name: "description",
         content:
           "Discover Nigah's heritage: over three decades of optical craftsmanship, precision lens fitting, and custom Italian acetate frames.",
       },
-      { property: "og:title", content: "About Nigah — Handcrafted Eyewear & Precision Optics" },
+      { property: "og:title", content: "About Nigah | Handcrafted Eyewear & Precision Optics" },
       {
         property: "og:description",
         content: "Discover our heritage of optical craftsmanship and precision lens fitting.",

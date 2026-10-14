@@ -45,7 +45,8 @@ export function notificationEmails(
       variant_label: record["variant_label"] || "",
       source: record["source"] || "Website",
       message: record["address"] || "",
-      total: record["total"] || 0,
+      total: record["total"] ?? null,
+      quantity: record["quantity"] ?? null,
     };
     const customerEmail = email(order.contact);
     return [

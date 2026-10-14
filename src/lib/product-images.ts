@@ -4,14 +4,35 @@ function isNonEmptyString(value: unknown): value is string {
   return typeof value === "string" && value.trim().length > 0;
 }
 
+export function normalizeImageList(value: unknown): string[] {
+  return Array.isArray(value)
+    ? [...new Set(value.filter(isNonEmptyString).map((src) => src.trim()))]
+    : [];
+}
+
+export function resolveProductSubImages(primaryImage: string, ...sources: unknown[]): string[] {
+  for (const source of sources) {
+    const images = normalizeImageList(source).filter((src) => src !== primaryImage);
+    if (images.length > 0) return images;
+  }
+  return [];
+}
+
 /**
  * Returns the canonical secondary product images.
  * Legacy database rows are normalized by mapDbProductToStore before reaching UI code.
  */
 export function getProductSubImages(product: Product): string[] {
-  const candidates =
-    product.subImages.length > 0 ? product.subImages : (product.details.subImages ?? []);
-  return candidates.filter(isNonEmptyString);
+  return resolveProductSubImages(product.image, product.subImages, product.details?.subImages);
+}
+
+export function getProductGalleryImages(product: Product): string[] {
+  return normalizeImageList([
+    product.image,
+    ...getProductSubImages(product),
+    product.hoverImage,
+    ...(product.variants ?? []).map((variant) => variant.image),
+  ]).filter((src) => src !== "/placeholder.svg");
 }
 
 const SUPABASE_PUBLIC_OBJECT_PATH = "/storage/v1/object/public/";

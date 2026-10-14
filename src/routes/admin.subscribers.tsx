@@ -96,7 +96,7 @@ function AdminSubscribers() {
             Newsletter Subscribers
           </h1>
           <p className="text-xs text-ink-muted mt-1">
-            List of customer emails collected from the website newsletter box. You can copy
+            List of customer emails subscribed to news and offers at checkout. You can copy
             individual emails or export the whole list.
           </p>
         </div>

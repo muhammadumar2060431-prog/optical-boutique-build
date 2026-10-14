@@ -1,6 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any, no-empty -- Legacy Supabase schema variants are normalized at this boundary. */
 import { supabase } from "./supabase";
 import { discountedPrice } from "./discounts.ts";
+import {
+  getProductSubImages,
+  normalizeImageList,
+  resolveProductSubImages,
+} from "./product-images.ts";
 import { mapAnnouncementRecord } from "./announcements.ts";
 import { imageDataUrlToBlob } from "./image-data.ts";
 import { faqPages } from "./faq-pages.ts";
@@ -158,13 +163,7 @@ function isMissingColumnError(error: any, column: string) {
 function mapStoreProductToDb(product: Product): any {
   const manualSalePrice =
     product.manualSalePrice !== undefined ? product.manualSalePrice : product.salePrice;
-  const subImages = (
-    Array.isArray(product.subImages) && product.subImages.length > 0
-      ? product.subImages
-      : Array.isArray((product.details as any)?.subImages)
-        ? (product.details as any).subImages
-        : []
-  ).filter((s: any) => s && typeof s === "string" && s.trim().length > 0);
+  const subImages = getProductSubImages(product);
 
   // images[] column: primary image + all sub images
   const images = [product.image, ...subImages].filter(
@@ -211,11 +210,10 @@ function mapStoreProductToDb(product: Product): any {
 }
 
 export function mapDbProductToStore(raw: any): Product {
-  const images: string[] =
-    Array.isArray(raw.images) && raw.images.length > 0 ? raw.images : raw.image ? [raw.image] : [];
+  const images = normalizeImageList(raw.images);
 
   // Primary image is images[0]; hover may be stored separately in hover_image column
-  const primaryImage = images[0] || "/placeholder.svg";
+  const primaryImage = images[0] || normalizeImageList([raw.image])[0] || "/placeholder.svg";
   const hoverFromDb = raw.hover_image || null;
 
   let rawDetails = raw.details;
@@ -226,12 +224,13 @@ export function mapDbProductToStore(raw: any): Product {
   }
 
   // subImages = all gallery angles
-  const rawSubImages = rawDetails?.subImages ?? raw.subImages ?? raw.sub_images;
-  const subImages: string[] = Array.isArray(rawSubImages)
-    ? rawSubImages.filter((s: any) => typeof s === "string" && s.trim().length > 0)
-    : images.length > 1
-      ? images.slice(1)
-      : [];
+  const subImages = resolveProductSubImages(
+    primaryImage,
+    rawDetails?.subImages,
+    raw.subImages,
+    raw.sub_images,
+    images.slice(1),
+  );
 
   return {
     id: raw.id,
@@ -792,7 +791,7 @@ async function uploadProductImageData(product: Product): Promise<Product> {
     return requireStoredImage(image, "products");
   };
 
-  const sourceSubImages = Array.isArray(product.subImages) ? product.subImages : [];
+  const sourceSubImages = getProductSubImages(product);
   const sourceVariants = Array.isArray(product.variants) ? product.variants : [];
   const [image, hoverImage, subImages, newArrivalImage, variants] = await Promise.all([
     uploadIfNeeded(product.image),

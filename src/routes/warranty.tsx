@@ -9,17 +9,17 @@ import { getSiteUrl } from "@/lib/utils";
 export const Route = createFileRoute("/warranty")({
   head: () => ({
     meta: [
-      { title: "Optical Warranty & Authenticity Guarantee — Nigah Eyewear" },
+      { title: "Optical Warranty & Authenticity Guarantee | Nigah Eyewear" },
       {
         name: "description",
         content:
-          "Our 1-year frame warranty, optical lens coating guarantee, free lifetime adjustments, and 100% authenticity promise at Nigah Optical Boutique.",
+          "Our 1-week frame warranty, optical lens coating guarantee, free lifetime adjustments, and 100% authenticity promise at Nigah Optical Boutique.",
       },
-      { property: "og:title", content: "Warranty & Authenticity Guarantee — Nigah Eyewear" },
+      { property: "og:title", content: "Warranty & Authenticity Guarantee | Nigah Eyewear" },
       {
         property: "og:description",
         content:
-          "Discover our 1-year optical frame warranty and complimentary lifetime boutique maintenance.",
+          "Discover our 1-week optical frame warranty and complimentary lifetime boutique maintenance.",
       },
       { property: "og:type", content: "website" },
       { property: "og:url", content: getSiteUrl("/warranty") },
@@ -58,7 +58,7 @@ function WarrantyPage() {
               <div className="rounded-2xl border border-stone-200 bg-stone-50/60 p-6 text-center space-y-2">
                 <ShieldCheck className="h-7 w-7 text-stone-800 mx-auto" />
                 <h3 className="font-display text-lg font-semibold text-black">
-                  1-Year Frame Warranty
+                  1-Week Frame Warranty
                 </h3>
                 <p className="text-xs text-zinc-600 leading-relaxed">
                   Covers all structural manufacturing defects, spring hinges, and solder weld
@@ -94,11 +94,11 @@ function WarrantyPage() {
             {/* Section 1 */}
             <section className="space-y-4 border-b border-stone-200 pb-10">
               <h2 className="font-display text-xl font-semibold leading-snug text-black sm:text-2xl">
-                1. 1-Year Comprehensive Frame Warranty
+                1. 1-Week Comprehensive Frame Warranty
               </h2>
               <p className="text-sm sm:text-base text-zinc-600">
                 All eyeglasses and sunglasses frames purchased from Nigah carry a full{" "}
-                <strong className="text-black">12-month manufacturing warranty</strong> covering:
+                <strong className="text-black">1-week manufacturing warranty</strong> covering:
               </p>
               <ul className="space-y-2 text-sm text-zinc-700">
                 <li className="flex items-start gap-2">

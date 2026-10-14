@@ -142,7 +142,8 @@ Deno.serve(async (req: Request): Promise<Response> => {
         message: record.address
           ? `Address: ${record.address}${record.city ? `, ${record.city}` : ""}${record.notes ? `\nNotes: ${record.notes}` : ""}`
           : record.message || "",
-        total: record.total || 0,
+        total: record.total ?? null,
+        quantity: record.quantity ?? firstItem.quantity ?? null,
       };
 
       const customerEmail =

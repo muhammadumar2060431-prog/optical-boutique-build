@@ -49,34 +49,31 @@ const blank = (): Testimonial => ({
 function AdminTestimonials() {
   const { isUploading, onUploadingChange } = useImageUploads();
   const [isSaving, setIsSaving] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const { testimonials, saveTestimonial, deleteTestimonial, moveTestimonial } = useStore();
   const [draft, setDraft] = useState<Testimonial | null>(null);
   const [filterTab, setFilterTab] = useState<"all" | "good" | "bad" | "product">("all");
   const [searchQuery, setSearchQuery] = useState("");
-  const manualTestimonials = useMemo(
-    () => testimonials.filter((testimonial) => testimonial.source !== "customer"),
-    [testimonials],
-  );
 
   // Statistics calculation
-  const totalCount = manualTestimonials.length;
+  const totalCount = testimonials.length;
   const goodReviews = useMemo(
-    () => manualTestimonials.filter((testimonial) => testimonial.rating >= 4),
-    [manualTestimonials],
+    () => testimonials.filter((testimonial) => testimonial.rating >= 4),
+    [testimonials],
   );
   const badReviews = useMemo(
-    () => manualTestimonials.filter((testimonial) => testimonial.rating < 4),
-    [manualTestimonials],
+    () => testimonials.filter((testimonial) => testimonial.rating < 4),
+    [testimonials],
   );
   const avgRating = useMemo(() => {
     if (totalCount === 0) return "5.0";
-    const sum = manualTestimonials.reduce((acc, testimonial) => acc + testimonial.rating, 0);
+    const sum = testimonials.reduce((acc, testimonial) => acc + testimonial.rating, 0);
     return (sum / totalCount).toFixed(1);
-  }, [manualTestimonials, totalCount]);
+  }, [testimonials, totalCount]);
 
   // Filtered reviews list
   const filteredList = useMemo(() => {
-    return manualTestimonials.filter((t) => {
+    return testimonials.filter((t) => {
       // Tab filter
       if (filterTab === "good" && t.rating < 4) return false;
       if (filterTab === "bad" && t.rating >= 4) return false;
@@ -94,7 +91,7 @@ function AdminTestimonials() {
 
       return true;
     });
-  }, [manualTestimonials, filterTab, searchQuery]);
+  }, [testimonials, filterTab, searchQuery]);
 
   return (
     <div className="space-y-6">
@@ -162,7 +159,7 @@ function AdminTestimonials() {
         <div className="rounded-xl border border-amber-600 bg-amber-600 p-4 text-white">
           <p className="text-xs font-semibold uppercase text-white">Captured Customer Emails</p>
           <p className="mt-2 font-display text-3xl text-white">
-            {manualTestimonials.filter((t) => t.email).length}
+            {testimonials.filter((t) => t.email).length}
           </p>
           <p className="mt-1 text-[11px] text-white">Verified submitters</p>
         </div>
@@ -351,10 +348,18 @@ function AdminTestimonials() {
                     size="icon"
                     variant="ghost"
                     aria-label="Delete"
-                    onClick={() => {
-                      if (confirm(`Are you sure you want to delete the review from ${t.name}?`)) {
-                        deleteTestimonial(t.id);
-                        toast.success("Review deleted successfully from website.");
+                    disabled={deletingId !== null}
+                    onClick={async () => {
+                      if (!confirm(`Are you sure you want to delete the review from ${t.name}?`)) {
+                        return;
+                      }
+                      setDeletingId(t.id);
+                      try {
+                        if (await deleteTestimonial(t.id)) {
+                          toast.success("Review deleted successfully from website.");
+                        }
+                      } finally {
+                        setDeletingId(null);
                       }
                     }}
                     title="Delete from website"
@@ -493,7 +498,7 @@ function AdminTestimonials() {
                     const saved = await saveTestimonial({
                       ...draft,
                       id: draft.id || newId("tst"),
-                      source: "manual",
+                      source: draft.source || "manual",
                       quote: draft.quote.trim(),
                       photo: finalImg,
                       reviewImage: finalImg,

@@ -17,7 +17,7 @@ import { getSiteUrl } from "@/lib/utils";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Nigah — Designer Eyeglasses, Sunglasses & Contact Lenses" },
+      { title: "Nigah | Designer Eyeglasses, Sunglasses & Contact Lenses" },
       {
         name: "description",
         content:
@@ -25,7 +25,7 @@ export const Route = createFileRoute("/")({
       },
       {
         property: "og:title",
-        content: "Nigah — Designer Eyeglasses, Sunglasses & Contact Lenses",
+        content: "Nigah | Designer Eyeglasses, Sunglasses & Contact Lenses",
       },
       {
         property: "og:description",

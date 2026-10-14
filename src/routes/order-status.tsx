@@ -42,13 +42,13 @@ export const Route = createFileRoute("/order-status")({
   }),
   head: () => ({
     meta: [
-      { title: "Track Your Order — Nigah Eyewear" },
+      { title: "Track Your Order | Nigah Eyewear" },
       {
         name: "description",
         content:
           "Enter your Nigah order reference to see live courier tracking and status of your frames or lenses.",
       },
-      { property: "og:title", content: "Track Your Order — Nigah" },
+      { property: "og:title", content: "Track Your Order | Nigah" },
       {
         property: "og:description",
         content:

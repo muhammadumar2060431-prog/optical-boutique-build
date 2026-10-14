@@ -36,29 +36,17 @@ function visiblePages(currentPage: number, totalPages: number) {
 export function CategoryView({ category }: { category: Category }) {
   const { getCollections } = useStore();
   const [sort, setSort] = useState<Sort>("newest");
-  const [minPrice, setMinPrice] = useState<string>("");
-  const [maxPrice, setMaxPrice] = useState<string>("");
   const [page, setPage] = useState(1);
-
-  const isFiltered = Boolean((minPrice && minPrice !== "0") || (maxPrice && maxPrice !== "0"));
-
-  const resetPriceFilter = () => {
-    setMinPrice("");
-    setMaxPrice("");
-    setPage(1);
-  };
 
   useEffect(() => {
     setPage(1);
-  }, [category.id, minPrice, maxPrice, sort]);
+  }, [category.id, sort]);
 
   // Get collections belonging to this category
   const collections = useMemo(() => getCollections(category.id), [getCollections, category.id]);
 
   const catalog = useCatalogPage({
     categoryId: category.id,
-    ...(minPrice !== "" ? { minPrice: Math.max(0, Number(minPrice) || 0) } : {}),
-    ...(Number(maxPrice) > 0 ? { maxPrice: Number(maxPrice) } : {}),
     sort,
     page,
     pageSize: PRODUCTS_PER_PAGE,
@@ -122,69 +110,24 @@ export function CategoryView({ category }: { category: Category }) {
           );
         })()}
 
-      {/* 2. Filter & Sort Bar */}
+      {/* 2. Category & Sort Bar */}
       <section className="mx-auto max-w-7xl px-4 pt-8 sm:px-6">
-        <div className="flex min-w-0 flex-wrap items-center justify-between gap-4 rounded-2xl bg-black p-4 text-white shadow-lg border border-white/20 ring-1 ring-black/5 sm:p-7">
+        <div className="flex min-w-0 flex-wrap items-center justify-between gap-4 rounded-2xl bg-white p-4 text-black shadow-lg border border-neutral-200 ring-1 ring-black/5 sm:p-7">
           <div>
-            <h2 className="font-display text-xl leading-tight text-white font-normal sm:text-3xl">
-              {category.name} Range
+            <h2 className="font-display text-xl leading-tight text-black font-normal sm:text-3xl">
+              {category.name === "glasses" ? "Glasses" : category.name} Range
             </h2>
-            <p className="mt-1 max-w-full break-words text-xs leading-snug text-white">
+            <p className="mt-1 max-w-full break-words text-xs leading-snug text-black">
               Showing {shownFrom}-{shownTo} of {pageResult.total} curated frames & items across{" "}
               {collections.length} collections
             </p>
           </div>
 
           <div className="flex w-full min-w-0 flex-wrap items-center gap-3 sm:w-auto sm:shrink-0">
-            <div className="flex w-full min-w-0 flex-wrap items-center justify-between gap-x-1.5 gap-y-1 rounded-full border border-white bg-white px-2.5 py-2 text-xs text-black shadow-sm sm:w-auto sm:flex-nowrap sm:justify-start sm:gap-2 sm:px-4">
-              <span className="font-bold uppercase tracking-wider text-[10px] text-black mr-1 hidden sm:inline">
-                Price Range (Rs.)
-              </span>
-
-              <div className="flex min-w-0 items-center gap-1.5">
-                <span className="text-black text-[11px] font-medium">Min</span>
-                <input
-                  type="number"
-                  min="0"
-                  value={minPrice}
-                  onChange={(e) => setMinPrice(e.target.value)}
-                  onFocus={(e) => e.target.select()}
-                  className="h-7 min-w-0 flex-1 rounded-lg border border-gray-300 bg-gray-50 px-2 text-xs font-semibold text-black placeholder:text-black focus:bg-white focus:outline-none focus:ring-2 focus:ring-black sm:w-16 sm:flex-none"
-                  placeholder="0"
-                />
-              </div>
-
-              <span className="text-black font-bold">-</span>
-
-              <div className="flex min-w-0 items-center gap-1.5">
-                <span className="text-black text-[11px] font-medium">Max</span>
-                <input
-                  type="number"
-                  min="0"
-                  value={maxPrice}
-                  onChange={(e) => setMaxPrice(e.target.value)}
-                  onFocus={(e) => e.target.select()}
-                  className="h-7 min-w-0 flex-1 rounded-lg border border-gray-300 bg-gray-50 px-2 text-xs font-semibold text-black placeholder:text-black focus:bg-white focus:outline-none focus:ring-2 focus:ring-black sm:w-20 sm:flex-none"
-                  placeholder="Max"
-                />
-              </div>
-
-              {isFiltered && (
-                <button
-                  type="button"
-                  onClick={resetPriceFilter}
-                  title="Clear price filter"
-                  className="ml-1 text-[11px] font-semibold text-black hover:text-black underline transition-colors cursor-pointer"
-                >
-                  Reset
-                </button>
-              )}
-            </div>
-
             <Select value={sort} onValueChange={(v) => setSort(v as Sort)}>
               <SelectTrigger
                 aria-label="Sort products"
-                className="min-h-11 w-full rounded-full bg-white text-black border border-white hover:bg-black hover:text-white hover:border-black active:bg-black active:text-white active:border-black data-[state=open]:bg-black data-[state=open]:text-white data-[state=open]:border-black transition-all duration-200 shadow-sm cursor-pointer sm:w-[180px]"
+                className="min-h-11 w-full rounded-full bg-white text-black border border-neutral-300 hover:bg-neutral-50 hover:border-neutral-400 active:bg-neutral-100 data-[state=open]:bg-neutral-50 data-[state=open]:border-neutral-400 transition-all duration-200 shadow-sm cursor-pointer sm:w-[180px]"
               >
                 <SelectValue />
               </SelectTrigger>
@@ -272,7 +215,7 @@ export function CategoryView({ category }: { category: Category }) {
           <div className="rounded-xl border border-dashed border-stone bg-card px-6 py-20 text-center">
             <p className="font-display text-2xl">No products found</p>
             <p className="mt-2 text-sm text-ink-muted">
-              Try adjusting your filters or price range to explore more options.
+              There are no products available in this category yet.
             </p>
           </div>
         )}

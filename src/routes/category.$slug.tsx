@@ -50,7 +50,7 @@ export const Route = createFileRoute("/category/$slug")({
     const category = loaderData?.category;
     const url = getSiteUrl(`/category/${params.slug}`);
     const title = category
-      ? `${category.name} — Handcrafted Eyewear | Nigah`
+      ? `${category.name} | Handcrafted Eyewear | Nigah`
       : "Eyewear Collection | Nigah";
     const description = category
       ? `Explore the Nigah ${category.name.toLowerCase()} collection. Featuring premium materials, expert fitting, and fast delivery.`

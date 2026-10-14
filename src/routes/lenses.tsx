@@ -9,7 +9,7 @@ import { getSiteUrl } from "@/lib/utils";
 export const Route = createFileRoute("/lenses")({
   head: () => ({
     meta: [
-      { title: "Precision Contact Lenses — Daily, Monthly & Toric | Nigah" },
+      { title: "Precision Contact Lenses | Daily, Monthly & Toric | Nigah" },
       {
         name: "description",
         content:

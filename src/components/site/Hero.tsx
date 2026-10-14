@@ -43,7 +43,7 @@ export function Hero() {
 
   return (
     <section
-      className="relative isolate h-[250px] w-full overflow-hidden bg-white sm:h-[340px] md:h-[min(50vw,720px)]"
+      className="relative left-1/2 isolate h-[250px] w-[100dvw] max-w-[100dvw] -translate-x-1/2 overflow-hidden bg-jet sm:h-[340px] md:h-[min(50vw,720px)]"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
       onTouchStart={() => setPaused(true)}
@@ -72,7 +72,7 @@ export function Hero() {
               decoding="async"
               fetchPriority={i === 0 ? "high" : "auto"}
               className={cn(
-                "mx-auto block h-full w-full md:max-w-[1440px]",
+                "block h-full w-full max-w-none",
                 hasText ? "object-cover" : "object-fill",
               )}
               onError={() => {
@@ -100,7 +100,7 @@ export function Hero() {
             {!hasText && ctaLink ? (
               <a
                 href={ctaLink}
-                className="block h-full w-full cursor-pointer"
+                className="block h-full w-full max-w-none cursor-pointer"
                 aria-label={slide.headline || "View banner"}
               >
                 {imageElement}

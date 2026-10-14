@@ -8,13 +8,13 @@ import { getSiteUrl } from "@/lib/utils";
 export const Route = createFileRoute("/faqs")({
   head: () => ({
     meta: [
-      { title: "Frequently Asked Questions (FAQs) — Nigah Eyewear" },
+      { title: "Frequently Asked Questions (FAQs) | Nigah Eyewear" },
       {
         name: "description",
         content:
           "Find answers to common questions about prescription lenses, frame fittings, doorstep delivery, warranty, and optical guarantees at Nigah Eyewear.",
       },
-      { property: "og:title", content: "Frequently Asked Questions — Nigah Eyewear" },
+      { property: "og:title", content: "Frequently Asked Questions | Nigah Eyewear" },
       {
         property: "og:description",
         content:

@@ -9,13 +9,13 @@ import { getSiteUrl } from "@/lib/utils";
 export const Route = createFileRoute("/shipping-policy")({
   head: () => ({
     meta: [
-      { title: "Shipping & Delivery Policy — Nigah Eyewear Pakistan" },
+      { title: "Shipping & Delivery Policy | Nigah Eyewear Pakistan" },
       {
         name: "description",
         content:
           "Nationwide express courier delivery details, transit timelines, free shipping thresholds, Cash on Delivery (COD), and optical prescription turnaround times at Nigah.",
       },
-      { property: "og:title", content: "Shipping & Delivery Policy — Nigah Eyewear" },
+      { property: "og:title", content: "Shipping & Delivery Policy | Nigah Eyewear" },
       {
         property: "og:description",
         content:

@@ -3,7 +3,6 @@ import type { ReactNode } from "react";
 import { AnnouncementBar } from "./AnnouncementBar";
 import { Footer } from "./Footer";
 import { Navbar } from "./Navbar";
-import { NewsletterSection } from "./NewsletterSection";
 import { OfflineNotice } from "./OfflineNotice";
 import { WhatsAppFab } from "./WhatsAppFab";
 
@@ -26,8 +25,6 @@ export function SiteLayout({ children }: { children: ReactNode }) {
       >
         {children}
       </main>
-      {/* ── Newsletter Email Subscription (Above Footer) ── */}
-      <NewsletterSection />
       <Footer />
       <WhatsAppFab />
     </div>

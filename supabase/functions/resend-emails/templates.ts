@@ -1,16 +1,5 @@
-/* eslint-disable @typescript-eslint/no-explicit-any -- Email templates accept normalized webhook records from multiple table shapes. */
-/**
- * Professional HTML Email Templates for Nigah Boutique Eyewear
- * =================================================================
- * - Order Confirmation (Customer + Admin Notification)
- * - Query Received (Customer Confirmation + Admin Alert)
- * - Newsletter Welcome (Subscriber)
- */
-
-const BRAND_COLOR = "#c9a227";
-const DARK_COLOR = "#1a1a1a";
-const LIGHT_BG = "#f8f6f2";
-const BORDER_COLOR = "#e8e4dc";
+/* eslint-disable @typescript-eslint/no-explicit-any -- Templates accept normalized webhook records. */
+const SITE_URL = "https://www.nigah.store";
 
 function baseWrapper(content: string): string {
   return `<!DOCTYPE html>
@@ -18,35 +7,38 @@ function baseWrapper(content: string): string {
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Nigah Boutique Eyewear</title>
+  <meta name="color-scheme" content="light" />
+  <title>Nigah Eyewear</title>
+  <style>
+    a { color: #000000 !important; }
+    @media only screen and (max-width: 600px) {
+      .outer { padding: 16px 8px !important; }
+      .content { padding: 28px 20px !important; }
+      .heading { font-size: 24px !important; }
+    }
+  </style>
 </head>
-<body style="margin:0;padding:0;background-color:${LIGHT_BG};font-family:'Segoe UI',Arial,sans-serif;-webkit-text-size-adjust:100%;">
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:${LIGHT_BG};">
+<body style="margin:0;padding:0;background:#ffffff;color:#000000;font-family:Arial,Helvetica,sans-serif;-webkit-text-size-adjust:100%;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#ffffff;">
     <tr>
-      <td align="center" style="padding: 40px 16px;">
-        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 16px rgba(0,0,0,0.08);">
-
-          <!-- Header -->
+      <td class="outer" align="center" style="padding:32px 16px;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:600px;background:#ffffff;border:1px solid #000000;">
           <tr>
-            <td style="background-color:${DARK_COLOR};padding:32px 40px;text-align:center;">
-              <h1 style="margin:0;color:${BRAND_COLOR};font-size:26px;font-weight:700;letter-spacing:6px;text-transform:uppercase;">Nigah</h1>
-              <p style="margin:6px 0 0;color:#888;font-size:11px;letter-spacing:3px;text-transform:uppercase;">Boutique Eyewear</p>
+            <td align="center" style="padding:28px 24px 24px;border-bottom:3px solid #000000;">
+              <a href="${SITE_URL}" style="display:inline-block;color:#000000;text-decoration:none;">
+                <img src="${SITE_URL}/email-logo.png" width="150" alt="Nigah Eyewear" style="display:block;width:150px;max-width:100%;height:auto;border:0;" />
+              </a>
+              <p style="margin:14px 0 0;color:#000000;font-size:11px;line-height:16px;font-weight:700;letter-spacing:2px;text-transform:uppercase;">NIGAH &middot; BOUTIQUE EYEWEAR</p>
             </td>
           </tr>
-
-          <!-- Body -->
           ${content}
-
-          <!-- Footer -->
           <tr>
-            <td style="background-color:#f0ece4;padding:24px 40px;text-align:center;border-top:1px solid ${BORDER_COLOR};">
-              <p style="margin:0 0 8px;color:#888;font-size:12px;">© ${new Date().getFullYear()} Nigah Boutique Eyewear. All rights reserved.</p>
-              <p style="margin:0;color:#aaa;font-size:11px;">
-                If you have any questions, reply to this email or WhatsApp us directly.
-              </p>
+            <td align="center" style="padding:22px 20px;background:#000000;color:#ffffff;">
+              <p style="margin:0 0 8px;font-size:12px;line-height:18px;font-weight:700;">NIGAH EYEWEAR</p>
+              <p style="margin:0;font-size:11px;line-height:18px;">&copy; ${new Date().getFullYear()} Nigah Boutique Eyewear. All rights reserved.</p>
+              <p style="margin:8px 0 0;font-size:11px;line-height:18px;">For assistance, reply to this email.</p>
             </td>
           </tr>
-
         </table>
       </td>
     </tr>
@@ -55,198 +47,106 @@ function baseWrapper(content: string): string {
 </html>`;
 }
 
-function pill(text: string, color = BRAND_COLOR): string {
-  return `<span style="display:inline-block;background:${color};color:#fff;padding:4px 14px;border-radius:20px;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;">${text}</span>`;
+function heading(label: string, title: string): string {
+  return `<p style="margin:0 0 10px;font-size:11px;line-height:16px;font-weight:700;letter-spacing:2px;text-transform:uppercase;">${label}</p>
+    <h1 class="heading" style="margin:0 0 24px;font-size:28px;line-height:1.25;font-weight:700;overflow-wrap:anywhere;word-break:break-word;">${title}</h1>`;
 }
 
 function infoRow(label: string, value: string): string {
-  return `
-    <tr>
-      <td style="padding:10px 0;border-bottom:1px solid ${BORDER_COLOR};color:#666;font-size:13px;width:35%;vertical-align:top;">${label}</td>
-      <td style="padding:10px 0;border-bottom:1px solid ${BORDER_COLOR};color:${DARK_COLOR};font-size:13px;font-weight:600;vertical-align:top;">${value}</td>
-    </tr>`;
+  return `<tr>
+    <td width="35%" style="padding:13px 12px 13px 0;border-bottom:1px solid #000000;font-size:12px;line-height:20px;vertical-align:top;">${label}</td>
+    <td style="padding:13px 0;border-bottom:1px solid #000000;font-size:13px;line-height:20px;font-weight:600;vertical-align:top;overflow-wrap:anywhere;word-break:break-word;">${value}</td>
+  </tr>`;
 }
 
-// ─── ORDER EMAIL (Customer Receipt) ─────────────────────────────────────────
+function details(rows: string): string {
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="table-layout:fixed;margin:0 0 24px;">${rows}</table>`;
+}
+
+function note(label: string, message: string): string {
+  if (!message) return "";
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="table-layout:fixed;margin:0 0 24px;border:1px solid #000000;">
+    <tr><td style="padding:16px;">
+      <p style="margin:0 0 8px;font-size:11px;line-height:16px;font-weight:700;text-transform:uppercase;">${label}</p>
+      <p style="margin:0;font-size:13px;line-height:21px;overflow-wrap:anywhere;word-break:break-word;">${message.replace(/\r?\n/g, "<br />")}</p>
+    </td></tr>
+  </table>`;
+}
+
+function orderRows(order: any): string {
+  const total = Number(order.total);
+  const quantity = Number(order.quantity);
+  return (
+    infoRow("Order reference", order.reference || "Not provided") +
+    infoRow("Customer", order.customer_name || "Valued Customer") +
+    infoRow("Contact", order.contact || "Not provided") +
+    infoRow("Product", order.product_name || "Not provided") +
+    (order.variant_label ? infoRow("Variant", order.variant_label) : "") +
+    (Number.isInteger(quantity) && quantity > 0 ? infoRow("Quantity", String(quantity)) : "") +
+    (order.total != null && Number.isFinite(total) && total >= 0
+      ? infoRow(
+          "Order total",
+          `PKR ${total.toLocaleString("en-PK", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+        )
+      : "")
+  );
+}
+
 export function getOrderEmailTemplate(order: any): string {
-  const content = `
-    <tr>
-      <td style="padding:36px 40px;">
-        <p style="margin:0 0 4px;color:#888;font-size:12px;text-transform:uppercase;letter-spacing:2px;">Order Confirmation</p>
-        <h2 style="margin:0 0 24px;color:${DARK_COLOR};font-size:22px;">Thank you, ${order.customer_name || "Valued Customer"}!</h2>
-        <p style="margin:0 0 24px;color:#555;font-size:14px;line-height:1.7;">
-          We have successfully received your order. Our optical specialists are reviewing it and will contact you shortly to confirm payment and delivery.
-        </p>
-
-        <!-- Order Reference Badge -->
-        <div style="background:${LIGHT_BG};border:1px solid ${BORDER_COLOR};border-radius:8px;padding:16px 20px;margin:0 0 24px;text-align:center;">
-          <p style="margin:0 0 4px;color:#888;font-size:11px;letter-spacing:2px;text-transform:uppercase;">Your Order Reference</p>
-          <p style="margin:0;color:${BRAND_COLOR};font-size:24px;font-weight:700;letter-spacing:3px;">${order.reference || "—"}</p>
-          <p style="margin:6px 0 0;color:#999;font-size:11px;">Keep this for tracking your order</p>
-        </div>
-
-        <!-- Order Details Table -->
-        <h3 style="margin:0 0 12px;color:${DARK_COLOR};font-size:14px;text-transform:uppercase;letter-spacing:1px;">Order Details</h3>
-        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:24px;">
-          ${infoRow("Product", order.product_name || "—")}
-          ${order.variant_label ? infoRow("Variant", order.variant_label) : ""}
-          ${infoRow("Status", pill("Received"))}
-          ${infoRow("Contact", order.contact || "—")}
-        </table>
-
-        ${
-          order.message
-            ? `
-        <div style="background:${LIGHT_BG};border-left:3px solid ${BRAND_COLOR};padding:12px 16px;border-radius:0 6px 6px 0;margin-bottom:24px;">
-          <p style="margin:0 0 4px;color:#888;font-size:11px;text-transform:uppercase;letter-spacing:1px;">Notes</p>
-          <p style="margin:0;color:#555;font-size:13px;line-height:1.6;">${order.message.replace(/\n/g, "<br/>")}</p>
-        </div>`
-            : ""
-        }
-
-        <!-- Next Steps -->
-        <div style="background:#fff8ee;border:1px solid #f0d898;border-radius:8px;padding:16px 20px;margin-bottom:24px;">
-          <p style="margin:0 0 8px;color:#a07800;font-size:13px;font-weight:700;">⏱ What happens next?</p>
-          <ul style="margin:0;padding:0 0 0 18px;color:#555;font-size:13px;line-height:1.8;">
-            <li>Our team will call / WhatsApp you to confirm your order.</li>
-            <li>Payment is made on delivery or in-store — no online payment needed.</li>
-            <li>We will update you with dispatch details once ready.</li>
-          </ul>
-        </div>
-
-        <p style="margin:0;color:#555;font-size:14px;">Warm regards,<br/><strong style="color:${DARK_COLOR};">The Nigah Team</strong></p>
-      </td>
-    </tr>`;
-  return baseWrapper(content);
+  return baseWrapper(`<tr><td class="content" style="padding:32px;">
+    ${heading("Order receipt", "Thank you for your order")}
+    <p style="margin:0 0 24px;font-size:14px;line-height:23px;">Hello ${order.customer_name || "Valued Customer"},<br />We have received your order. Please keep this receipt for your records.</p>
+    ${details(orderRows(order) + infoRow("Order status", "Received - awaiting confirmation"))}
+    ${note("Delivery address / order notes", order.message)}
+    ${note("What happens next", "Our team will contact you to confirm your order, payment and delivery details. We will share dispatch updates once your order is ready.")}
+    <p style="margin:0;font-size:13px;line-height:21px;">Thank you for choosing Nigah.<br /><strong>The Nigah Team</strong></p>
+  </td></tr>`);
 }
 
-// ─── ADMIN ORDER NOTIFICATION ────────────────────────────────────────────────
 export function getAdminOrderNotificationTemplate(order: any): string {
-  const content = `
-    <tr>
-      <td style="padding:36px 40px;">
-        <p style="margin:0 0 4px;color:#888;font-size:12px;text-transform:uppercase;letter-spacing:2px;">New Order Alert</p>
-        <h2 style="margin:0 0 24px;color:${DARK_COLOR};font-size:22px;">🛍️ New Order: ${order.reference || "—"}</h2>
-
-        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:24px;">
-          ${infoRow("Customer", order.customer_name || "—")}
-          ${infoRow("Contact", order.contact || "—")}
-          ${infoRow("Product", order.product_name || "—")}
-          ${order.variant_label ? infoRow("Variant", order.variant_label) : ""}
-          ${infoRow("Source", order.source || "—")}
-          ${infoRow("Reference", order.reference || "—")}
-        </table>
-
-        ${
-          order.message
-            ? `
-        <div style="background:${LIGHT_BG};border-left:3px solid ${BRAND_COLOR};padding:12px 16px;border-radius:0 6px 6px 0;margin-bottom:24px;">
-          <p style="margin:0 0 4px;color:#888;font-size:11px;text-transform:uppercase;letter-spacing:1px;">Customer Notes / Address</p>
-          <p style="margin:0;color:#555;font-size:13px;line-height:1.6;">${order.message.replace(/\n/g, "<br/>")}</p>
-        </div>`
-            : ""
-        }
-
-        <p style="margin:0;color:#888;font-size:12px;">Please follow up with the customer promptly.</p>
-      </td>
-    </tr>`;
-  return baseWrapper(content);
+  return baseWrapper(`<tr><td class="content" style="padding:32px;">
+    ${heading("New order notification", "New order received")}
+    <p style="margin:0 0 24px;font-size:13px;line-height:21px;">A new order is ready for review and confirmation.</p>
+    ${details(orderRows(order) + infoRow("Order source", order.source || "Website"))}
+    ${note("Customer notes / delivery address", order.message)}
+    <p style="margin:0;font-size:12px;line-height:20px;">Please confirm the order and delivery details with the customer.</p>
+  </td></tr>`);
 }
 
-// ─── QUERY EMAIL (Customer Confirmation) ────────────────────────────────────
 export function getQueryEmailTemplate(query: any): string {
-  const content = `
-    <tr>
-      <td style="padding:36px 40px;">
-        <p style="margin:0 0 4px;color:#888;font-size:12px;text-transform:uppercase;letter-spacing:2px;">Inquiry Received</p>
-        <h2 style="margin:0 0 24px;color:${DARK_COLOR};font-size:22px;">We've got your message, ${query.name || "there"}!</h2>
-        <p style="margin:0 0 24px;color:#555;font-size:14px;line-height:1.7;">
-          Thank you for reaching out. Our optical specialists have received your inquiry and will get back to you <strong>within the same working day</strong>.
-        </p>
-
-        <div style="background:${LIGHT_BG};border:1px solid ${BORDER_COLOR};border-radius:8px;padding:20px;margin-bottom:24px;">
-          <p style="margin:0 0 12px;color:#888;font-size:12px;text-transform:uppercase;letter-spacing:1px;">Your Inquiry Summary</p>
-          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
-            ${query.product_name ? infoRow("About", query.product_name) : ""}
-            ${infoRow("We'll reply to", query.contact || "—")}
-          </table>
-          ${
-            query.message
-              ? `
-          <div style="margin-top:16px;padding-top:16px;border-top:1px solid ${BORDER_COLOR};">
-            <p style="margin:0 0 6px;color:#888;font-size:11px;text-transform:uppercase;letter-spacing:1px;">Your message</p>
-            <p style="margin:0;color:#555;font-size:13px;line-height:1.6;">${query.message.replace(/\n/g, "<br/>")}</p>
-          </div>`
-              : ""
-          }
-        </div>
-
-        <p style="margin:0 0 24px;color:#555;font-size:14px;line-height:1.7;">
-          Meanwhile, you can also reach us instantly on WhatsApp for the quickest response.
-        </p>
-
-        <p style="margin:0;color:#555;font-size:14px;">Kind regards,<br/><strong style="color:${DARK_COLOR};">The Nigah Team</strong></p>
-      </td>
-    </tr>`;
-  return baseWrapper(content);
+  return baseWrapper(`<tr><td class="content" style="padding:32px;">
+    ${heading("Inquiry confirmation", "We received your message")}
+    <p style="margin:0 0 24px;font-size:14px;line-height:23px;">Hello ${query.name || "there"},<br />Thank you for contacting Nigah. Our team will review your inquiry and get back to you shortly.</p>
+    ${details(
+      (query.product_name ? infoRow("Product", query.product_name) : "") +
+        infoRow("Contact", query.contact || "Not provided"),
+    )}
+    ${note("Your message", query.message)}
+    <p style="margin:0;font-size:13px;line-height:21px;">Kind regards,<br /><strong>The Nigah Team</strong></p>
+  </td></tr>`);
 }
 
-// ─── ADMIN QUERY NOTIFICATION ────────────────────────────────────────────────
 export function getAdminQueryNotificationTemplate(query: any): string {
-  const content = `
-    <tr>
-      <td style="padding:36px 40px;">
-        <p style="margin:0 0 4px;color:#888;font-size:12px;text-transform:uppercase;letter-spacing:2px;">New Customer Inquiry</p>
-        <h2 style="margin:0 0 24px;color:${DARK_COLOR};font-size:22px;">💬 New Query from ${query.name || "Customer"}</h2>
-
-        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:24px;">
-          ${infoRow("From", query.name || "—")}
-          ${infoRow("Contact", query.contact || "—")}
-          ${query.product_name ? infoRow("About", query.product_name) : ""}
-        </table>
-
-        ${
-          query.message
-            ? `
-        <div style="background:${LIGHT_BG};border-left:3px solid ${BRAND_COLOR};padding:12px 16px;border-radius:0 6px 6px 0;margin-bottom:24px;">
-          <p style="margin:0 0 4px;color:#888;font-size:11px;text-transform:uppercase;letter-spacing:1px;">Message</p>
-          <p style="margin:0;color:#555;font-size:13px;line-height:1.6;">${query.message.replace(/\n/g, "<br/>")}</p>
-        </div>`
-            : ""
-        }
-      </td>
-    </tr>`;
-  return baseWrapper(content);
+  return baseWrapper(`<tr><td class="content" style="padding:32px;">
+    ${heading("Customer inquiry", "New message received")}
+    ${details(
+      infoRow("Customer", query.name || "Customer") +
+        infoRow("Contact", query.contact || "Not provided") +
+        (query.product_name ? infoRow("Product", query.product_name) : ""),
+    )}
+    ${note("Message", query.message)}
+  </td></tr>`);
 }
 
-// ─── NEWSLETTER WELCOME EMAIL ────────────────────────────────────────────────
 export function getSubscriberEmailTemplate(): string {
-  const content = `
-    <tr>
-      <td style="padding:36px 40px;text-align:center;">
-        <div style="margin-bottom:24px;">
-          <p style="margin:0;font-size:40px;">👓</p>
-        </div>
-        <p style="margin:0 0 4px;color:#888;font-size:12px;text-transform:uppercase;letter-spacing:2px;">You're in!</p>
-        <h2 style="margin:0 0 16px;color:${DARK_COLOR};font-size:24px;">Welcome to Nigah</h2>
-        <p style="margin:0 0 24px;color:#555;font-size:14px;line-height:1.8;max-width:440px;margin-left:auto;margin-right:auto;">
-          Thank you for subscribing! You're now part of an exclusive circle that gets first access to new collections, expert optical advice, and special offers.
-        </p>
-
-        <div style="background:${LIGHT_BG};border:1px solid ${BORDER_COLOR};border-radius:8px;padding:20px;margin:0 0 28px;text-align:left;">
-          <p style="margin:0 0 12px;color:${DARK_COLOR};font-size:13px;font-weight:700;">What to expect:</p>
-          <ul style="margin:0;padding:0 0 0 18px;color:#555;font-size:13px;line-height:2;">
-            <li>New collection launches before anyone else</li>
-            <li>Exclusive subscriber-only discounts</li>
-            <li>Optical care tips from our specialists</li>
-            <li>Style guides & trend reports</li>
-          </ul>
-        </div>
-
-        <a href="https://www.nigah.store" style="display:inline-block;background-color:${BRAND_COLOR};color:#fff;padding:14px 32px;text-decoration:none;border-radius:30px;font-weight:700;letter-spacing:2px;text-transform:uppercase;font-size:12px;">Explore the Collection</a>
-
-        <p style="margin:28px 0 0;color:#aaa;font-size:12px;">Subscribed by mistake? Simply ignore this email.</p>
+  return baseWrapper(`<tr><td class="content" style="padding:32px;">
+    ${heading("Newsletter", "Welcome to Nigah")}
+    <p style="margin:0 0 24px;font-size:14px;line-height:23px;">Thank you for subscribing. You will receive updates on new collections, exclusive offers and eyewear care from the Nigah team.</p>
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
+      <td style="border:2px solid #000000;padding:14px 22px;">
+        <a href="${SITE_URL}" style="color:#000000;font-size:12px;font-weight:700;text-decoration:none;">Explore the collection &rarr;</a>
       </td>
-    </tr>`;
-  return baseWrapper(content);
+    </tr></table>
+    <p style="margin:24px 0 0;font-size:11px;line-height:18px;">If you did not subscribe, you can ignore this email.</p>
+  </td></tr>`);
 }

@@ -21,6 +21,13 @@ interface TrackMetaEventOptions {
   customData?: MetaCustomDataInput;
 }
 
+const commerceDataLayerEvents: Partial<Record<MetaEventName, string>> = {
+  ViewContent: "meta_view_content",
+  AddToCart: "meta_add_to_cart",
+  InitiateCheckout: "meta_initiate_checkout",
+  Purchase: "meta_purchase",
+};
+
 export function createMetaEventId(prefix: string) {
   const id =
     typeof crypto.randomUUID === "function"
@@ -40,17 +47,24 @@ export function splitMetaName(fullName: string) {
 export function trackMetaBrowserEvent(input: TrackMetaEventOptions) {
   const eventId = input.eventId ?? createMetaEventId(input.eventName.toLowerCase());
   const customData = buildMetaCustomData(input.customData);
+  const commerceEvent = commerceDataLayerEvents[input.eventName];
+  if (commerceEvent) {
+    customData["value"] = Number.isFinite(input.customData?.value) ? input.customData!.value : 0;
+    customData["currency"] = "PKR";
+    customData["content_ids"] = input.customData?.contentIds ?? [];
+  }
 
   window.dataLayer = window.dataLayer || [];
   window.dataLayer.push({
-    event: "meta_event",
+    event: commerceEvent ?? "meta_event",
     event_name: input.eventName,
     event_id: eventId,
     ...input.customData,
     ...customData,
   });
 
-  if (typeof window.fbq === "function") {
+  // GTM owns commerce Pixel tags; direct calls would send the event twice.
+  if (!commerceEvent && typeof window.fbq === "function") {
     window.fbq("track", input.eventName, customData, { eventID: eventId });
   }
   return eventId;

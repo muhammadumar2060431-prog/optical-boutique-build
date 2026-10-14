@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { createFileRoute, useSearch } from "@tanstack/react-router";
-import { CheckCircle2, Clock, Mail, MapPin, Phone } from "lucide-react";
+import { CheckCircle2, Mail, Phone } from "lucide-react";
 
 import { SiteLayout } from "@/components/site/SiteLayout";
 import { PageFaqs } from "@/components/site/PageFaqs";
@@ -22,13 +22,13 @@ export const Route = createFileRoute("/contact")({
   }),
   head: () => ({
     meta: [
-      { title: "Contact Nigah — Expert Optician Support & Inquiries" },
+      { title: "Contact Nigah | Expert Optician Support & Inquiries" },
       {
         name: "description",
         content:
           "Connect with Nigah optical specialists via WhatsApp, email, or inquiry form for personalized frame fittings, lens advice, and order assistance.",
       },
-      { property: "og:title", content: "Contact Nigah — Expert Optician Support & Inquiries" },
+      { property: "og:title", content: "Contact Nigah | Expert Optician Support & Inquiries" },
       {
         property: "og:description",
         content:
@@ -152,14 +152,14 @@ function ContactPage() {
               Talk to an optician
             </h1>
             <p className="mt-3 max-w-md text-[15px] leading-relaxed text-black sm:text-sm">
-              Send us a note about a frame, a prescription or a repair — we usually reply the same
+              Send us a note about a frame, a prescription or a repair. We usually reply the same
               working day.
             </p>
 
             {sent ? (
               <div className="mt-8 rounded-xl border border-stone bg-card p-8">
                 <CheckCircle2 className="h-8 w-8 text-black" />
-                <h2 className="mt-4 font-display text-2xl">Thanks — message received</h2>
+                <h2 className="mt-4 font-display text-2xl">Thanks, message received</h2>
                 <p className="mt-2 text-sm text-black">
                   We'll get back to you shortly on WhatsApp or email.
                 </p>
@@ -265,25 +265,23 @@ function ContactPage() {
               </span>
             </button>
 
-            <div className="space-y-4 rounded-xl border border-stone bg-mist p-5 text-sm sm:p-6">
-              <p className="eyebrow text-black">Showroom</p>
-              <p className="flex min-w-0 gap-3">
-                <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-black" />
-                {settings.address}
-              </p>
-              <p className="flex min-w-0 gap-3">
-                <Phone className="mt-0.5 h-4 w-4 shrink-0 text-black" />
-                {settings.phone}
-              </p>
-              <p className="flex min-w-0 gap-3">
-                <Mail className="mt-0.5 h-4 w-4 shrink-0 text-black" />
-                <span className="break-all">{settings.email}</span>
-              </p>
-              <p className="flex min-w-0 gap-3">
-                <Clock className="mt-0.5 h-4 w-4 shrink-0 text-black" />
-                {settings.hours}
-              </p>
-            </div>
+            {(settings.phone?.trim() || settings.email?.trim()) && (
+              <div className="space-y-4 rounded-xl border border-stone bg-mist p-5 text-sm sm:p-6">
+                <p className="eyebrow text-black">Showroom</p>
+                {settings.phone?.trim() && (
+                  <p className="flex min-w-0 gap-3">
+                    <Phone aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-black" />
+                    <span className="min-w-0 break-words">{settings.phone.trim()}</span>
+                  </p>
+                )}
+                {settings.email?.trim() && (
+                  <p className="flex min-w-0 gap-3">
+                    <Mail aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-black" />
+                    <span className="min-w-0 break-all">{settings.email.trim()}</span>
+                  </p>
+                )}
+              </div>
+            )}
             <PageFaqs page="contact" />
           </aside>
         </div>
