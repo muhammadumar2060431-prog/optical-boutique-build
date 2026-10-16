@@ -3,7 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 import { ProductImage } from "@/components/site/ProductImage";
-import { useStore } from "@/lib/store";
+import { formatPrice, useStore } from "@/lib/store";
 import type { Product } from "@/lib/types";
 
 export function NewArrivalsShowcase() {
@@ -176,6 +176,24 @@ export function NewArrivalsShowcase() {
               {centerItem.name}
             </h3>
           </Link>
+
+          {/* Price */}
+          <div className="flex items-baseline justify-center gap-2">
+            {centerItem.salePrice != null ? (
+              <>
+                <span className="text-base font-bold text-black sm:text-xl">
+                  {formatPrice(centerItem.salePrice)}
+                </span>
+                <span className="text-xs font-medium text-red-500 line-through sm:text-sm">
+                  {formatPrice(centerItem.price)}
+                </span>
+              </>
+            ) : (
+              <span className="text-base font-bold text-black sm:text-xl">
+                {formatPrice(centerItem.price)}
+              </span>
+            )}
+          </div>
 
           {/* SHOP NOW Black Pill Button */}
           <div>
