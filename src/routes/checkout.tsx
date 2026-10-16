@@ -109,7 +109,7 @@ function CheckoutPage() {
       customData: {
         value: subtotal,
         currency: "PKR",
-        contentIds: items.map((item) => item.productId),
+        contentIds: Array.from(new Set(items.map((item) => item.productId))),
         contentType: "product",
         contentName: "Shopping bag checkout",
         numItems: items.reduce((total, item) => total + item.qty, 0),
@@ -199,7 +199,7 @@ function CheckoutPage() {
           customData: {
             value: subtotal,
             currency: "PKR",
-            contentIds: items.map((item) => item.productId),
+            contentIds: Array.from(new Set(items.map((item) => item.productId))),
             contentType: "product",
             contentName: "Order " + reference,
             numItems: items.reduce((total, item) => total + item.qty, 0),

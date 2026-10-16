@@ -128,3 +128,26 @@ it("waits for an asynchronously loaded Pixel cookie before sending an anonymous 
   document.cookie = "_fbp=fb.1.1700000000000.123456789";
   await completed;
 });
+
+it("returns eventId and does nothing else when window is undefined", (t) => {
+  const originalWindow = Object.getOwnPropertyDescriptor(globalThis, "window");
+  if (originalWindow) {
+    Reflect.deleteProperty(globalThis, "window");
+  }
+  t.after(() => {
+    if (originalWindow) Object.defineProperty(globalThis, "window", originalWindow);
+  });
+
+  const eventId = trackMetaBrowserEvent({
+    eventName: "AddToCart",
+    eventId: "cart:ssr-test",
+    customData: { value: 1000 },
+  });
+  assert.equal(eventId, "cart:ssr-test");
+
+  const generatedId = trackMetaBrowserEvent({
+    eventName: "Purchase",
+  });
+  assert.match(generatedId, /^purchase:/);
+});
+

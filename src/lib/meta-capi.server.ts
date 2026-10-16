@@ -30,6 +30,17 @@ export function hashMetaValue(value: string) {
   return createHash("sha256").update(value.trim().toLowerCase(), "utf8").digest("hex");
 }
 
+export function normalizeMetaPhone(phone: string) {
+  let digits = phone.replace(/\D/g, "");
+  if (digits.startsWith("00")) {
+    digits = digits.slice(2);
+  }
+  if (digits.startsWith("0") && digits.length === 11) {
+    digits = `92${digits.slice(1)}`;
+  }
+  return digits;
+}
+
 function parseCookies(request: Request) {
   const values = new Map<string, string>();
   for (const item of (request.headers.get("cookie") ?? "").split(";")) {
@@ -71,7 +82,8 @@ function buildUserData(input: MetaUserDataInput | undefined, request: Request): 
 
   for (const [inputKey, outputKey] of hashedFields) {
     const rawValue = input?.[inputKey]?.trim();
-    const value = inputKey === "phone" ? rawValue?.replace(/\D/g, "") : rawValue;
+    const value =
+      inputKey === "phone" && rawValue ? normalizeMetaPhone(rawValue) : rawValue;
     if (value) userData[outputKey] = [hashMetaValue(value)];
   }
 
@@ -104,7 +116,8 @@ export function buildMetaCapiPayload(
     user_data: buildUserData(input.userData, request),
     ...(Object.keys(customData).length ? { custom_data: customData } : {}),
   };
-  const testEventCode = options.testEventCode?.trim();
+  const isProduction = process.env["NODE_ENV"] === "production";
+  const testEventCode = !isProduction ? options.testEventCode?.trim() : undefined;
   return {
     data: [event],
     ...(testEventCode ? { test_event_code: testEventCode } : {}),

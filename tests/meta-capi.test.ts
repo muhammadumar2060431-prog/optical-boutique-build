@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { describe, it } from "node:test";
 
-import { buildMetaCapiPayload, hashMetaValue } from "../src/lib/meta-capi.server.ts";
+import { buildMetaCapiPayload, hashMetaValue, normalizeMetaPhone } from "../src/lib/meta-capi.server.ts";
 
 function expectedHash(value: string) {
   return createHash("sha256").update(value.trim().toLowerCase(), "utf8").digest("hex");
@@ -38,6 +38,31 @@ describe("Meta Conversions API payload", () => {
   });
   it("normalizes and hashes PII with SHA-256", () => {
     assert.equal(hashMetaValue("  AYESHA@EXAMPLE.COM "), expectedHash("ayesha@example.com"));
+  });
+
+  it("normalizes phone numbers before hashing (03xx, +92, 92, 0092)", () => {
+    assert.equal(normalizeMetaPhone("03001234567"), "923001234567");
+    assert.equal(normalizeMetaPhone("+92 300 1234567"), "923001234567");
+    assert.equal(normalizeMetaPhone("923001234567"), "923001234567");
+    assert.equal(normalizeMetaPhone("0092 300 1234567"), "923001234567");
+
+    for (const rawPhone of [
+      "03001234567",
+      "+92 300 1234567",
+      "923001234567",
+      "0092 300 1234567",
+    ]) {
+      const payload = buildMetaCapiPayload(
+        {
+          eventName: "Lead",
+          eventId: "lead:test-phone",
+          eventSourceUrl: "https://www.nigah.store/contact",
+          userData: { phone: rawPhone },
+        },
+        trackingRequest(),
+      );
+      assert.deepEqual(payload.data[0]?.user_data.ph, [expectedHash("923001234567")]);
+    }
   });
 
   it("maps hashed PII, request context, cookies, and custom data", () => {
@@ -102,5 +127,26 @@ describe("Meta Conversions API payload", () => {
       { testEventCode: "TEST12345" },
     );
     assert.equal(payload.test_event_code, "TEST12345");
+  });
+
+  it("does not include test_event_code when NODE_ENV is production", (t) => {
+    const originalEnv = process.env["NODE_ENV"];
+    process.env["NODE_ENV"] = "production";
+    t.after(() => {
+      if (originalEnv !== undefined) process.env["NODE_ENV"] = originalEnv;
+      else delete process.env["NODE_ENV"];
+    });
+
+    const payload = buildMetaCapiPayload(
+      {
+        eventName: "Lead",
+        eventId: "lead:test-prod",
+        eventSourceUrl: "https://www.nigah.store/contact",
+      },
+      trackingRequest(),
+      { testEventCode: "TEST_IN_PROD" },
+    );
+    assert.equal("test_event_code" in payload, false);
+    assert.equal(payload.test_event_code, undefined);
   });
 });

@@ -28,10 +28,11 @@ const commerceDataLayerEvents: Partial<Record<MetaEventName, string>> = {
 };
 
 export function createMetaEventId(prefix: string) {
-  const id =
-    typeof crypto.randomUUID === "function"
-      ? crypto.randomUUID()
-      : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+  const hasRandomUuid =
+    typeof crypto !== "undefined" && typeof crypto.randomUUID === "function";
+  const id = hasRandomUuid
+    ? crypto.randomUUID()
+    : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
   return `${prefix}:${id}`;
 }
 
@@ -45,6 +46,9 @@ export function splitMetaName(fullName: string) {
 
 export function trackMetaBrowserEvent(input: TrackMetaEventOptions) {
   const eventId = input.eventId ?? createMetaEventId(input.eventName.toLowerCase());
+  if (typeof window === "undefined") {
+    return eventId;
+  }
   const customData = buildMetaCustomData(input.customData);
   const commerceEvent = commerceDataLayerEvents[input.eventName];
   if (commerceEvent) {
@@ -67,10 +71,16 @@ export function trackMetaBrowserEvent(input: TrackMetaEventOptions) {
 
 export function trackMetaEvent(input: TrackMetaEventOptions) {
   const eventId = trackMetaBrowserEvent(input);
+  if (typeof window === "undefined") {
+    return eventId;
+  }
+  const eventSourceUrl =
+    input.eventSourceUrl ??
+    (typeof window !== "undefined" && window.location ? window.location.href : "");
   const event: MetaEventInput = {
     eventName: input.eventName,
     eventId,
-    eventSourceUrl: input.eventSourceUrl ?? window.location.href,
+    eventSourceUrl,
     ...(input.userData ? { userData: input.userData } : {}),
     ...(input.customData ? { customData: input.customData } : {}),
   };
@@ -79,7 +89,7 @@ export function trackMetaEvent(input: TrackMetaEventOptions) {
     // The GTM Pixel loads asynchronously; let its existing matching cookie arrive.
     const hasCustomerData =
       input.userData?.email || input.userData?.phone || input.userData?.externalId;
-    if (!hasCustomerData) {
+    if (!hasCustomerData && typeof document !== "undefined") {
       for (let attempt = 0; attempt < 15; attempt++) {
         if (/(?:^|;\s*)_fb[pc]=/.test(document.cookie)) break;
         await new Promise((resolve) => setTimeout(resolve, 100));
