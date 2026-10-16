@@ -87,6 +87,49 @@ describe("API v1 order handlers", () => {
     assert.equal((await replay.json()).replayed, true);
   });
 
+  it("enriches CAPI metaEvent with authoritative backend order total", async () => {
+    let capturedEvent: unknown = null;
+    const repo = createRepository();
+    const origCreate = repo.create;
+    repo.create = async (input, key, hash, rate) => {
+      const res = (await origCreate(input, key, hash, rate)) as { orders: Array<Record<string, unknown>> };
+      res.orders[0]!["total"] = 3500;
+      res.orders[0]!["unitPrice"] = 3500;
+      return res;
+    };
+    const handlers = createOrderHandlers(repo, {
+      onCreated: async (_req, event) => {
+        capturedEvent = event;
+      },
+    });
+    const create = protectedHandler(handlers.create, "test.orders.create");
+    await create({
+      request: request("/api/v1/orders", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Idempotency-Key": "checkout:test-capi-authoritative",
+        },
+        body: JSON.stringify({
+          orders: [validOrder],
+          metaEvent: {
+            eventName: "Purchase",
+            eventId: "purchase_OPT-TEST12345",
+            eventSourceUrl: "https://www.nigah.store/checkout",
+            customData: {
+              value: 100,
+              currency: "PKR",
+            },
+          },
+        }),
+      }),
+    });
+    assert.ok(capturedEvent);
+    const event = capturedEvent as { customData?: { value?: number; currency?: string; contents?: unknown[] } };
+    assert.equal(event.customData?.value, 3500, "Must be updated with authoritative backend total");
+    assert.equal(event.customData?.currency, "PKR");
+  });
+
   it("covers list, read, update, and delete", async () => {
     const handlers = createOrderHandlers(createRepository());
     await handlers.create(

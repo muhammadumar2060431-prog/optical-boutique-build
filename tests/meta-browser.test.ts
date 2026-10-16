@@ -151,3 +151,112 @@ it("returns eventId and does nothing else when window is undefined", (t) => {
   assert.match(generatedId, /^purchase:/);
 });
 
+it("tracks distinct dynamic purchase values for different orders (e.g. 2400, 3500, 5200 PKR)", (t) => {
+  const originalWindow = Object.getOwnPropertyDescriptor(globalThis, "window");
+  const browser = { dataLayer: [] as Record<string, unknown>[] };
+  Object.defineProperty(globalThis, "window", { configurable: true, value: browser });
+  t.after(() => {
+    if (originalWindow) Object.defineProperty(globalThis, "window", originalWindow);
+    else Reflect.deleteProperty(globalThis, "window");
+  });
+
+  const testOrders = [
+    { reference: "OPT-ORD001", total: 2400, items: ["prd-1"] },
+    { reference: "OPT-ORD002", total: 3500, items: ["prd-2"] },
+    { reference: "OPT-ORD003", total: 5200, items: ["prd-1", "prd-3"] },
+  ];
+
+  for (const order of testOrders) {
+    const eventId = `purchase_${order.reference}`;
+    trackMetaBrowserEvent({
+      eventName: "Purchase",
+      eventId,
+      customData: {
+        value: order.total,
+        currency: "PKR",
+        contentIds: order.items,
+        contentType: "product",
+        contentName: "Order " + order.reference,
+        numItems: order.items.length,
+      },
+    });
+  }
+
+  assert.equal(browser.dataLayer.length, 3);
+  assert.equal(browser.dataLayer[0]?.["event"], "meta_purchase");
+  assert.equal(browser.dataLayer[0]?.["value"], 2400);
+  assert.equal(browser.dataLayer[0]?.["event_id"], "purchase_OPT-ORD001");
+  assert.equal(browser.dataLayer[0]?.["currency"], "PKR");
+
+  assert.equal(browser.dataLayer[1]?.["value"], 3500);
+  assert.equal(browser.dataLayer[1]?.["event_id"], "purchase_OPT-ORD002");
+
+  assert.equal(browser.dataLayer[2]?.["value"], 5200);
+  assert.equal(browser.dataLayer[2]?.["event_id"], "purchase_OPT-ORD003");
+  assert.deepEqual(browser.dataLayer[2]?.["content_ids"], ["prd-1", "prd-3"]);
+});
+
+it("suppresses Purchase browser push when value is invalid, 0, or missing", (t) => {
+  const originalWindow = Object.getOwnPropertyDescriptor(globalThis, "window");
+  const browser = { dataLayer: [] as Record<string, unknown>[] };
+  Object.defineProperty(globalThis, "window", { configurable: true, value: browser });
+  t.after(() => {
+    if (originalWindow) Object.defineProperty(globalThis, "window", originalWindow);
+    else Reflect.deleteProperty(globalThis, "window");
+  });
+
+  trackMetaBrowserEvent({
+    eventName: "Purchase",
+    eventId: "purchase_INVALID_ZERO",
+    customData: { value: 0 },
+  });
+  assert.equal(browser.dataLayer.length, 0, "Purchase with value 0 must be suppressed");
+
+  trackMetaBrowserEvent({
+    eventName: "Purchase",
+    eventId: "purchase_INVALID_NEGATIVE",
+    customData: { value: -500 },
+  });
+  assert.equal(browser.dataLayer.length, 0, "Purchase with negative value must be suppressed");
+
+  trackMetaBrowserEvent({
+    eventName: "Purchase",
+    eventId: "purchase_INVALID_NAN",
+    customData: { value: NaN },
+  });
+  assert.equal(browser.dataLayer.length, 0, "Purchase with NaN value must be suppressed");
+});
+
+it("includes contents array in purchase customData for Meta catalog matching", (t) => {
+  const originalWindow = Object.getOwnPropertyDescriptor(globalThis, "window");
+  const browser = { dataLayer: [] as Record<string, unknown>[] };
+  Object.defineProperty(globalThis, "window", { configurable: true, value: browser });
+  t.after(() => {
+    if (originalWindow) Object.defineProperty(globalThis, "window", originalWindow);
+    else Reflect.deleteProperty(globalThis, "window");
+  });
+
+  trackMetaBrowserEvent({
+    eventName: "Purchase",
+    eventId: "purchase_OPT-CATALOG1",
+    customData: {
+      value: 4800,
+      currency: "PKR",
+      contentIds: ["frame-black", "lens-blue"],
+      contents: [
+        { id: "frame-black", quantity: 1, item_price: 3600 },
+        { id: "lens-blue", quantity: 2, item_price: 600 },
+      ],
+      numItems: 3,
+    },
+  });
+
+  const entry = browser.dataLayer[0]!;
+  assert.equal(entry["event"], "meta_purchase");
+  assert.equal(entry["value"], 4800);
+  assert.deepEqual(entry["contents"], [
+    { id: "frame-black", quantity: 1, item_price: 3600 },
+    { id: "lens-blue", quantity: 2, item_price: 600 },
+  ]);
+});
+

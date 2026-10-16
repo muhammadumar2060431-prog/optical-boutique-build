@@ -62,13 +62,64 @@ export function createOrderHandlers(
         result !== null &&
         (result as Record<string, unknown>)["replayed"] === true;
       if (input.metaEvent && !replayed && options.onCreated) {
-        try {
-          await options.onCreated(request, input.metaEvent);
-        } catch {
-          logger.error("meta.capi.order-hook.failed", {
-            eventName: input.metaEvent.eventName,
-            eventId: input.metaEvent.eventId,
+        let metaEventToSend = input.metaEvent;
+        const orderRows =
+          typeof result === "object" &&
+          result !== null &&
+          Array.isArray((result as Record<string, unknown>)["orders"])
+            ? ((result as Record<string, unknown>)["orders"] as Array<Record<string, unknown>>)
+            : [];
+
+        const verifiedBackendTotal = orderRows.reduce((sum, row) => {
+          const rowTotal = Number(row["total"]);
+          return sum + (Number.isFinite(rowTotal) && rowTotal > 0 ? rowTotal : 0);
+        }, 0);
+
+        const currentEventValue = metaEventToSend.customData?.value;
+        const finalValue =
+          verifiedBackendTotal > 0
+            ? verifiedBackendTotal
+            : typeof currentEventValue === "number" &&
+                Number.isFinite(currentEventValue) &&
+                currentEventValue > 0
+              ? currentEventValue
+              : 0;
+
+        if (metaEventToSend.eventName === "Purchase" && finalValue <= 0) {
+          logger.error("meta.capi.purchase.invalid_value", {
+            eventName: metaEventToSend.eventName,
+            eventId: metaEventToSend.eventId,
           });
+        } else {
+          const orderContents =
+            orderRows.length > 0
+              ? orderRows.map((row) => ({
+                  id: String(row["productId"] ?? row["product_id"] ?? ""),
+                  quantity: Math.max(1, Math.round(Number(row["quantity"] ?? 1)) || 1),
+                  ...(Number.isFinite(Number(row["unitPrice"] ?? row["unit_price"]))
+                    ? { item_price: Number(row["unitPrice"] ?? row["unit_price"]) }
+                    : {}),
+                }))
+              : metaEventToSend.customData?.contents;
+
+          metaEventToSend = {
+            ...metaEventToSend,
+            customData: {
+              ...(metaEventToSend.customData ?? {}),
+              value: finalValue,
+              currency: "PKR",
+              ...(orderContents && orderContents.length > 0 ? { contents: orderContents } : {}),
+            },
+          };
+
+          try {
+            await options.onCreated(request, metaEventToSend);
+          } catch {
+            logger.error("meta.capi.order-hook.failed", {
+              eventName: metaEventToSend.eventName,
+              eventId: metaEventToSend.eventId,
+            });
+          }
         }
       }
       return json(result, { status: 201 });

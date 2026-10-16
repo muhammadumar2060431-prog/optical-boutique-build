@@ -9,5 +9,12 @@ export function buildMetaCustomData(input: MetaCustomDataInput | undefined) {
   if (input.contentType) data["content_type"] = input.contentType;
   if (input.contentName) data["content_name"] = input.contentName;
   if (input.numItems !== undefined) data["num_items"] = input.numItems;
+  if (input.contents?.length) {
+    data["contents"] = input.contents.map((item) => ({
+      id: item.id,
+      quantity: item.quantity,
+      ...(item.item_price !== undefined ? { item_price: item.item_price } : {}),
+    }));
+  }
   return data;
 }

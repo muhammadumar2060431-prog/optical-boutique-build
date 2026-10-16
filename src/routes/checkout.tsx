@@ -15,7 +15,6 @@ import { formatPrice, newOrderReference, useStore } from "@/lib/store";
 import { saveOrderReceipt } from "@/lib/last-order";
 import { reuseCheckoutAttempt, type CheckoutAttempt } from "@/lib/checkout-attempt";
 import {
-  createMetaEventId,
   splitMetaName,
   trackMetaBrowserEvent,
   trackMetaEvent,
@@ -187,7 +186,7 @@ function CheckoutPage() {
         const { firstName, lastName } = splitMetaName(values.name);
         const purchaseEvent = {
           eventName: "Purchase" as const,
-          eventId: createMetaEventId("purchase"),
+          eventId: `purchase_${reference}`,
           eventSourceUrl: window.location.href,
           userData: {
             email: values.email,
@@ -203,6 +202,11 @@ function CheckoutPage() {
             contentType: "product",
             contentName: "Order " + reference,
             numItems: items.reduce((total, item) => total + item.qty, 0),
+            contents: items.map((item) => ({
+              id: item.productId,
+              quantity: item.qty,
+              item_price: item.price,
+            })),
           },
         };
         const contact = [values.phone.trim(), values.email.trim()].filter(Boolean).join(" · ");
@@ -251,6 +255,16 @@ function CheckoutPage() {
       toast.error("Your order could not be saved. Please try again.");
       return;
     }
+
+    // Retrieve authoritative amount from verified backend orders
+    const authoritativeTotal = savedOrders.reduce(
+      (sum, o) =>
+        sum + (typeof o.total === "number" && Number.isFinite(o.total) && o.total > 0 ? o.total : 0),
+      0,
+    );
+    const finalPurchaseValue =
+      authoritativeTotal > 0 ? authoritativeTotal : subtotal > 0 ? subtotal : 0;
+
     saveOrderReceipt({
       reference,
       placedAt: new Date().toISOString(),
@@ -265,9 +279,18 @@ function CheckoutPage() {
         qty: i.qty,
         price: i.price,
       })),
-      subtotal,
+      subtotal: finalPurchaseValue,
     });
-    trackMetaBrowserEvent(purchaseEvent);
+
+    if (finalPurchaseValue > 0) {
+      purchaseEvent.customData = {
+        ...purchaseEvent.customData,
+        value: finalPurchaseValue,
+        currency: "PKR",
+      };
+      trackMetaBrowserEvent(purchaseEvent);
+    }
+
     if (newsletterChecked) void subscribeToNewsletter(values.email.trim());
     clearCart();
     void navigate({ to: "/order-confirmation", search: { ref: reference } });

@@ -22,6 +22,12 @@ export interface MetaUserDataInput {
   externalId?: string | undefined;
 }
 
+export interface MetaCustomItemInput {
+  id: string;
+  quantity: number;
+  item_price?: number | undefined;
+}
+
 export interface MetaCustomDataInput {
   value?: number | undefined;
   currency?: string | undefined;
@@ -29,6 +35,7 @@ export interface MetaCustomDataInput {
   contentType?: string | undefined;
   contentName?: string | undefined;
   numItems?: number | undefined;
+  contents?: MetaCustomItemInput[] | undefined;
 }
 
 export interface MetaEventInput {

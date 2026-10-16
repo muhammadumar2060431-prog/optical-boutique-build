@@ -149,4 +149,37 @@ describe("Meta Conversions API payload", () => {
     assert.equal("test_event_code" in payload, false);
     assert.equal(payload.test_event_code, undefined);
   });
+
+  it("includes contents array and dynamic values in custom_data for Purchase events", () => {
+    const payload = buildMetaCapiPayload(
+      {
+        eventName: "Purchase",
+        eventId: "purchase_OPT-TEST999",
+        eventSourceUrl: "https://www.nigah.store/checkout",
+        userData: { email: "customer@example.com" },
+        customData: {
+          value: 7800,
+          currency: "PKR",
+          contentIds: ["frame-gold", "lens-polar"],
+          contentType: "product",
+          numItems: 2,
+          contents: [
+            { id: "frame-gold", quantity: 1, item_price: 5200 },
+            { id: "lens-polar", quantity: 1, item_price: 2600 },
+          ],
+        },
+      },
+      trackingRequest(),
+    );
+
+    const event = payload.data[0]!;
+    assert.equal(event.event_name, "Purchase");
+    assert.equal(event.event_id, "purchase_OPT-TEST999");
+    assert.equal(event.custom_data?.["value"], 7800);
+    assert.equal(event.custom_data?.["currency"], "PKR");
+    assert.deepEqual(event.custom_data?.["contents"], [
+      { id: "frame-gold", quantity: 1, item_price: 5200 },
+      { id: "lens-polar", quantity: 1, item_price: 2600 },
+    ]);
+  });
 });

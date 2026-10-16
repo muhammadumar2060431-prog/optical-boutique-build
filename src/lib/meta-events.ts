@@ -52,9 +52,23 @@ export function trackMetaBrowserEvent(input: TrackMetaEventOptions) {
   const customData = buildMetaCustomData(input.customData);
   const commerceEvent = commerceDataLayerEvents[input.eventName];
   if (commerceEvent) {
-    customData["value"] = Number.isFinite(input.customData?.value) ? input.customData!.value : 0;
+    const rawValue = input.customData?.value;
+    const isValidPositiveValue =
+      typeof rawValue === "number" && Number.isFinite(rawValue) && rawValue > 0;
+
+    // For Purchase events, never default to 0. An invalid or zero purchase value must never be transmitted.
+    if (input.eventName === "Purchase" && !isValidPositiveValue) {
+      if (typeof console !== "undefined" && typeof console.warn === "function") {
+        console.warn("[MetaTracking] Web Purchase event suppressed: invalid or non-positive order value.");
+      }
+      return eventId;
+    }
+
+    customData["value"] = isValidPositiveValue ? rawValue : (Number.isFinite(rawValue) ? rawValue! : 0);
     customData["currency"] = "PKR";
     customData["content_ids"] = input.customData?.contentIds ?? [];
+    if (input.customData?.contentType) customData["content_type"] = input.customData.contentType;
+    if (input.customData?.numItems !== undefined) customData["num_items"] = input.customData.numItems;
   }
 
   window.dataLayer = window.dataLayer || [];

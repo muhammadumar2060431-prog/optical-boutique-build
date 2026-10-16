@@ -34,6 +34,16 @@ export const metaEventSchema = z.object({
       contentType: z.string().trim().min(1).max(100).optional(),
       contentName: z.string().trim().min(1).max(300).optional(),
       numItems: z.number().int().nonnegative().max(10_000).optional(),
+      contents: z
+        .array(
+          z.object({
+            id: z.string().trim().min(1).max(200),
+            quantity: z.number().int().positive().max(10_000),
+            item_price: z.number().finite().nonnegative().optional(),
+          }),
+        )
+        .max(100)
+        .optional(),
     })
     .optional(),
 });
