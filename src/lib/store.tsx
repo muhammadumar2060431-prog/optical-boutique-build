@@ -238,6 +238,8 @@ interface StoreApi extends StoreState {
   lockChannel: (channel: string) => void;
   submitVideoUrl: (url: string) => { ok: boolean; error?: string };
   updateVideoCaption: (caption: string) => void;
+  setVideoEnabled: (enabled: boolean) => Promise<boolean>;
+  updateVideoSettings: (patch: Partial<VideoSettings>) => Promise<boolean>;
   updateSettings: (patch: Partial<StoreSettings>) => Promise<boolean>;
   saveBrand: (brand: Brand) => Promise<boolean>;
   deleteBrand: (id: string) => Promise<boolean>;
@@ -934,7 +936,11 @@ export function StoreProvider({
       if (data.announcement) {
         setAnnouncement((prev) => ({ ...prev, ...data.announcement }));
       }
-      if (data.video) setVideo((prev) => ({ ...prev, ...data.video }));
+      if (data.video) {
+        setVideo((prev) => ({ ...prev, ...data.video, enabled: Boolean(data.video?.enabled) }));
+      } else {
+        setVideo((prev) => ({ ...prev, enabled: false }));
+      }
       setStorefrontError(false);
       setStorefrontReady(true);
     }
@@ -1144,6 +1150,18 @@ export function StoreProvider({
                 ? prev.map((q) => (q.id === mapped.id ? mapped : q))
                 : [mapped, ...prev],
             );
+          }
+        } else if (table === "video_settings") {
+          if (eventType === "DELETE" || !newRecord?.enabled) {
+            setVideo((prev) => ({ ...prev, enabled: false }));
+          } else {
+            setVideo({
+              lockedChannel: newRecord.locked_channel || "",
+              videoUrl: newRecord.video_url || newRecord.url || "",
+              videoId: newRecord.video_id || null,
+              caption: newRecord.caption || newRecord.title || "",
+              enabled: Boolean(newRecord.enabled),
+            });
           }
         }
       })
@@ -2002,6 +2020,30 @@ export function StoreProvider({
     });
   }, []);
 
+  const updateVideoSettings = useCallback<StoreApi["updateVideoSettings"]>(
+    async (patch) => {
+      let updated: VideoSettings | null = null;
+      setVideo((prev) => {
+        const next = { ...prev, ...patch };
+        updated = next;
+        return next;
+      });
+      if (updated) {
+        await dbUpsertVideo(updated);
+        if (isSupabaseConfigured) {
+          void invalidatePublicStorefront(supabase);
+        }
+      }
+      return true;
+    },
+    [],
+  );
+
+  const setVideoEnabled = useCallback<StoreApi["setVideoEnabled"]>(
+    (enabled) => updateVideoSettings({ enabled }),
+    [updateVideoSettings],
+  );
+
   const updateSettings = useCallback<StoreApi["updateSettings"]>(
     async (patch) => {
       const next = { ...settings, ...patch };
@@ -2454,6 +2496,8 @@ export function StoreProvider({
       lockChannel,
       submitVideoUrl,
       updateVideoCaption,
+      setVideoEnabled,
+      updateVideoSettings,
       updateSettings,
       saveBrand,
       deleteBrand,

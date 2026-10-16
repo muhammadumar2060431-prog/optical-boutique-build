@@ -642,6 +642,7 @@ export async function fetchInitialSupabaseData(
           videoUrl: videoRaw.video_url || videoRaw.url || videoRaw.videoUrl || "",
           videoId: videoRaw.videoId || videoRaw.video_id || null,
           caption: videoRaw.caption || videoRaw.title || "",
+          enabled: typeof videoRaw.enabled === "boolean" ? videoRaw.enabled : Boolean(videoRaw.active),
         }
       : null;
 
@@ -1283,13 +1284,15 @@ async function upsertAnnouncement(announcement: AnnouncementSettings): Promise<b
 }
 export async function dbUpsertVideo(video: VideoSettings) {
   try {
+    const isEnabled = Boolean(video.enabled);
     const { error } = await supabase.from("video_settings").upsert({
       id: "default",
       locked_channel: video.lockedChannel || "",
       video_url: video.videoUrl || "",
       video_id: video.videoId || null,
       caption: video.caption || "Crafted With Precision",
-      enabled: true,
+      enabled: isEnabled,
+      active: isEnabled,
       updated_at: new Date().toISOString(),
     });
     if (error) throw error;

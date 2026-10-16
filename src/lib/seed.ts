@@ -40,6 +40,7 @@ export const seedVideo: VideoSettings = {
   videoUrl: "",
   videoId: null,
   caption: "",
+  enabled: false,
 };
 
 export const seedSettings: StoreSettings = {

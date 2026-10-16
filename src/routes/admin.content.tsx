@@ -4,6 +4,8 @@ import {
   ArrowDown,
   ArrowUp,
   ExternalLink,
+  Eye,
+  EyeOff,
   Film,
   Lock,
   Pencil,
@@ -11,6 +13,7 @@ import {
   Plus,
   Save,
   Trash2,
+  Video,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -19,6 +22,7 @@ import { useImageUploads } from "@/lib/use-image-uploads";
 import { ProductPicker } from "@/components/admin/ProductPicker";
 import { useAdminProductLookup } from "@/lib/product-selection";
 import { sanitizeHref, validateImageUrl, validateSocialVideoUrl } from "@/lib/security";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -803,13 +807,80 @@ function BannerPanel() {
 }
 
 function VideoPanel() {
-  const { video, lockChannel, submitVideoUrl, updateVideoCaption } = useStore();
+  const { video, lockChannel, submitVideoUrl, updateVideoCaption, setVideoEnabled } = useStore();
   const [url, setUrl] = useState(video.videoUrl);
   const [channel, setChannel] = useState(video.lockedChannel);
   const [error, setError] = useState("");
+  const [isUpdatingVisibility, setIsUpdatingVisibility] = useState(false);
+
+  const handleToggleVisibility = async (nextState: boolean) => {
+    setIsUpdatingVisibility(true);
+    try {
+      const ok = await setVideoEnabled(nextState);
+      if (ok) {
+        toast.success(
+          nextState
+            ? "Workshop video section is now VISIBLE on website (Home & About pages)."
+            : "Workshop video section is now HIDDEN from website.",
+        );
+      }
+    } catch {
+      toast.error("Failed to update video visibility. Please try again.");
+    } finally {
+      setIsUpdatingVisibility(false);
+    }
+  };
 
   return (
     <div className="space-y-4">
+      {/* Visibility Control Card */}
+      <div className="rounded-xl border border-stone bg-card p-6 shadow-sm">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2.5">
+              <Film className="h-5 w-5 text-gold" />
+              <h2 className="font-display text-xl">Show Workshop Video</h2>
+              <Badge variant={video.enabled ? "default" : "secondary"} className="text-xs">
+                {video.enabled ? "Visible on Website" : "Hidden from Website"}
+              </Badge>
+            </div>
+            <p className="text-sm text-ink-muted">
+              Control whether the workshop/warehouse video section is displayed to visitors across the Home and About pages.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <Button
+              type="button"
+              variant={video.enabled ? "outline" : "default"}
+              size="sm"
+              disabled={isUpdatingVisibility}
+              onClick={() => handleToggleVisibility(!video.enabled)}
+              className="min-h-10 rounded-full px-4 text-xs font-semibold gap-1.5"
+            >
+              {video.enabled ? (
+                <>
+                  <EyeOff className="h-3.5 w-3.5" />
+                  <span>Hide Workshop Video</span>
+                </>
+              ) : (
+                <>
+                  <Eye className="h-3.5 w-3.5" />
+                  <span>Show Workshop Video</span>
+                </>
+              )}
+            </Button>
+            <Switch
+              id="workshop-video-visibility-switch"
+              checked={Boolean(video.enabled)}
+              disabled={isUpdatingVisibility}
+              onCheckedChange={handleToggleVisibility}
+              aria-label="Toggle workshop video visibility"
+            />
+          </div>
+        </div>
+      </div>
+
       <div className="space-y-4 rounded-xl border border-stone bg-card p-6">
         <h2 className="font-display text-xl">Warehouse video</h2>
         <div className="space-y-2">

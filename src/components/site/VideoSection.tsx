@@ -7,6 +7,10 @@ import { Reveal } from "./Reveal";
 export function VideoSection({ heading = "Inside our warehouse" }: { heading?: string }) {
   const { video } = useStore();
 
+  if (!video?.enabled) {
+    return null;
+  }
+
   return (
     <section className="bg-mist py-20">
       <div className="mx-auto max-w-5xl px-4 sm:px-6">

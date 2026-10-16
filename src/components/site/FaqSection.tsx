@@ -42,7 +42,7 @@ export function FaqSection({ isHomepage = false }: FaqSectionProps) {
     });
   }, [publishedFaqs, activeCategory, searchQuery]);
 
-  const [openId, setOpenId] = useState<string | null>(filteredFaqs[0]?.id ?? null);
+  const [openId, setOpenId] = useState<string | null>(null);
 
   if (!publishedFaqs.length && isHomepage) return null;
 
@@ -90,8 +90,8 @@ export function FaqSection({ isHomepage = false }: FaqSectionProps) {
                       onClick={() => setActiveCategory(cat)}
                       className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 cursor-pointer border ${
                         isActive
-                          ? "bg-black text-white border-black shadow-md scale-105"
-                          : "bg-[#9da3a8] border-[#8d9398] text-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.4)] hover:bg-black hover:border-black hover:scale-105"
+                          ? "bg-black text-white border-black shadow-md scale-105 ring-2 ring-black/20"
+                          : "bg-black border-zinc-800 text-white/85 hover:text-white hover:bg-neutral-900 hover:scale-105 shadow-xs"
                       }`}
                     >
                       {cat}
@@ -133,8 +133,8 @@ export function FaqSection({ isHomepage = false }: FaqSectionProps) {
                     key={faq.id}
                     className={`rounded-2xl border transition-all duration-300 px-5 sm:px-6 ${
                       isOpen
-                        ? "border-zinc-300 bg-white text-black shadow-xl ring-1 ring-zinc-200/50"
-                        : "border-[#8d9398] bg-[#9da3a8] text-white hover:bg-[#8e9499] shadow-sm"
+                        ? "border-zinc-800 bg-black text-white shadow-xl ring-1 ring-white/10"
+                        : "border-black bg-black text-white hover:bg-neutral-900 shadow-sm"
                     }`}
                   >
                     {/* Question Trigger */}
@@ -149,21 +149,15 @@ export function FaqSection({ isHomepage = false }: FaqSectionProps) {
                         <span
                           className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold transition-all duration-300 ${
                             isOpen
-                              ? "bg-black text-white"
-                              : "bg-black/30 text-white border border-white/30"
+                              ? "bg-white text-black"
+                              : "bg-white/10 text-white border border-white/20"
                           }`}
                         >
                           {index + 1 < 10 ? `0${index + 1}` : index + 1}
                         </span>
 
                         {/* Question Text */}
-                        <span
-                          className={`text-sm sm:text-base font-semibold transition-colors duration-300 ${
-                            isOpen
-                              ? "text-black"
-                              : "text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]"
-                          }`}
-                        >
+                        <span className="text-sm sm:text-base font-semibold text-white transition-colors duration-300">
                           {faq.question}
                         </span>
                       </div>
@@ -171,7 +165,7 @@ export function FaqSection({ isHomepage = false }: FaqSectionProps) {
                       {/* Chevron Circle Icon */}
                       <div
                         className={`h-8 w-8 shrink-0 rounded-full flex items-center justify-center transition-all duration-300 ${
-                          isOpen ? "bg-black text-white rotate-180" : "bg-black/30 text-white"
+                          isOpen ? "bg-white text-black rotate-180" : "bg-white/10 text-white"
                         }`}
                       >
                         <ChevronDown className="h-4 w-4 transition-transform duration-300" />
@@ -187,11 +181,11 @@ export function FaqSection({ isHomepage = false }: FaqSectionProps) {
                       }`}
                     >
                       <div className="overflow-hidden">
-                        <div className="pt-3 border-t border-zinc-200 text-xs sm:text-sm text-zinc-800 leading-relaxed space-y-3">
+                        <div className="pt-3 border-t border-zinc-800 text-xs sm:text-sm text-zinc-300 leading-relaxed space-y-3">
                           <p>{faq.answer}</p>
                           {faq.category && (
                             <div className="pt-1">
-                              <span className="inline-block text-[10px] font-bold uppercase tracking-wider text-zinc-200 bg-zinc-900 px-3 py-1 rounded-full shadow-xs">
+                              <span className="inline-block text-[10px] font-bold uppercase tracking-wider text-zinc-300 bg-zinc-900 border border-zinc-800 px-3 py-1 rounded-full shadow-xs">
                                 {faq.category}
                               </span>
                             </div>

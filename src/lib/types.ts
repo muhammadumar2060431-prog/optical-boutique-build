@@ -1,4 +1,4 @@
-﻿type ID = string;
+type ID = string;
 
 export interface Variant {
   id: ID;
@@ -148,6 +148,7 @@ export interface VideoSettings {
   videoUrl: string;
   videoId: string | null;
   caption: string;
+  enabled?: boolean;
 }
 
 export interface StoreSettings {

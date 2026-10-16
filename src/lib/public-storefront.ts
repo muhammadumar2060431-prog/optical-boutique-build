@@ -16,7 +16,7 @@ export function publicStorefrontData(data: InitialSupabaseData): InitialSupabase
     socialReels: data.socialReels,
     faqs: data.faqs,
     announcement: data.announcement,
-    video: data.video,
+    video: data.video?.enabled ? data.video : null,
     orders: null,
     queries: null,
     subscribers: null,
