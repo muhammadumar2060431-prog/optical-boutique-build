@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 import { useStore } from "@/lib/store";
 import { sanitizeHref, sanitizeImageSrc } from "@/lib/security";
+import { resolveHeroMobileImage } from "@/lib/hero-image";
 import { cn } from "@/lib/utils";
 
 const FALLBACK_HERO_IMAGE = "/about-sunglasses.jpg";
@@ -14,7 +15,12 @@ export function Hero() {
   const [paused, setPaused] = useState(false);
   const [failedImages, setFailedImages] = useState<Set<string>>(() => new Set());
   const [visitedSlides, setVisitedSlides] = useState<Set<string>>(() => new Set());
-  const activeSlideId = slides[index]?.id;
+
+  const touchStartX = useRef<number | null>(null);
+  const touchEndX = useRef<number | null>(null);
+
+  const activeSlide = slides[index];
+  const activeSlideId = activeSlide?.id;
 
   useEffect(() => {
     if (!activeSlideId) return;
@@ -41,13 +47,49 @@ export function Hero() {
 
   if (!slides.length) return null;
 
+  // Check if active slide has a valid, non-failed mobile banner
+  const activeMobileRaw = activeSlide?.mobileImage ? sanitizeImageSrc(activeSlide.mobileImage, "") : "";
+  const activeHasMobileImage = Boolean(activeMobileRaw) && !failedImages.has(activeMobileRaw);
+
+  const mobileHeightClass = activeHasMobileImage
+    ? "h-[min(75vw,320px)] sm:h-[min(75vw,360px)]"
+    : "h-[240px] sm:h-[300px]";
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setPaused(true);
+    touchStartX.current = e.touches[0].clientX;
+    touchEndX.current = null;
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    touchEndX.current = e.touches[0].clientX;
+  };
+
+  const handleTouchEnd = () => {
+    setPaused(false);
+    if (touchStartX.current !== null && touchEndX.current !== null) {
+      const deltaX = touchStartX.current - touchEndX.current;
+      if (Math.abs(deltaX) > 50) {
+        if (deltaX > 0) go(1);
+        else go(-1);
+      }
+    }
+    touchStartX.current = null;
+    touchEndX.current = null;
+  };
+
   return (
     <section
-      className="relative left-1/2 isolate h-[240px] w-[100dvw] max-w-[100dvw] -translate-x-1/2 overflow-hidden bg-jet sm:h-[300px] md:h-[min(37.5vw,380px)] lg:h-[min(37.5vw,480px,calc(100dvh-180px))] xl:h-[min(37.5vw,520px,calc(100dvh-180px))] 2xl:h-[min(37.5vw,560px,calc(100dvh-180px))]"
+      className={cn(
+        "relative left-1/2 isolate w-[100dvw] max-w-[100dvw] -translate-x-1/2 overflow-hidden bg-jet transition-[height] duration-300 ease-out",
+        mobileHeightClass,
+        "md:h-[min(37.5vw,380px)] lg:h-[min(37.5vw,480px,calc(100dvh-180px))] xl:h-[min(37.5vw,520px,calc(100dvh-180px))] 2xl:h-[min(37.5vw,560px,calc(100dvh-180px))]",
+      )}
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
-      onTouchStart={() => setPaused(true)}
-      onTouchEnd={() => setPaused(false)}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
     >
       {slides.map((slide, i) => {
         const hasText = Boolean(
@@ -57,30 +99,67 @@ export function Hero() {
           slide.ctaText?.trim(),
         );
 
-        const originalImage = sanitizeImageSrc(slide.image, FALLBACK_HERO_IMAGE);
-        const imageSrc = failedImages.has(originalImage) ? FALLBACK_HERO_IMAGE : originalImage;
+        const originalDesktopImage = sanitizeImageSrc(slide.image, FALLBACK_HERO_IMAGE);
+        const desktopImageSrc = failedImages.has(originalDesktopImage)
+          ? FALLBACK_HERO_IMAGE
+          : originalDesktopImage;
+
+        const rawMobileImage = slide.mobileImage ? sanitizeImageSrc(slide.mobileImage, "") : "";
+        const rawMobileFailed = failedImages.has(rawMobileImage);
+        const hasValidMobile = Boolean(rawMobileImage) && !rawMobileFailed;
+
+        const { src: mobileSrc, isMobileSpecific } = hasValidMobile
+          ? resolveHeroMobileImage(rawMobileImage, desktopImageSrc)
+          : { src: desktopImageSrc, isMobileSpecific: false };
+
         const ctaLink = sanitizeHref(slide.ctaLink, "");
 
         const imageElement =
           i === index || visitedSlides.has(slide.id) ? (
-            <img
-              src={imageSrc}
-              alt={slide.headline || "Store banner"}
-              width={1920}
-              height={720}
-              loading={i === index ? "eager" : "lazy"}
-              decoding="async"
-              fetchPriority={i === 0 ? "high" : "auto"}
-              className="block h-full w-full max-w-none object-cover object-center"
-              onError={() => {
-                setFailedImages((current) => {
-                  if (current.has(originalImage)) return current;
-                  const next = new Set(current);
-                  next.add(originalImage);
-                  return next;
-                });
-              }}
-            />
+            <picture className="block h-full w-full">
+              {isMobileSpecific && mobileSrc ? (
+                <source
+                  media="(max-width: 767px)"
+                  srcSet={mobileSrc}
+                  width={1200}
+                  height={900}
+                />
+              ) : null}
+              <img
+                src={desktopImageSrc}
+                alt={slide.headline || "Store banner"}
+                width={1920}
+                height={720}
+                loading={i === index ? "eager" : "lazy"}
+                decoding="async"
+                fetchPriority={i === 0 ? "high" : "auto"}
+                className="block h-full w-full max-w-none object-cover object-center"
+                onError={(e) => {
+                  const img = e.currentTarget;
+                  // If mobile source failed, drop mobile source and retry desktop
+                  if (
+                    isMobileSpecific &&
+                    rawMobileImage &&
+                    (img.currentSrc.includes(rawMobileImage) || !failedImages.has(rawMobileImage))
+                  ) {
+                    setFailedImages((current) => {
+                      if (current.has(rawMobileImage)) return current;
+                      const next = new Set(current);
+                      next.add(rawMobileImage);
+                      return next;
+                    });
+                    return;
+                  }
+                  // Otherwise mark desktop failed
+                  setFailedImages((current) => {
+                    if (current.has(originalDesktopImage)) return current;
+                    const next = new Set(current);
+                    next.add(originalDesktopImage);
+                    return next;
+                  });
+                }}
+              />
+            </picture>
           ) : null;
 
         return (
@@ -172,18 +251,22 @@ export function Hero() {
         <ChevronRight className="h-5 w-5" />
       </button>
 
-      <div className="absolute bottom-6 left-1/2 flex -translate-x-1/2 gap-3">
+      <div className="absolute bottom-2 sm:bottom-6 left-1/2 flex -translate-x-1/2 gap-1 sm:gap-2">
         {slides.map((s, i) => (
           <button
             key={s.id}
             type="button"
             aria-label={`Go to slide ${i + 1}`}
             onClick={() => setIndex(i)}
-            className={cn(
-              "h-2.5 w-2.5 rounded-full border border-cream/60 transition-colors",
-              i === index && "border-gold bg-gold",
-            )}
-          />
+            className="flex min-h-11 min-w-11 items-center justify-center p-2"
+          >
+            <span
+              className={cn(
+                "h-2.5 w-2.5 rounded-full border border-cream/60 transition-colors",
+                i === index && "border-gold bg-gold",
+              )}
+            />
+          </button>
         ))}
       </div>
     </section>

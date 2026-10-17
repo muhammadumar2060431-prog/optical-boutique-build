@@ -110,6 +110,7 @@ export interface Order {
 export interface HeroSlide {
   id: ID;
   image: string;
+  mobileImage?: string | null;
   eyebrow: string;
   headline: string;
   subtext: string;

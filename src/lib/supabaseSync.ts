@@ -330,6 +330,7 @@ function mapStoreHeroSlideToDb(slide: HeroSlide, index?: number): any {
     headline: slide.headline || "",
     subtext: slide.subtext || "",
     image: slide.image || "",
+    mobile_image: slide.mobileImage || null,
     cta_text: slide.ctaText || "",
     cta_link: slide.ctaLink || "",
     eyebrow: slide.eyebrow || "",
@@ -344,6 +345,7 @@ export function mapDbHeroSlideToStore(raw: any): HeroSlide {
     headline: raw.headline || raw.title || "",
     subtext: raw.subtext || raw.subtitle || "",
     image: raw.image || "",
+    mobileImage: raw.mobile_image || raw.mobileImage || null,
     ctaText: raw.cta_text || raw.button_text || raw.ctaText || "",
     ctaLink: raw.cta_link || raw.link || raw.ctaLink || "",
     eyebrow: raw.eyebrow || "",
@@ -1046,10 +1048,25 @@ export async function dbUpsertHeroSlide(slide: HeroSlide): Promise<boolean> {
       if (image && image.startsWith("data:")) {
         image = await requireStoredImage(image, "hero");
       }
-      const updatedSlide = { ...slide, image };
+      let mobileImage = slide.mobileImage;
+      if (mobileImage && mobileImage.startsWith("data:")) {
+        mobileImage = await requireStoredImage(mobileImage, "hero");
+      }
+      const updatedSlide = { ...slide, image, mobileImage };
       const payload = mapStoreHeroSlideToDb(updatedSlide);
       const { error } = await supabase.from("hero_slides").upsert(payload);
       if (!error) return true;
+
+      const errorMessage = String(error?.message || "") + " " + String(error?.details || "");
+      if (error.code === "PGRST204" && errorMessage.includes("mobile_image")) {
+        console.warn(
+          "Supabase hero_slides table is missing mobile_image column; retrying without it. Run migration 20261017120000_hero_slide_mobile_image.sql.",
+        );
+        const { mobile_image: _stripped, ...fallbackPayload } = payload;
+        const { error: retryError } = await supabase.from("hero_slides").upsert(fallbackPayload);
+        if (!retryError) return true;
+        throw retryError;
+      }
 
       if (error.code === "PGRST204") {
         const { error: legacyError } = await supabase
@@ -1076,12 +1093,27 @@ export async function dbUpsertHeroSlides(slides: HeroSlide[]): Promise<boolean> 
         if (image && image.startsWith("data:")) {
           image = await requireStoredImage(image, "hero");
         }
-        return { ...slide, image };
+        let mobileImage = slide.mobileImage;
+        if (mobileImage && mobileImage.startsWith("data:")) {
+          mobileImage = await requireStoredImage(mobileImage, "hero");
+        }
+        return { ...slide, image, mobileImage };
       }),
     );
     const payload = updatedSlides.map((slide, i) => mapStoreHeroSlideToDb(slide, i));
     const { error } = await supabase.from("hero_slides").upsert(payload);
     if (!error) return true;
+
+    const errorMessage = String(error?.message || "") + " " + String(error?.details || "");
+    if (error.code === "PGRST204" && errorMessage.includes("mobile_image")) {
+      console.warn(
+        "Supabase hero_slides table is missing mobile_image column; retrying without it. Run migration 20261017120000_hero_slide_mobile_image.sql.",
+      );
+      const fallbackPayload = payload.map(({ mobile_image: _stripped, ...rest }) => rest);
+      const { error: retryError } = await supabase.from("hero_slides").upsert(fallbackPayload);
+      if (!retryError) return true;
+      throw retryError;
+    }
 
     if (error.code === "PGRST204") {
       const legacyPayload = updatedSlides.map((slide, i) => mapStoreHeroSlideToLegacyDb(slide, i));

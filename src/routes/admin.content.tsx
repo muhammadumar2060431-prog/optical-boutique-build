@@ -557,13 +557,24 @@ function HeroPanel() {
               </div>
 
               <ImageUpload
-                label="Slide image"
+                label="Slide image (Desktop)"
                 preserveOriginal
                 maxBytes={5 * 1024 * 1024}
                 value={slide.image}
                 onChange={(img) => updateHeroSlide(slide.id, { image: img ?? "" })}
-                hint="1920 x 720 px recommended (8:3). Keep all important text/logos inside the central safe zone (about 1100 x 540 px, centered). Top/bottom ~90px and left/right ~40% may be cropped on desktop/mobile. JPG/PNG/WebP/AVIF - Max 5 MB."
+                hint="1920 x 720 px recommended (8:3). Keep important text/logos inside the central safe zone (about 1100 x 540 px). JPG/PNG/WebP/AVIF - Max 5 MB."
                 aspectHint="8:3 wide"
+                storageFolder="hero"
+              />
+
+              <ImageUpload
+                label="Mobile banner (Optional)"
+                preserveOriginal
+                maxBytes={5 * 1024 * 1024}
+                value={slide.mobileImage ?? null}
+                onChange={(img) => updateHeroSlide(slide.id, { mobileImage: img ?? null })}
+                hint="1200 x 900 px recommended (4:3). Shown only on phones (below 768px). Keep important text/logos at least 60px away from the edges. If left empty, the desktop banner is used. JPG/PNG/WebP/AVIF - Max 5 MB."
+                aspectHint="4:3 mobile"
                 storageFolder="hero"
               />
 
