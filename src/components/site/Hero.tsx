@@ -43,7 +43,7 @@ export function Hero() {
 
   return (
     <section
-      className="relative left-1/2 isolate h-[250px] w-[100dvw] max-w-[100dvw] -translate-x-1/2 overflow-hidden bg-jet sm:h-[340px] md:h-[min(50vw,720px)]"
+      className="relative left-1/2 isolate h-[240px] w-[100dvw] max-w-[100dvw] -translate-x-1/2 overflow-hidden bg-jet sm:h-[300px] md:h-[min(37.5vw,380px)] lg:h-[min(37.5vw,480px,calc(100dvh-180px))] xl:h-[min(37.5vw,520px,calc(100dvh-180px))] 2xl:h-[min(37.5vw,560px,calc(100dvh-180px))]"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
       onTouchStart={() => setPaused(true)}
@@ -66,15 +66,12 @@ export function Hero() {
             <img
               src={imageSrc}
               alt={slide.headline || "Store banner"}
-              width={1440}
+              width={1920}
               height={720}
               loading={i === index ? "eager" : "lazy"}
               decoding="async"
               fetchPriority={i === 0 ? "high" : "auto"}
-              className={cn(
-                "block h-full w-full max-w-none",
-                hasText ? "object-cover" : "object-fill",
-              )}
+              className="block h-full w-full max-w-none object-cover object-center"
               onError={() => {
                 setFailedImages((current) => {
                   if (current.has(originalImage)) return current;
