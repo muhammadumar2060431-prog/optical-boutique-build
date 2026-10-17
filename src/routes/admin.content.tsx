@@ -562,8 +562,8 @@ function HeroPanel() {
                 maxBytes={5 * 1024 * 1024}
                 value={slide.image}
                 onChange={(img) => updateHeroSlide(slide.id, { image: img ?? "" })}
-                hint="1440 x 720 px recommended - Original quality - JPG/PNG/WebP/AVIF - Max 5 MB"
-                aspectHint="2:1 wide"
+                hint="1920 x 720 px recommended (8:3 wide) - Original quality - JPG/PNG/WebP/AVIF - Max 5 MB. Keep logo/text in the center area; edges may be cropped on mobile."
+                aspectHint="8:3 wide"
                 storageFolder="hero"
               />
 

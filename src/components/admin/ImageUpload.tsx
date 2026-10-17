@@ -47,7 +47,7 @@ async function loadEditableImageSource(source: string) {
 // --- Image Size Guide --------------------------------------------------------
 // Recommended sizes for fast loading (website smooth chale):
 //   Logo              : 400x120 px  |  max 80 KB   | PNG/WebP (transparent bg)
-//   Hero Slide Banner : 1440x720 px |  max 300 KB  | JPG/WebP
+//   Hero Slide Banner : 1920x720 px |  max 5 MB    | JPG/PNG/WebP/AVIF
 //   Category Icon     : 400x400 px  |  max 100 KB  | JPG/WebP (square)
 //   Category Banner   : 1200x600 px |  max 250 KB  | JPG/WebP
 //   Product Main Image: 800x800 px  |  max 200 KB  | JPG/WebP (square)
