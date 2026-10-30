@@ -64,7 +64,7 @@
     "prettier": "^3.7.3",
     "sharp": "^0.35.5",
     "supabase": "^2.117.0",
-    "typescript": "^5.8.3",
+    "typescript": "^7.0.2",
     "typescript-eslint": "^8.56.1",
     "vite": "8.1.5"
   }
